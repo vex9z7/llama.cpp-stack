@@ -19,7 +19,13 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := LLAMA_MODEL_FILE=$(MODEL_FILE) $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check up down restart logs ps config smoke stream-cancel
+.PHONY: check models download up down restart logs ps config smoke stream-cancel
+
+models:
+	@awk -F '\t' 'BEGIN { printf "%-24s %-36s %-18s %s\n", "NAME", "REPO", "INCLUDE", "DESCRIPTION" } $$0 !~ /^#/ && NF >= 5 { printf "%-24s %-36s %-18s %s\n", $$1, $$2, $$3, $$5 }' models/catalog.tsv
+
+download:
+	MODEL="$${MODEL:-}" MODEL_REPO="$${MODEL_REPO:-}" MODEL_INCLUDE="$${MODEL_INCLUDE:-}" WRITE_ENV="$${WRITE_ENV:-0}" ./scripts/download_model.sh
 
 check:
 	@$(COMPOSE_CMD) version >/dev/null 2>&1 || (echo "Compose command failed: $(COMPOSE_CMD). Install Docker Compose plugin or run with COMPOSE_CMD=docker-compose" >&2; exit 2)

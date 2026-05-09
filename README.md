@@ -57,6 +57,30 @@ make smoke
 make stream-cancel
 ```
 
+
+## Model catalog / download
+
+可以用内置 catalog 先下载一个 GGUF 模型：
+
+```bash
+make models
+make download MODEL=qwen3-4b-q4
+```
+
+下载后脚本会提示应该写入 `.env` 的 `LLAMA_MODEL_FILE`。如果想自动写入 `.env`：
+
+```bash
+make download MODEL=qwen3-4b-q4 WRITE_ENV=1
+```
+
+也可以直接指定任意 Hugging Face repo 和 include glob：
+
+```bash
+make download MODEL_REPO=Qwen/Qwen3-8B-GGUF MODEL_INCLUDE='*Q4_K_M*.gguf'
+```
+
+优先使用本机 `hf` CLI；兼容旧版 `huggingface-cli`。如果本机没有 HF CLI、但有 Docker，会临时用 `python:3.12-slim` 容器执行下载。
+
 ## Models
 
 模型文件放在 `./models` 下。默认配置会加载：

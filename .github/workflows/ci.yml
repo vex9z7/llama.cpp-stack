@@ -61,6 +61,9 @@ jobs:
           cp .env.example .env
           touch models/model.gguf
           make check BACKEND=cpu
+          make models >/dev/null
+          bash -n scripts/download_model.sh
+          make -n download MODEL=qwen3-4b-q4 >/dev/null
           make -n up BACKEND=cpu >/dev/null
 
       - name: Validate Compose configs

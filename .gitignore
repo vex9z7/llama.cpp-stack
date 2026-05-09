@@ -7,6 +7,10 @@ hf-cache/
 *.log
 .env
 
+# Python/local tools
+.venv/
+__pycache__/
+
 # OS/editor
 .DS_Store
 .vscode/
