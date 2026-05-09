@@ -99,7 +99,7 @@ python3 scripts/probe_api_schemas.py --base-url https://llamacpp-stack.vex9z7.co
 Or via Make:
 
 ```bash
-make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com LLAMA_ALIAS=local-llm
+make probe-gateway BASE_URL=https://llamacpp-stack.vex9z7.com
 ```
 
 This catches false positives in permissive schemas and false negatives caused by schema drift.

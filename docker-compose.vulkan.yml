@@ -1,5 +1,0 @@
-services:
-  llama:
-    image: ghcr.io/ggml-org/llama.cpp:server-vulkan
-    devices:
-      - /dev/dri:/dev/dri

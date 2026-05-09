@@ -140,8 +140,8 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`
 - `LLAMA_HOST` / `LLAMA_PORT`：宿主机监听地址和端口
-- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 文件名
-- `LLAMA_ALIAS`：OpenAI-compatible API 中暴露的模型名
+- `models/catalog.toml`：允许按需下载/加载的 GGUF 模型列表
+- `LLAMA_HOST` / `LLAMA_PORT`：gateway 在宿主机上的监听地址和端口
 - `LLAMA_CTX_SIZE`：总上下文窗口
 - `LLAMA_N_PARALLEL`：并发 slot 数
 - `LLAMA_THREADS_HTTP`：HTTP server 线程数

@@ -1,6 +1,6 @@
 # llama.cpp Vulkan Inference Stack
 
-本仓库用于部署一个轻量、可控、可调试的本地 LLM 推理服务：基于 [`llama.cpp`](https://github.com/ggml-org/llama.cpp) / `llama-server`、GGUF 模型、Docker Compose，以及 AMD GPU 的 Vulkan 后端。
+本仓库用于部署一个轻量、可控、可调试的本地 LLM 推理服务：基于 `llama.cpp` / `llama-server`、GGUF 模型、Docker Compose、Go gateway/worker-agent，以及 AMD GPU 的 Vulkan 后端。
 
 ## 目标
 
@@ -8,7 +8,7 @@
 - 支持流式输出和客户端取消，避免断开的请求继续占用 GPU。
 - 使用 Docker Compose 部署，依赖隔离、可迁移、易重启。
 - 支持 AMD GPU Vulkan 加速和 GGUF 模型。
-- 支持多并发请求；当前优先级是稳定性、隔离性和取消响应，而不是极致吞吐。
+- 支持 catalog 模型按需下载、按需加载。
 
 ## Quick start
 
@@ -16,12 +16,12 @@ Requirements: Linux, Docker with Compose plugin, Bash, `curl`.
 
 ```bash
 cp .env.example .env
-make up        # starts the Go gateway + worker-agent pool; removes old single-instance orphans
+make up        # starts the Go gateway + worker-agent pool
 make logs      # follow gateway/worker logs
-make down      # stop the dynamic stack
+make down      # stop the stack
 ```
 
-`make up` now deploys the dynamic gateway using the same host bind as the old service by default: `LLAMA_HOST` / `LLAMA_PORT`. The gateway listens on container port `8090`, but the host port is inherited from your existing `.env`. The old single-instance deployment is still available as `make legacy-up`.
+`make up` deploys the Go gateway. The gateway listens on container port `8090`; the host bind is controlled by `LLAMA_HOST` / `LLAMA_PORT`, or by optional `GATEWAY_HOST` / `GATEWAY_PORT` overrides.
 
 ## Manual reachability test
 
@@ -58,20 +58,24 @@ make smoke
 make stream-cancel
 ```
 
+## Architecture
 
-
-## Dynamic gateway mode
-
-The Go dynamic gateway/worker mode is the first implementation of the router design in `docs/dynamic-model-manager-design.md`. It exposes one OpenAI-compatible gateway and keeps worker/slot details internal.
-
-```bash
-cp .env.example .env
-make up BACKEND=vulkan
-make logs
-make probe-gateway
+```text
+Client / Pipecat / Agents
+        |
+        v
+Go Gateway container
+  - OpenAI-compatible public API
+  - catalog parsing
+  - lazy Hugging Face downloader
+  - worker allocation
+  - streaming/cancellation-aware proxy
+        |
+        +--> worker-agent-0 container -> llama-server subprocess
+        +--> worker-agent-1 container -> llama-server subprocess
 ```
 
-Gateway endpoints:
+Public gateway endpoints:
 
 ```text
 GET  /health
@@ -82,46 +86,11 @@ POST /v1/responses
 POST /v1/embeddings
 ```
 
-`/v1/models` returns catalog models from `models/catalog.toml`. Requesting one of those model ids lazily downloads the GGUF into `models/hf/<repo>/<quant>.gguf`, loads it into an idle worker-agent container, and proxies the request to that worker's `llama-server`.
-
-Example dynamic request:
-
-```bash
-curl http://127.0.0.1:8080/v1/chat/completions \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "model":"Qwen/Qwen3-4B-GGUF/Q4_K_M",
-    "messages":[{"role":"user","content":"Say hello in one sentence."}],
-    "max_tokens":64,
-    "stream":true,
-    "chat_template_kwargs":{"enable_thinking":false}
-  }'
-```
-
-Capacity semantics for v1:
-
-- one worker-agent container can load one model;
-- requests for an already-loaded model are forwarded to that same worker;
-- same-model concurrency is handled by that worker's `llama-server` slots/queue;
-- if a cold model is requested and all workers already hold other models, gateway returns HTTP 429;
-- no Docker socket is mounted, and no `/control/*`, `/worker/*`, or `/slots` endpoints are exposed publicly.
-
-Dynamic mode uses these files:
-
-```text
-Dockerfile.gateway
-Dockerfile.worker
-docker-compose.dynamic.yml
-docker-compose.dynamic.vulkan.yml
-docker-compose.dynamic.cuda.yml
-cmd/gateway
-cmd/worker
-internal/
-```
+The gateway does not expose `/control/*`, `/worker/*`, backend URLs, or llama.cpp `/slots` publicly.
 
 ## Model catalog
 
-`models/catalog.toml` lists Hugging Face models that the future manager may lazy-download on demand. It is source-only and does not contain runtime parameters.
+`models/catalog.toml` lists Hugging Face GGUF sources. It is source-only and does not contain ports or worker assignments.
 
 ```toml
 [[models]]
@@ -135,112 +104,93 @@ Model refs are derived as `<repo>/<quant>`, for example:
 Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
-The default deployment uses the Go gateway and lazy-downloads catalog models on demand. The legacy single-instance Compose path still exists behind `make legacy-up` and expects an already-local GGUF file via `LLAMA_MODEL_FILE`.
-
-## Models
-
-模型文件放在 `./models` 下。动态 gateway 会按需下载到 `models/hf/<repo>/<quant>.gguf`。旧单实例模式会加载：
+Requesting a catalog model lazily downloads the selected GGUF into:
 
 ```text
-models/model.gguf
+models/hf/<repo>/<quant>.gguf
 ```
 
-如需使用其它模型文件：
+Then the gateway loads that model into an idle worker-agent container and proxies the request to that worker's `llama-server`.
 
-```env
-LLAMA_MODEL_FILE=hf/Qwen/Qwen3-8B-GGUF/Q4_K_M.gguf
-LLAMA_ALIAS=qwen3-8b-local
-```
+## Capacity semantics
 
-`models/**/*.gguf` 不入 git，只有 `models/.gitkeep` 用于保留目录。
+V1 capacity policy is simple and explicit:
 
-## 目录结构
+- one worker-agent container can load one model;
+- requests for an already-loaded model are forwarded to that same worker;
+- same-model concurrency is handled by that worker's `llama-server` slots/queue;
+- if a cold model is requested and all workers already hold other models, gateway returns HTTP 429;
+- no eviction/LRU policy in v1.
+
+## Repository layout
 
 ```text
 .
-├── docker-compose.dynamic.yml        # default Go gateway + worker-agent stack
-├── docker-compose.dynamic.vulkan.yml # dynamic Vulkan override
-├── docker-compose.dynamic.cuda.yml   # dynamic CUDA override
-├── docker-compose.yml                # legacy llama-server base service
-├── docker-compose.vulkan.yml         # legacy Vulkan override
-├── docker-compose.cuda.yml           # legacy CUDA override
-├── Makefile                  # validated compose workflow
-├── .env.example              # 可复制的本地配置模板
+├── Dockerfile.gateway
+├── Dockerfile.worker
+├── docker-compose.dynamic.yml        # Go gateway + worker-agent stack
+├── docker-compose.dynamic.vulkan.yml # Vulkan override
+├── docker-compose.dynamic.cuda.yml   # CUDA override
+├── Makefile                          # validated compose workflow
+├── cmd/
+│   ├── gateway/
+│   └── worker/
+├── internal/
+│   ├── catalog/
+│   ├── hf/
+│   ├── manager/
+│   ├── proxy/
+│   ├── workerclient/
+│   └── llamaprocess/
 ├── docs/
-│   └── deployment-plan.md    # 部署方案和工程说明
-├── models/                   # 放置本地 GGUF 模型；模型文件不入 git
+├── models/
 └── scripts/
-    ├── smoke_stream.sh       # 流式输出 smoke test
-    └── test_cancel.sh        # 客户端取消验证脚本
 ```
 
-## 关键配置
+## Key configuration
 
 编辑 `.env`：
 
-动态 gateway：
-
-- `GATEWAY_HOST` / `GATEWAY_PORT`：gateway 宿主机监听地址和端口；默认继承 `LLAMA_HOST` / `LLAMA_PORT`；也可显式覆盖。
+- `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`。
+- `LLAMA_HOST` / `LLAMA_PORT`：gateway 宿主机监听地址和端口。
+- `GATEWAY_HOST` / `GATEWAY_PORT`：可选覆盖；留空则继承 `LLAMA_HOST` / `LLAMA_PORT`。
 - `WORKER_BASE_URLS`：Compose 内部 worker-agent 地址列表。
 - `LLAMA_WORKER_POOL_SIZE`：文档/校验用的 worker 数量；实际数量由 Compose worker 服务决定。
 - `LLAMA_WORKER_CTX_SIZE` / `LLAMA_WORKER_PARALLEL`：每个 worker 启动 llama-server 时的上下文和并发。
+- `LLAMA_WORKER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
 - `HF_ENDPOINT` / `HF_TOKEN`：Hugging Face 下载配置。
+- `GATEWAY_SMOKE_MODEL`：`make smoke` / `make probe-api` 使用的模型。
 
-通用/legacy：
+## Commands
 
-- `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`。
-- `LLAMA_HOST` / `LLAMA_PORT`：宿主机监听地址和端口；默认只绑定 `127.0.0.1:8080`。
-- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 路径，例如 `model.gguf` 或 `hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf`。
-- `LLAMA_ALIAS`：客户端请求时使用的 model 名称。
-- `LLAMA_CTX_SIZE` / `LLAMA_N_PARALLEL`：上下文总量与并发 slot 数。有效单请求上下文大约是 `CTX_SIZE / N_PARALLEL`。
-- `LLAMA_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload，VRAM 不足时调低。
-- `LLAMA_EXTRA_ARGS`：额外传给 `llama-server` 的参数，例如某些版本支持的 metrics/slots/API-key 参数。
+```bash
+make up
+make down
+make restart
+make logs
+make ps
+make config
+make models
+make probe-gateway
+make smoke
+make stream-cancel
+```
+
+Backend selection:
+
+```bash
+make up BACKEND=vulkan
+make up BACKEND=cpu
+make up BACKEND=cuda
+```
 
 ## API schemas
 
-Integration schemas live under `schemas/` and are documented in `docs/api-schemas.md`. They cover the OpenAI-compatible `/v1/*` subset plus llama.cpp-native endpoints such as `/health` and `/slots`.
+Integration schemas live under `schemas/` and are documented in `docs/api-schemas.md`.
 
 ```bash
 make schemas
 make probe-gateway BASE_URL=https://llamacpp-stack.vex9z7.com
-```
-
-## Multi-instance
-
-For future dynamic multi-model serving, see `docs/dynamic-model-manager-design.md`. The older static generated-compose workflow is documented in `docs/multi-instance.md`. The workflow uses `configs/instances.toml` to generate `docker-compose.instances.yml`.
-
-```bash
-cp configs/instances.example.toml configs/instances.toml
-make instances-render
-make instances-up
-```
-
-## Backend selection
-
-默认 `make up` 使用 dynamic gateway。默认使用 Vulkan：
-
-```bash
-make up
-```
-
-CPU debug：
-
-```bash
-make up BACKEND=cpu
-```
-
-CUDA portability option：
-
-```bash
-make up BACKEND=cuda
-```
-
-旧单实例模式：
-
-```bash
-make legacy-up BACKEND=vulkan
-make legacy-logs
-make legacy-down
 ```
 
 ## Vulkan/AMD 排障
@@ -265,7 +215,6 @@ vulkaninfo --summary
 
 ```env
 LLAMA_HOST=0.0.0.0
-# 如果你的 llama-server 版本支持 API key，可通过 LLAMA_EXTRA_ARGS 传入对应参数。
 ```
 
 公网暴露前应增加认证代理、访问控制和日志策略。

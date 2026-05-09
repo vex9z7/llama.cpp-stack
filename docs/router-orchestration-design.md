@@ -82,9 +82,7 @@ The router should not implement inference. It should:
 
 ### 3.3 Prefer explicit model metadata over env var sprawl
 
-The current single-instance `.env` is acceptable for one model. Multi-model routing needs structured metadata.
-
-Use a catalog file rather than many environment variables.
+The gateway uses structured catalog metadata rather than per-model environment variables.
 
 ### 3.4 Separate routing from lifecycle management inside one service
 
