@@ -3,22 +3,34 @@
   "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/error-response.schema.json",
   "title": "llama.cpp Error Response",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["error"],
+  "additionalProperties": false,
+  "required": [
+    "error"
+  ],
   "properties": {
     "error": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["message"],
+      "required": [
+        "message"
+      ],
       "properties": {
         "code": {
           "oneOf": [
-            { "type": "integer" },
-            { "type": "string" }
+            {
+              "type": "integer"
+            },
+            {
+              "type": "string"
+            }
           ]
         },
-        "message": { "type": "string" },
-        "type": { "type": "string" }
+        "message": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string"
+        }
       }
     }
   }

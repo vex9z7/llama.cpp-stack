@@ -133,6 +133,7 @@ Integration schemas live under `schemas/` and are documented in `docs/api-schema
 
 ```bash
 make schemas
+make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com LLAMA_ALIAS=local-llm
 ```
 
 ## Backend selection

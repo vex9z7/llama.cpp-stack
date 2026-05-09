@@ -85,4 +85,21 @@ The schema set now includes request and response schemas for the core integratio
 | `GET /slots` | n/a | `slots-response.schema.json` |
 | `GET /metrics` | n/a | `metrics-response.schema.json` / `error-response.schema.json` when disabled |
 
-These schemas are intentionally permissive (`additionalProperties: true`) because llama.cpp evolves quickly and returns implementation-specific timing, cache, model, slot, and reasoning fields.
+The top-level request/response schemas are intentionally exact (`additionalProperties: false`) to avoid false positives. Nested implementation-specific objects such as timings, metadata, generation settings, and slot params remain permissive because llama.cpp evolves quickly and exposes backend-specific details there.
+
+## Runtime validation
+
+Use the probe script to validate both outbound requests and inbound responses against these schemas:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+python3 scripts/probe_api_schemas.py --base-url https://llamacpp-stack.vex9z7.com --model local-llm
+```
+
+Or via Make:
+
+```bash
+make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com LLAMA_ALIAS=local-llm
+```
+
+This catches false positives in permissive schemas and false negatives caused by schema drift.

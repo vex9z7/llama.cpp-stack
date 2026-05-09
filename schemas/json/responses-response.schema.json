@@ -3,26 +3,55 @@
   "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/responses-response.schema.json",
   "title": "OpenAI-compatible Responses API Response",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["id", "object", "model", "output", "status"],
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "object",
+    "model",
+    "output",
+    "status"
+  ],
   "properties": {
-    "id": { "type": "string" },
-    "object": { "type": "string", "examples": ["response"] },
-    "created_at": { "type": "integer" },
-    "completed_at": { "type": "integer" },
-    "model": { "type": "string" },
-    "status": { "type": "string" },
+    "id": {
+      "type": "string"
+    },
+    "object": {
+      "type": "string",
+      "examples": [
+        "response"
+      ]
+    },
+    "created_at": {
+      "type": "integer"
+    },
+    "completed_at": {
+      "type": "integer"
+    },
+    "model": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
     "output": {
       "type": "array",
-      "items": { "$ref": "#/$defs/outputItem" }
+      "items": {
+        "$ref": "#/$defs/outputItem"
+      }
     },
     "usage": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "input_tokens": { "type": "integer" },
-        "output_tokens": { "type": "integer" },
-        "total_tokens": { "type": "integer" }
+        "input_tokens": {
+          "type": "integer"
+        },
+        "output_tokens": {
+          "type": "integer"
+        },
+        "total_tokens": {
+          "type": "integer"
+        }
       }
     }
   },
@@ -31,15 +60,37 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "id": { "type": "string" },
-        "type": { "type": "string", "examples": ["message", "reasoning", "function_call"] },
-        "role": { "type": "string" },
-        "status": { "type": "string" },
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "examples": [
+            "message",
+            "reasoning",
+            "function_call"
+          ]
+        },
+        "role": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
         "content": {
           "type": "array",
-          "items": { "type": "object", "additionalProperties": true }
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
         },
-        "summary": { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        "summary": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
       }
     }
   }

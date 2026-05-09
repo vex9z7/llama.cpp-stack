@@ -3,24 +3,55 @@
   "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/completion-request.schema.json",
   "title": "OpenAI-compatible Legacy Completion Request",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["model", "prompt"],
+  "additionalProperties": false,
+  "required": [
+    "model",
+    "prompt"
+  ],
   "properties": {
-    "model": { "type": "string" },
+    "model": {
+      "type": "string"
+    },
     "prompt": {
       "oneOf": [
-        { "type": "string" },
-        { "type": "array", "items": { "type": "string" } }
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     },
-    "stream": { "type": "boolean" },
-    "max_tokens": { "type": "integer", "minimum": 1 },
-    "temperature": { "type": "number", "minimum": 0 },
-    "top_p": { "type": "number", "minimum": 0, "maximum": 1 },
+    "stream": {
+      "type": "boolean"
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0
+    },
+    "top_p": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
     "stop": {
       "oneOf": [
-        { "type": "string" },
-        { "type": "array", "items": { "type": "string" } }
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     }
   }

@@ -3,35 +3,78 @@
   "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/chat-completion-request.schema.json",
   "title": "llama.cpp OpenAI-compatible Chat Completion Request",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["model", "messages"],
+  "additionalProperties": false,
+  "required": [
+    "model",
+    "messages"
+  ],
   "properties": {
-    "model": { "type": "string" },
+    "model": {
+      "type": "string"
+    },
     "messages": {
       "type": "array",
       "minItems": 1,
-      "items": { "$ref": "#/$defs/chatMessage" }
+      "items": {
+        "$ref": "#/$defs/chatMessage"
+      }
     },
-    "stream": { "type": "boolean", "default": false },
-    "max_tokens": { "type": "integer", "minimum": 1 },
-    "max_completion_tokens": { "type": "integer", "minimum": 1 },
-    "temperature": { "type": "number", "minimum": 0 },
-    "top_p": { "type": "number", "minimum": 0, "maximum": 1 },
+    "stream": {
+      "type": "boolean",
+      "default": false
+    },
+    "max_tokens": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "max_completion_tokens": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "temperature": {
+      "type": "number",
+      "minimum": 0
+    },
+    "top_p": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
     "stop": {
       "oneOf": [
-        { "type": "string" },
-        { "type": "array", "items": { "type": "string" } }
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
       ]
     },
-    "response_format": { "$ref": "#/$defs/responseFormat" },
+    "response_format": {
+      "$ref": "#/$defs/responseFormat"
+    },
     "tools": {
       "type": "array",
-      "items": { "$ref": "#/$defs/tool" }
+      "items": {
+        "$ref": "#/$defs/tool"
+      }
     },
     "tool_choice": {
       "oneOf": [
-        { "type": "string", "enum": ["none", "auto", "required"] },
-        { "$ref": "#/$defs/toolChoice" }
+        {
+          "type": "string",
+          "enum": [
+            "none",
+            "auto",
+            "required"
+          ]
+        },
+        {
+          "$ref": "#/$defs/toolChoice"
+        }
       ]
     },
     "chat_template_kwargs": {
@@ -39,7 +82,9 @@
       "description": "llama.cpp extension. For Qwen3, {\"enable_thinking\": false} disables thinking/reasoning generation.",
       "additionalProperties": true,
       "properties": {
-        "enable_thinking": { "type": "boolean" }
+        "enable_thinking": {
+          "type": "boolean"
+        }
       }
     },
     "reasoning_format": {
@@ -51,48 +96,107 @@
     "chatMessage": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["role", "content"],
+      "required": [
+        "role",
+        "content"
+      ],
       "properties": {
-        "role": { "type": "string", "enum": ["system", "user", "assistant", "tool"] },
-        "content": {
-          "oneOf": [
-            { "type": "string" },
-            { "type": "null" },
-            { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+        "role": {
+          "type": "string",
+          "enum": [
+            "system",
+            "user",
+            "assistant",
+            "tool"
           ]
         },
-        "name": { "type": "string" },
-        "tool_call_id": { "type": "string" },
+        "content": {
+          "oneOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            },
+            {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          ]
+        },
+        "name": {
+          "type": "string"
+        },
+        "tool_call_id": {
+          "type": "string"
+        },
         "tool_calls": {
           "type": "array",
-          "items": { "$ref": "#/$defs/toolCall" }
+          "items": {
+            "$ref": "#/$defs/toolCall"
+          }
         }
       }
     },
     "responseFormat": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["type"],
+      "required": [
+        "type"
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["text", "json_object", "json_schema"] },
-        "schema": { "type": "object", "additionalProperties": true },
-        "json_schema": { "type": "object", "additionalProperties": true }
+        "type": {
+          "type": "string",
+          "enum": [
+            "text",
+            "json_object",
+            "json_schema"
+          ]
+        },
+        "schema": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "json_schema": {
+          "type": "object",
+          "additionalProperties": true
+        }
       }
     },
     "tool": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["type", "function"],
+      "required": [
+        "type",
+        "function"
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["function"] },
+        "type": {
+          "type": "string",
+          "enum": [
+            "function"
+          ]
+        },
         "function": {
           "type": "object",
           "additionalProperties": true,
-          "required": ["name"],
+          "required": [
+            "name"
+          ],
           "properties": {
-            "name": { "type": "string" },
-            "description": { "type": "string" },
-            "parameters": { "type": "object", "additionalProperties": true }
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "parameters": {
+              "type": "object",
+              "additionalProperties": true
+            }
           }
         }
       }
@@ -100,13 +204,27 @@
     "toolChoice": {
       "type": "object",
       "additionalProperties": true,
-      "required": ["type", "function"],
+      "required": [
+        "type",
+        "function"
+      ],
       "properties": {
-        "type": { "type": "string", "enum": ["function"] },
+        "type": {
+          "type": "string",
+          "enum": [
+            "function"
+          ]
+        },
         "function": {
           "type": "object",
-          "required": ["name"],
-          "properties": { "name": { "type": "string" } }
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -114,13 +232,24 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "id": { "type": "string" },
-        "type": { "type": "string", "enum": ["function"] },
+        "id": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "function"
+          ]
+        },
         "function": {
           "type": "object",
           "properties": {
-            "name": { "type": "string" },
-            "arguments": { "type": "string" }
+            "name": {
+              "type": "string"
+            },
+            "arguments": {
+              "type": "string"
+            }
           }
         }
       }

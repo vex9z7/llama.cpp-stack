@@ -3,57 +3,106 @@
   "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/chat-completion-response.schema.json",
   "title": "llama.cpp OpenAI-compatible Chat Completion Response",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["object", "model", "choices"],
+  "additionalProperties": false,
+  "required": [
+    "object",
+    "model",
+    "choices"
+  ],
   "properties": {
-    "id": { "type": "string" },
-    "object": { "type": "string", "enum": ["chat.completion", "chat.completion.chunk"] },
-    "created": { "type": "integer" },
-    "model": { "type": "string" },
+    "id": {
+      "type": "string"
+    },
+    "object": {
+      "type": "string",
+      "enum": [
+        "chat.completion",
+        "chat.completion.chunk"
+      ]
+    },
+    "created": {
+      "type": "integer"
+    },
+    "model": {
+      "type": "string"
+    },
     "choices": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["index"],
+        "required": [
+          "index"
+        ],
         "properties": {
-          "index": { "type": "integer" },
+          "index": {
+            "type": "integer"
+          },
           "finish_reason": {
             "oneOf": [
-              { "type": "string" },
-              { "type": "null" }
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
             ]
           },
-          "message": { "$ref": "#/$defs/message" },
-          "delta": { "$ref": "#/$defs/message" }
+          "message": {
+            "$ref": "#/$defs/message"
+          },
+          "delta": {
+            "$ref": "#/$defs/message"
+          }
         }
       }
     },
-    "usage": { "$ref": "#/$defs/usage" },
-    "timings": { "type": "object", "additionalProperties": true }
+    "usage": {
+      "$ref": "#/$defs/usage"
+    },
+    "timings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "system_fingerprint": {
+      "type": "string"
+    }
   },
   "$defs": {
     "message": {
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "role": { "type": "string" },
+        "role": {
+          "type": "string"
+        },
         "content": {
           "oneOf": [
-            { "type": "string" },
-            { "type": "null" }
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "reasoning_content": {
           "description": "llama.cpp extension commonly returned for reasoning models such as Qwen3 when thinking is enabled.",
           "oneOf": [
-            { "type": "string" },
-            { "type": "null" }
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "tool_calls": {
           "type": "array",
-          "items": { "type": "object", "additionalProperties": true }
+          "items": {
+            "type": "object",
+            "additionalProperties": true
+          }
         }
       }
     },
@@ -61,9 +110,15 @@
       "type": "object",
       "additionalProperties": true,
       "properties": {
-        "prompt_tokens": { "type": "integer" },
-        "completion_tokens": { "type": "integer" },
-        "total_tokens": { "type": "integer" }
+        "prompt_tokens": {
+          "type": "integer"
+        },
+        "completion_tokens": {
+          "type": "integer"
+        },
+        "total_tokens": {
+          "type": "integer"
+        }
       }
     }
   }

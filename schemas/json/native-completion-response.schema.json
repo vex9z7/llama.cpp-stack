@@ -3,23 +3,64 @@
   "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/native-completion-response.schema.json",
   "title": "llama.cpp Native /completion Response",
   "type": "object",
-  "additionalProperties": true,
-  "required": ["content"],
+  "additionalProperties": false,
+  "required": [
+    "content"
+  ],
   "properties": {
-    "index": { "type": "integer" },
-    "content": { "type": "string" },
-    "tokens": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
-    "id_slot": { "type": "integer" },
-    "stop": { "type": "boolean" },
-    "model": { "type": "string" },
-    "tokens_predicted": { "type": "integer" },
-    "tokens_evaluated": { "type": "integer" },
-    "generation_settings": { "type": "object", "additionalProperties": true },
-    "prompt": { "type": "string" },
-    "truncated": { "type": "boolean" },
-    "stop_type": { "type": "string" },
-    "stopping_word": { "type": "string" },
-    "tokens_cached": { "type": "integer" },
-    "timings": { "type": "object", "additionalProperties": true }
+    "index": {
+      "type": "integer"
+    },
+    "content": {
+      "type": "string"
+    },
+    "tokens": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true
+      }
+    },
+    "id_slot": {
+      "type": "integer"
+    },
+    "stop": {
+      "type": "boolean"
+    },
+    "model": {
+      "type": "string"
+    },
+    "tokens_predicted": {
+      "type": "integer"
+    },
+    "tokens_evaluated": {
+      "type": "integer"
+    },
+    "generation_settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "prompt": {
+      "type": "string"
+    },
+    "truncated": {
+      "type": "boolean"
+    },
+    "stop_type": {
+      "type": "string"
+    },
+    "stopping_word": {
+      "type": "string"
+    },
+    "tokens_cached": {
+      "type": "integer"
+    },
+    "timings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "has_new_line": {
+      "type": "boolean"
+    }
   }
 }
