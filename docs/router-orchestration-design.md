@@ -1,6 +1,6 @@
 # Model Router / Orchestration Layer Design
 
-> Update: dynamic lifecycle should be implemented through a separate manager backend, not by giving the router Docker socket access. See `docs/dynamic-model-manager-design.md` for the slot-based manager design with `LLAMA_MAX_INSTANCES` and reject-on-full v1 policy.
+> Update: dynamic lifecycle should be implemented through a manager + fixed worker-agent pool, with no Docker socket mounted into application containers. See `docs/dynamic-model-manager-design.md` for the worker-agent design with `LLAMA_MAX_INSTANCES` and reject-on-full v1 policy.
 
 
 ## 1. Purpose
