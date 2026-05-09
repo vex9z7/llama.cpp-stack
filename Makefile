@@ -19,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := LLAMA_MODEL_FILE=$(MODEL_FILE) $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check schemas probe-api models download up down restart logs ps config smoke stream-cancel
+.PHONY: check schemas probe-api models download instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config up down restart logs ps config smoke stream-cancel
 
 schemas:
 	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"
@@ -33,6 +33,27 @@ models:
 
 download:
 	MODEL="$${MODEL:-}" MODEL_REPO="$${MODEL_REPO:-}" MODEL_INCLUDE="$${MODEL_INCLUDE:-}" WRITE_ENV="$${WRITE_ENV:-0}" ./scripts/download_model.sh
+
+instances-render:
+	python3 scripts/render_instances.py render --config "$${INSTANCES_CONFIG:-configs/instances.toml}" --output "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}"
+
+instances-check:
+	python3 scripts/render_instances.py check --config "$${INSTANCES_CONFIG:-configs/instances.toml}"
+
+instances-up: instances-render instances-check
+	$(COMPOSE_CMD) -f "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}" up -d --force-recreate
+
+instances-down:
+	$(COMPOSE_CMD) -f "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}" down
+
+instances-logs:
+	$(COMPOSE_CMD) -f "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}" logs -f
+
+instances-ps:
+	$(COMPOSE_CMD) -f "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}" ps
+
+instances-config: instances-render
+	$(COMPOSE_CMD) -f "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}" config
 
 check:
 	@$(COMPOSE_CMD) version >/dev/null 2>&1 || (echo "Compose command failed: $(COMPOSE_CMD). Install Docker Compose plugin or run with COMPOSE_CMD=docker-compose" >&2; exit 2)

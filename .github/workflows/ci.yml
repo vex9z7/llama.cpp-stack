@@ -64,7 +64,8 @@ jobs:
           make models >/dev/null
           make schemas
           bash -n scripts/download_model.sh
-          python3 -m py_compile scripts/probe_api_schemas.py
+          python3 -m py_compile scripts/probe_api_schemas.py scripts/render_instances.py
+          python3 scripts/render_instances.py render --config configs/instances.example.toml --output /tmp/llama-instances.yml
           make -n download MODEL=qwen3-4b-q4 >/dev/null
           make -n up BACKEND=cpu >/dev/null
 

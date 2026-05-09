@@ -136,6 +136,16 @@ make schemas
 make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com LLAMA_ALIAS=local-llm
 ```
 
+## Multi-instance
+
+For multiple simultaneously loaded models, see `docs/multi-instance.md`. The workflow uses `configs/instances.toml` to generate `docker-compose.instances.yml`.
+
+```bash
+cp configs/instances.example.toml configs/instances.toml
+make instances-render
+make instances-up
+```
+
 ## Backend selection
 
 默认使用 Vulkan：

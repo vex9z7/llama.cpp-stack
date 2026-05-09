@@ -15,3 +15,7 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+
+# Generated multi-instance compose/config
+configs/instances.toml
+docker-compose.instances.yml
