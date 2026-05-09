@@ -1,4 +1,4 @@
-# Dynamic Model Manager Design
+# Dynamic Model Management Design
 
 ## 1. Purpose
 
@@ -14,9 +14,11 @@ cataloged model  != downloaded model != loaded worker process
 
 A model in `models/catalog.toml` is only known/allowed. It should not automatically consume RAM/VRAM. A model becomes expensive only when a worker-agent starts a `llama-server` subprocess for it.
 
-## 2. Key decision: no Docker socket
+## 2. Key decisions
 
-The manager and router must not mount `/var/run/docker.sock`.
+### 2.1 No Docker socket
+
+Application containers must not mount `/var/run/docker.sock`.
 
 Reasons:
 
@@ -31,9 +33,49 @@ Instead:
 
 ```text
 Compose starts a fixed pool of worker-agent containers.
-Manager controls those worker agents over HTTP.
-Each worker agent dynamically starts/stops a llama-server subprocess inside its own container.
+Gateway controls those worker agents over internal HTTP.
+Each worker agent dynamically starts/stops one llama-server subprocess inside its own container.
 ```
+
+### 2.2 One public service: gateway
+
+There is no separate public control-plane service in v1.
+
+Externally, clients see one service:
+
+```text
+Gateway service
+  - OpenAI-compatible API
+  - /health
+```
+
+Internally, the gateway still has clear module boundaries:
+
+```text
+gateway process/container
+  router module
+    - OpenAI request parsing
+    - request proxying
+    - streaming and cancellation
+
+  manager module
+    - catalog state
+    - lazy model download
+    - worker allocation
+    - load/unload decisions
+
+  catalog module
+    - models/catalog.toml parsing
+    - model_ref -> local path mapping
+
+  worker client module
+    - calls worker-agent internal API
+
+  proxy module
+    - forwards HTTP/SSE to llama-server
+```
+
+The router and manager are logical boundaries, not separately exposed network services. This keeps deployment simple while preserving the option to split the control plane later if needed.
 
 ## 3. High-level architecture
 
@@ -41,20 +83,14 @@ Each worker agent dynamically starts/stops a llama-server subprocess inside its 
 Client / Pipecat / Agents
         |
         v
-Router container
+Gateway container
   - public OpenAI-compatible API
-  - no Docker socket
-  - proxies inference requests
-        |
-        | internal HTTP
-        v
-Manager container
-  - catalog and local model state
-  - worker-slot allocation
-  - model download
+  - internal router module
+  - internal manager module
+  - internal catalog/downloader module
   - no Docker socket
         |
-        | internal HTTP
+        | internal Docker network HTTP
         +--> Worker Agent 0 container
         |      - idle OR llama-server subprocess for model A
         |
@@ -64,9 +100,20 @@ Manager container
 
 `LLAMA_WORKER_POOL_SIZE` corresponds to the number of worker-agent containers available, not the number of cataloged models.
 
+In Compose, the pool size is materialized as explicit services:
+
+```text
+gateway
+worker-0
+worker-1
+...
+```
+
+The gateway does not create or delete containers. It only controls the process inside each pre-created worker container.
+
 ## 4. Core constraints
 
-## 4.1 One llama-server process runs one model
+### 4.1 One llama-server process runs one model
 
 A `llama-server` process starts with one model path:
 
@@ -74,30 +121,29 @@ A `llama-server` process starts with one model path:
 llama-server --model /models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
 ```
 
-It can handle multiple concurrent requests for that same model via slots, but it is not a multi-model runtime.
+It can handle multiple concurrent requests for that same model via llama.cpp slots, but it is not a multi-model runtime.
 
 Therefore dynamic model management means dynamically starting/stopping `llama-server` subprocesses inside pre-created worker-agent containers.
 
-## 4.2 Worker-agent containers are fixed at deployment time
+### 4.2 Worker-agent containers are fixed at deployment time
 
 Compose owns container lifecycle:
 
 ```text
-router
-manager
+gateway
 worker-0
 worker-1
 ...
 ```
 
-The manager owns model process lifecycle inside the workers:
+The gateway owns model process lifecycle inside the workers:
 
 ```text
 worker idle -> load model -> llama-server running
 worker running -> unload model -> idle
 ```
 
-## 4.3 Capacity policy v1: loaded-model residency
+### 4.3 Capacity policy v1: loaded-model residency
 
 In router semantics, one loaded worker instance corresponds to one routable model.
 
@@ -117,8 +163,8 @@ LLAMA_EVICTION_POLICY=reject
 Rules:
 
 1. If requested model is already loaded in a worker, route to that worker.
-2. If that worker's internal `llama-server` request slots are busy, the request may wait/queue inside that worker. Router does not reject based on `llama-server` slots.
-3. If requested model is not loaded and an idle worker exists, load it into the idle worker.
+2. If that worker's internal `llama-server` request slots are busy, the request may wait/queue inside that worker. Gateway does not reject based on `llama-server` slots.
+3. If requested model is not loaded and an idle worker exists, lazily download it if needed, then load it into the idle worker.
 4. If requested model is not loaded and no idle worker exists, return HTTP 429.
 5. Do not evict or unload running models automatically in v1.
 
@@ -147,19 +193,70 @@ model_ref = Qwen/Qwen3-4B-GGUF/Q4_K_M
 model_path = hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
 ```
 
-The catalog only defines what may be downloaded/loaded. It does not define OpenAI model names, ports, context size, parallelism, or routes.
+The catalog defines what may be downloaded/loaded. It does not define ports or worker assignment.
 
-## 5.2 Worker agent
+## 5.2 Gateway router module
+
+The router module is the public request path.
+
+Responsibilities:
+
+- expose OpenAI-compatible endpoints;
+- parse request bodies and read `model`;
+- call the manager module to ensure the requested model is loaded;
+- proxy requests to the selected worker's `llama-server` port;
+- proxy streaming SSE responses;
+- close upstream connections on client disconnect;
+- translate capacity/startup errors into OpenAI-shaped HTTP errors where possible.
+
+Router module does not:
+
+- download models directly;
+- decide worker allocation details;
+- start/stop `llama-server` processes directly;
+- expose worker ids, worker topology, or llama.cpp `/slots` to public clients.
+
+## 5.3 Gateway manager module
+
+The manager module is internal library/application logic inside the gateway process. It is not a public HTTP service in v1.
+
+Responsibilities:
+
+- read `models/catalog.toml`;
+- track catalog/download/running state;
+- lazily download models into `models/hf/...` when first requested;
+- poll worker-agent states;
+- allocate idle workers;
+- call worker-agent `/worker/load` and `/worker/unload`;
+- return an internal capacity error when no worker is available;
+- provide a stable in-process interface for router code and future `llamactl` code.
+
+Manager module does not:
+
+- access Docker socket;
+- expose public `/control/*` endpoints;
+- proxy user inference requests.
+
+Suggested internal interface, expressed as functions rather than public HTTP endpoints:
+
+```python
+list_models() -> list[ModelStatus]
+ensure_running(model_ref: str) -> RunningBackend
+list_workers() -> list[WorkerStatus]
+unload_worker(worker_id: str, force: bool = False) -> None
+```
+
+## 5.4 Worker agent
 
 A worker-agent container wraps one possible `llama-server` subprocess.
 
 Responsibilities:
 
-- expose a small internal control API;
+- expose a small internal-only worker API on the Docker network;
 - start `llama-server` with a requested model path;
 - stop `llama-server` on unload;
 - report current state;
-- proxy or expose the child `llama-server` inference port;
+- expose the child `llama-server` inference port to the gateway;
 - prevent loading a second model while already running one;
 - terminate the child process cleanly on container shutdown.
 
@@ -167,60 +264,23 @@ Worker agent does not:
 
 - download models;
 - choose routing policy;
-- access Docker socket.
-
-## 5.3 Manager
-
-The manager is an internal control-plane service.
-
-Responsibilities:
-
-- read `models/catalog.toml`;
-- report catalog/download/running state;
-- download models into `models/hf/...`;
-- track worker-agent states;
-- allocate idle workers;
-- call worker `/worker/load` and `/worker/unload`;
-- return 429 when no worker is available;
-- provide a stable API for router and `llamactl`.
-
-Manager does not access Docker socket.
-
-## 5.4 Router
-
-The router is the public request gateway.
-
-Responsibilities:
-
-- expose OpenAI-compatible endpoints;
-- call manager to ensure a model is loaded;
-- proxy requests to the selected worker's `llama-server` port;
-- proxy streaming SSE responses;
-- close upstream connections on client disconnect;
-- return capacity/startup errors from manager to clients.
-
-Router does not:
-
 - access Docker socket;
-- download models directly;
-- start/stop `llama-server` processes directly.
+- expose public APIs outside the Compose network.
 
 ## 5.5 llamactl
 
-`llamactl` is a CLI wrapper around the manager API.
+`llamactl` remains optional.
 
-Example commands:
+Since v1 does not expose a public control API, `llamactl` can be implemented later in one of two ways:
 
-```bash
-llamactl models list
-llamactl models download Qwen/Qwen3-4B-GGUF/Q4_K_M
-llamactl workers list
-llamactl workers unload worker-0
-```
+1. `docker compose exec gateway llamactl ...`, calling the gateway manager module locally; or
+2. a private/admin-only gateway endpoint bound to localhost or disabled by default.
+
+Do not make a public `/control/*` API part of the default deployment.
 
 ## 6. Worker agent API v1
 
-Worker API is internal-only. It should not be exposed publicly.
+Worker API is internal-only. It should not be published through the gateway or reverse proxy.
 
 Suggested control URL:
 
@@ -234,7 +294,7 @@ The child `llama-server` listens inside the same container on:
 http://worker-0:8080
 ```
 
-## 6.1 `GET /worker/status`
+### 6.1 `GET /worker/status`
 
 Idle response:
 
@@ -262,7 +322,7 @@ Running response:
 }
 ```
 
-## 6.2 `POST /worker/load`
+### 6.2 `POST /worker/load`
 
 Starts `llama-server` inside the worker container.
 
@@ -322,7 +382,7 @@ HTTP/1.1 409 Conflict
 }
 ```
 
-## 6.3 `POST /worker/unload`
+### 6.3 `POST /worker/unload`
 
 Stops the child `llama-server` process.
 
@@ -345,7 +405,7 @@ Success response:
 }
 ```
 
-## 6.4 `GET /worker/health`
+### 6.4 `GET /worker/health`
 
 Reports worker-agent health, not necessarily model readiness.
 
@@ -368,174 +428,27 @@ When running, it may include child health:
 }
 ```
 
-## 7. Manager API v1
+## 7. Gateway request flow
 
-Manager API is internal-only. Router and `llamactl` call this API.
-
-Suggested URL:
-
-```text
-http://manager:8091
-```
-
-## 7.1 `GET /control/models`
-
-Returns catalog models with downloaded/running status.
-
-Example response:
-
-```json
-{
-  "models": [
-    {
-      "model_ref": "Qwen/Qwen3-4B-GGUF/Q4_K_M",
-      "repo": "Qwen/Qwen3-4B-GGUF",
-      "quant": "Q4_K_M",
-      "model_path": "hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf",
-      "downloaded": true,
-      "running": false
-    }
-  ]
-}
-```
-
-## 7.2 `GET /control/workers`
-
-Returns current worker-agent states.
-
-Example response:
-
-```json
-{
-  "max_instances": 2,
-  "workers": [
-    {
-      "id": "worker-0",
-      "state": "running",
-      "model_ref": "Qwen/Qwen3-4B-GGUF/Q4_K_M",
-      "model_name": "Qwen/Qwen3-4B-GGUF/Q4_K_M",
-      "model_path": "hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf",
-      "inference_url": "http://worker-0:8080"
-    },
-    {
-      "id": "worker-1",
-      "state": "idle"
-    }
-  ]
-}
-```
-
-## 7.3 `POST /control/ensure-running`
-
-Ensures a model has a loaded worker.
-
-Request:
-
-```json
-{
-  "model_ref": "Qwen/Qwen3-4B-GGUF/Q4_K_M"
-}
-```
-
-If already running:
-
-```json
-{
-  "status": "running",
-  "worker": "worker-0",
-  "inference_url": "http://worker-0:8080"
-}
-```
-
-If cold-started:
-
-```json
-{
-  "status": "loaded",
-  "worker": "worker-1",
-  "inference_url": "http://worker-1:8080"
-}
-```
-
-If capacity is full:
-
-```http
-HTTP/1.1 429 Too Many Requests
-```
-
-```json
-{
-  "error": {
-    "type": "capacity_error",
-    "code": "no_idle_worker",
-    "message": "Requested model is not loaded and no idle worker instance is available"
-  }
-}
-```
-
-If startup fails or times out:
-
-```http
-HTTP/1.1 503 Service Unavailable
-```
-
-```json
-{
-  "error": {
-    "type": "startup_error",
-    "code": "worker_load_failed",
-    "message": "Worker failed to load llama-server model"
-  }
-}
-```
-
-## 7.4 `POST /control/models/{model_ref}/download`
-
-Downloads a catalog model if missing.
-
-Because `model_ref` contains `/`, this endpoint may be easier to implement as a JSON body instead of a path parameter:
-
-```http
-POST /control/download
-```
-
-```json
-{
-  "model_ref": "Qwen/Qwen3-4B-GGUF/Q4_K_M"
-}
-```
-
-## 7.5 `POST /control/workers/{id}/unload`
-
-Unloads a worker.
-
-```json
-{
-  "force": false
-}
-```
-
-## 8. Router request flow
-
-## 8.1 Model already loaded
+### 7.1 Model already loaded
 
 ```text
 POST /v1/chat/completions model=X
         |
         v
-router -> manager ensure-running(X)
+gateway router -> manager.ensure_running(X)
         |
         v
 manager returns existing worker inference_url
         |
         v
-router proxies to inference_url/v1/chat/completions
+gateway proxies to inference_url/v1/chat/completions
 ```
 
-## 8.2 Model cold, idle worker exists
+### 7.2 Model cold, idle worker exists
 
 ```text
-router -> manager ensure-running(X)
+gateway router -> manager.ensure_running(X)
         |
         v
 manager downloads if needed
@@ -547,57 +460,65 @@ worker waits /health
 manager returns inference_url
         |
         v
-router proxies request
+gateway proxies request
 ```
 
-## 8.3 Model already loaded but busy
+### 7.3 Model already loaded but busy
 
 ```text
-router -> manager ensure-running(X)
+gateway router -> manager.ensure_running(X)
         |
         v
 manager returns existing worker inference_url
         |
         v
-router proxies to the same worker
+gateway proxies to the same worker
         |
         v
 worker llama-server handles internal request slots / queueing
 ```
 
-Router hides `llama-server` slots and does not reject just because the loaded worker is busy.
+Gateway hides `llama-server` slots and does not reject just because the loaded worker is busy.
 
-## 8.4 Model cold, all workers occupied
+### 7.4 Model cold, all workers occupied
 
 ```text
-router -> manager ensure-running(X)
+gateway router -> manager.ensure_running(X)
         |
         v
-manager returns 429 capacity_error
+manager returns internal capacity error
         |
         v
-router returns 429 to client
+gateway returns HTTP 429 to client
 ```
 
 This rejection only means there is no idle worker instance to load a new model. It does not mean per-model request slots are full.
 
 No eviction in v1.
 
-## 9. Router model semantics
+## 8. Public API surface
 
-A loaded worker instance corresponds to one router model.
+Default public API:
 
 ```text
-router model name -> manager loaded worker -> worker llama-server
+GET  /health
+GET  /v1/models
+POST /v1/chat/completions
+POST /v1/completions
+POST /v1/responses
+POST /v1/embeddings  # only when embedding-capable workers exist
 ```
 
-Multiple requests for the same router model are forwarded to the same worker instance. If that worker is busy, the request may wait in the worker's `llama-server` scheduler/queue. Router does not expose worker ids, worker topology, or `llama-server` slots.
+Do not expose:
 
-## 9.1 `/v1/models` semantics
+```text
+/control/*
+/worker/*
+/slots
+/backend worker URLs
+```
 
-The router may return catalog models, not only loaded models.
-
-Example:
+`/v1/models` may return catalog models, not only loaded models:
 
 ```json
 {
@@ -617,15 +538,14 @@ Example:
 }
 ```
 
-This makes `/v1/models` a catalog of available cold-startable models. This differs from conservative OpenAI-compatible semantics where only warm/running models are listed. We should document this extension clearly.
+This is an intentional extension: the model may be cold-startable even if not currently loaded.
 
-## 10. Compose topology
+## 9. Compose topology
 
-Initial service set:
+Initial dynamic service set:
 
 ```text
-router
-manager
+gateway
 worker-0
 worker-1
 ```
@@ -634,24 +554,18 @@ Example shape:
 
 ```yaml
 services:
-  router:
-    build: ./router
+  gateway:
+    build: ./gateway
     ports:
       - "8090:8090"
-    environment:
-      MANAGER_BASE_URL: http://manager:8091
-    depends_on:
-      - manager
-
-  manager:
-    build: ./manager
-    expose:
-      - "8091"
     volumes:
       - ./models:/models:rw,Z
     environment:
       WORKER_BASE_URLS: http://worker-0:8092,http://worker-1:8092
       LLAMA_EVICTION_POLICY: reject
+    depends_on:
+      - worker-0
+      - worker-1
 
   worker-0:
     build: ./worker
@@ -674,11 +588,11 @@ services:
       - /dev/dri:/dev/dri
 ```
 
-No service mounts Docker socket.
+No service mounts Docker socket. Worker APIs are only reachable on the Compose network.
 
-## 11. Environment variables
+## 10. Environment variables
 
-Suggested manager/router env:
+Suggested gateway env:
 
 ```env
 LLAMA_WORKER_POOL_SIZE=2
@@ -691,13 +605,7 @@ LLAMA_WORKER_THREADS_HTTP=-1
 LLAMA_WORKER_N_GPU_LAYERS=999
 ```
 
-Router-only:
-
-```env
-MANAGER_BASE_URL=http://manager:8091
-```
-
-Worker-only:
+Worker-only env:
 
 ```env
 WORKER_ID=worker-0
@@ -705,46 +613,63 @@ LLAMA_SERVER_PORT=8080
 WORKER_AGENT_PORT=8092
 ```
 
-## 12. Downloader integration
+`LLAMA_WORKER_POOL_SIZE` is documentation/validation for the gateway. In plain Docker Compose, the actual pool is still the number of declared worker services.
 
-Manager can download models directly using `huggingface_hub` into mounted `/models`.
+## 11. Downloader integration
+
+Gateway manager module owns lazy download.
 
 Recommended v1:
 
 ```text
-manager includes huggingface_hub
-manager lazy-downloads directly into mounted /models
+gateway includes huggingface_hub
+gateway downloads directly into mounted /models
+worker containers mount /models read-only
+gateway loads worker only after model file exists
 ```
 
-Manual prefetch should later be exposed through `llamactl`, which calls the manager API. There should be no host-side `make download` deployment prerequisite.
+There should be no host-side `make download` deployment prerequisite.
 
-This keeps download ownership inside the manager and avoids a separate downloader service.
+A manual prefetch command can be added later through `docker compose exec gateway llamactl ...`, but that should call the same manager code path as request-time lazy download.
 
-## 13. Cancellation requirements
+## 12. Cancellation requirements
 
-Router must propagate disconnects.
+Gateway must propagate disconnects.
 
 For streaming requests:
 
-1. client opens stream to router;
-2. router opens stream to worker's `llama-server`;
-3. router forwards SSE chunks;
+1. client opens stream to gateway;
+2. gateway opens stream to worker's `llama-server`;
+3. gateway forwards SSE chunks;
 4. client disconnects;
-5. router closes upstream stream;
+5. gateway closes upstream stream;
 6. worker's `llama-server` releases slot.
 
 Probe requirement:
 
 ```text
-start long stream through router
+start long stream through gateway
 cancel after 1-2 seconds
-query worker llama-server /slots
+query worker llama-server /slots internally
 assert no slot is_processing=true
 ```
 
-## 14. Implementation phases
+The probe may use internal worker URLs from the test environment, but the production gateway should not expose `/slots` publicly.
 
-### Phase 1: Worker agent
+## 13. Implementation phases
+
+### Phase 1: Gateway router module
+
+Implement OpenAI-compatible gateway endpoints:
+
+- `/v1/models`
+- `/v1/chat/completions`
+- `/v1/responses`
+- `/health`
+
+Start with one static backend if needed to validate proxying and cancellation.
+
+### Phase 2: Worker agent
 
 Implement worker-agent API:
 
@@ -755,48 +680,38 @@ Implement worker-agent API:
 
 It should start/stop `llama-server` subprocesses inside its own container.
 
-### Phase 2: Manager backend
+### Phase 3: Gateway manager module
 
-Implement manager API:
+Implement manager code inside the gateway process:
 
-- `GET /control/models`
-- `GET /control/workers`
-- `POST /control/ensure-running`
-- `POST /control/download`
-- `POST /control/workers/{id}/unload`
+- catalog parsing;
+- local file detection;
+- lazy Hugging Face download;
+- worker discovery;
+- `ensure_running(model_ref)`;
+- capacity rejection when no idle worker exists.
 
-### Phase 3: Router
-
-Implement OpenAI-compatible router:
-
-- `/v1/models`
-- `/v1/chat/completions`
-- `/v1/responses`
-- `/health`
-
-Router calls manager for `ensure-running`.
-
-### Phase 4: llamactl
-
-Implement CLI wrapper around manager:
-
-```bash
-llamactl models list
-llamactl models download <model-ref>
-llamactl workers list
-llamactl workers unload <worker-id>
-```
-
-### Phase 5: Probes and schemas
+### Phase 4: Probes and schemas
 
 Extend schema/API probes to cover:
 
-- worker API;
-- manager API;
-- router `/v1/models` catalog semantics;
+- gateway `/v1/models` catalog semantics;
 - cold start;
 - capacity rejection;
-- cancellation through router.
+- cancellation through gateway;
+- internal worker health/load/unload in test-only mode.
+
+### Phase 5: Optional operations CLI
+
+Add `llamactl` only after the internal manager interface is stable.
+
+Preferred operator shape:
+
+```bash
+docker compose exec gateway llamactl models list
+docker compose exec gateway llamactl workers list
+docker compose exec gateway llamactl workers unload worker-0
+```
 
 ### Phase 6: Advanced policies
 
@@ -804,7 +719,7 @@ Only after v1 is stable:
 
 - idle TTL;
 - LRU eviction;
-- load-aware routing from `/slots`;
+- load-aware routing from internal `/slots` probes;
 - task-aware routing;
 - model aliases;
 - embeddings-specific workers.

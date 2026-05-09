@@ -1,6 +1,6 @@
 # Model Router / Orchestration Layer Design
 
-> Update: dynamic lifecycle should be implemented through a manager + fixed worker-agent pool, with no Docker socket mounted into application containers. See `docs/dynamic-model-manager-design.md` for the worker-agent design with `LLAMA_MAX_INSTANCES` and reject-on-full v1 policy.
+> Update: dynamic lifecycle should be implemented through one public gateway service plus a fixed worker-agent pool. The gateway contains separate router and manager modules, but does not expose a public control API and does not mount the Docker socket. See `docs/dynamic-model-manager-design.md`.
 
 
 ## 1. Purpose
@@ -24,15 +24,17 @@ Current phase remains single-model capable. This design describes the next phase
 Client / Pipecat / Agents
         |
         v
-Model Router / Orchestration Layer
+Gateway service
+  - OpenAI-compatible router module
+  - internal manager module
+  - lazy downloader/catalog module
         |
-        +--> llama-server qwen3-4b
-        +--> llama-server qwen3-8b
-        +--> llama-server coder
-        +--> llama-server embedding-model
+        +--> worker-agent 0 -> llama-server qwen3-4b
+        +--> worker-agent 1 -> llama-server qwen3-8b
+        +--> worker-agent 2 -> llama-server coder
 ```
 
-The router exposes one stable external API surface:
+The gateway exposes one stable external API surface:
 
 ```text
 /v1/chat/completions
@@ -43,7 +45,7 @@ The router exposes one stable external API surface:
 /health
 ```
 
-Internally, each backend remains a normal `llama-server` instance with its own:
+Internally, each loaded model remains a normal `llama-server` process managed by a worker-agent container, with its own:
 
 - model file;
 - alias;
@@ -57,7 +59,7 @@ Internally, each backend remains a normal `llama-server` instance with its own:
 
 ### 3.1 Keep llama-server as the inference primitive
 
-Each loaded model should still be served by a direct `llama-server` process/container.
+Each loaded model should still be served by a direct `llama-server` process inside a worker-agent container.
 
 Reasons:
 
@@ -75,8 +77,8 @@ The router should not implement inference. It should:
 - choose a backend;
 - proxy HTTP/SSE traffic;
 - propagate cancellation;
-- expose model/instance metadata;
-- optionally start/stop backend instances.
+- expose OpenAI-compatible model metadata;
+- delegate lifecycle decisions to the internal manager module.
 
 ### 3.3 Prefer explicit model metadata over env var sprawl
 
@@ -84,7 +86,7 @@ The current single-instance `.env` is acceptable for one model. Multi-model rout
 
 Use a catalog file rather than many environment variables.
 
-### 3.4 Separate routing from lifecycle management, but allow one process initially
+### 3.4 Separate routing from lifecycle management inside one service
 
 Conceptually there are two subsystems:
 
@@ -103,7 +105,7 @@ Runtime Manager
   - state reconciliation
 ```
 
-For early implementation, these can live in one small service or CLI package. The internal interfaces should remain separate so they can be split later.
+For v1 implementation, these live in one gateway service/container. The boundary is an in-process interface, not a public `/control/*` API. Keeping the modules separate lets us split them later without exposing control-plane details now.
 
 ## 4. Components
 
@@ -357,61 +359,34 @@ Validation:
 
 This should become part of `probe_api_schemas.py` once router exists.
 
-## 7. Dynamic lifecycle options
+## 7. Dynamic lifecycle model
 
-There are two implementation paths.
+V1 dynamic lifecycle is implemented inside the gateway service, not through a separately exposed control API.
 
-### 7.1 CLI-first runtime manager
-
-Start with a CLI:
-
-```bash
-llamactl models download Qwen/Qwen3-4B-GGUF/Q4_K_M
-llamactl instances start Qwen/Qwen3-4B-GGUF/Q4_K_M --port 8081
-llamactl instances list
-llamactl router config
+```text
+public client -> gateway OpenAI API
+                 |
+                 +-> router module
+                 +-> manager module
+                 +-> worker clients
+                         |
+                         +-> worker-agent internal APIs
 ```
 
-Pros:
+The public surface remains OpenAI-compatible. Internal lifecycle operations are represented as code interfaces such as:
 
-- simple;
-- no daemon required;
-- works well for local experiments;
-- easy to debug Docker commands.
-
-Cons:
-
-- router cannot automatically start missing models unless it shells out or shares library code;
-- less convenient for remote management.
-
-### 7.2 Daemon/control API
-
-Run a small manager service:
-
-```http
-GET  /control/models
-POST /control/models/{id}/download
-GET  /control/instances
-POST /control/instances
-DELETE /control/instances/{id}
-POST /control/instances/{id}/probe
+```python
+ensure_running(model_ref)
+list_models()
+list_workers()
+unload_worker(worker_id, force=False)
 ```
 
-Pros:
-
-- dynamic model start/stop via API;
-- router and manager can coordinate;
-- foundation for UI/automation.
-
-Cons:
-
-- more security concerns;
-- must protect Docker socket access;
-- more moving parts.
+A future `llamactl` may call these interfaces via `docker compose exec gateway ...` or a disabled-by-default admin endpoint, but `/control/*` should not be part of the default public deployment.
 
 ## 8. Recommended implementation sequence
 
-### Phase A: Router-only, static backends
+### Phase A: Gateway router with static backends
 
 Implement a small router that reads a static route config:
 
@@ -440,30 +415,25 @@ Use `models/catalog.toml` as the source catalog.
 
 Keep TSV temporarily or generate it from TOML for compatibility.
 
-### Phase C: CLI runtime manager
+### Phase C: Gateway manager module + worker agents
 
-Add `llamactl`:
+Add a fixed worker-agent pool in Compose and implement the gateway manager module:
+
+- discover workers from `WORKER_BASE_URLS`;
+- lazily download catalog models;
+- load a model into an idle worker on first request;
+- reject with 429 when no idle worker exists;
+- do not expose `/control/*` publicly.
+
+### Phase D: Optional llamactl
+
+Add `llamactl` only as an operator convenience, preferably run inside the gateway container:
 
 ```bash
-llamactl models list
-llamactl models download <model-id>
-llamactl instances start <model-id>
-llamactl instances stop <instance-id>
-llamactl instances list
+docker compose exec gateway llamactl models list
+docker compose exec gateway llamactl workers list
+docker compose exec gateway llamactl workers unload worker-0
 ```
-
-Use Docker directly for dynamic instance lifecycle.
-
-### Phase D: Router + manager integration
-
-Router can read running instance state and update routes dynamically.
-
-Possible modes:
-
-- reload route file on SIGHUP;
-- poll `.runtime/instances.json`;
-- query manager API;
-- receive manager events.
 
 ### Phase E: Policy routing
 
@@ -525,9 +495,9 @@ chat_template_kwargs = { enable_thinking = false }
 ## 10. Open questions
 
 1. Should router expose only OpenAI-compatible endpoints, or also proxy llama.cpp-native endpoints per backend?
-2. Should model lifecycle be local-only CLI first, or HTTP control API first?
-3. Should Docker socket access live inside the router container, or only on the host CLI?
-4. Should the router auto-start models on first request, or only route to already-running instances?
+2. Should `llamactl` use `docker compose exec gateway` only, or should there be an opt-in localhost/admin endpoint?
+3. How should worker-agent images locate the llama-server binary across upstream image variants?
+4. Which models should be eligible for lazy auto-start by default?
 5. How should model aliases be standardized?
 6. Should Qwen3 thinking default to off globally, with opt-in thinking routes?
 7. How much state should be stored in files vs discovered from Docker?
@@ -537,9 +507,9 @@ chat_template_kwargs = { enable_thinking = false }
 Build in this order:
 
 1. Router-only, static backend routes.
-2. Add schema probe for router API compatibility.
-3. Add dynamic `llamactl` lifecycle manager.
-4. Connect router to runtime state.
-5. Add policy/load routing.
+2. Add schema probe for gateway API compatibility.
+3. Add fixed worker-agent pool.
+4. Add gateway manager module with lazy download/load.
+5. Add optional `llamactl` and later policy/load routing.
 
 This keeps the critical serving path testable before adding dynamic orchestration complexity.
