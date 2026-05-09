@@ -28,11 +28,20 @@ There is no single OpenAPI document emitted by the deployed `llama-server` insta
 - `schemas/openapi/llama-server.openapi.yaml`
   - OpenAPI 3.1 subset for the endpoints this stack uses.
 - `schemas/json/chat-completion-request.schema.json`
-  - Request schema for `/v1/chat/completions`, including llama.cpp extensions such as `chat_template_kwargs`.
 - `schemas/json/chat-completion-response.schema.json`
-  - Response/chunk shape for `/v1/chat/completions`, including `reasoning_content`.
+- `schemas/json/completion-request.schema.json`
+- `schemas/json/completion-response.schema.json`
+- `schemas/json/responses-request.schema.json`
+- `schemas/json/responses-response.schema.json`
+- `schemas/json/models-response.schema.json`
+- `schemas/json/embeddings-request.schema.json`
+- `schemas/json/embeddings-response.schema.json`
+- `schemas/json/health-response.schema.json`
 - `schemas/json/slots-response.schema.json`
-  - Native `/slots` response shape.
+- `schemas/json/native-completion-request.schema.json`
+- `schemas/json/native-completion-response.schema.json`
+- `schemas/json/metrics-response.schema.json`
+- `schemas/json/error-response.schema.json`
 
 ## Important compatibility notes
 
@@ -59,3 +68,21 @@ Do not use `reasoning_format: "none"` as a thinking-off switch. In testing, that
 ## Maintenance policy
 
 Treat these schemas as an integration contract for this stack, not a complete upstream spec. When upgrading llama.cpp or changing models, run the API probe again and update the schemas if observed behavior changes.
+
+## Schema coverage
+
+The schema set now includes request and response schemas for the core integration endpoints:
+
+| Endpoint | Request schema | Response schema |
+| --- | --- | --- |
+| `GET /health` | n/a | `health-response.schema.json` |
+| `GET /v1/models` | n/a | `models-response.schema.json` |
+| `POST /v1/chat/completions` | `chat-completion-request.schema.json` | `chat-completion-response.schema.json` |
+| `POST /v1/completions` | `completion-request.schema.json` | `completion-response.schema.json` |
+| `POST /v1/responses` | `responses-request.schema.json` | `responses-response.schema.json` |
+| `POST /v1/embeddings` | `embeddings-request.schema.json` | `embeddings-response.schema.json` / `error-response.schema.json` when disabled |
+| `POST /completion` | `native-completion-request.schema.json` | `native-completion-response.schema.json` |
+| `GET /slots` | n/a | `slots-response.schema.json` |
+| `GET /metrics` | n/a | `metrics-response.schema.json` / `error-response.schema.json` when disabled |
+
+These schemas are intentionally permissive (`additionalProperties: true`) because llama.cpp evolves quickly and returns implementation-specific timing, cache, model, slot, and reasoning fields.

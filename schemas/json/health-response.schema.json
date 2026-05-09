@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/health-response.schema.json",
+  "title": "llama.cpp /health Response",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["status"],
+  "properties": {
+    "status": {
+      "type": "string",
+      "examples": ["ok", "loading"]
+    }
+  }
+}

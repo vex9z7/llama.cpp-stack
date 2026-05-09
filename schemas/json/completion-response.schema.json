@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/completion-response.schema.json",
+  "title": "OpenAI-compatible Legacy Completion Response",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["object", "model", "choices"],
+  "properties": {
+    "id": { "type": "string" },
+    "object": { "type": "string", "examples": ["text_completion"] },
+    "created": { "type": "integer" },
+    "model": { "type": "string" },
+    "choices": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["text", "index"],
+        "properties": {
+          "text": { "type": "string" },
+          "index": { "type": "integer" },
+          "logprobs": {
+            "oneOf": [
+              { "type": "object", "additionalProperties": true },
+              { "type": "null" }
+            ]
+          },
+          "finish_reason": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "null" }
+            ]
+          }
+        }
+      }
+    },
+    "usage": { "$ref": "chat-completion-response.schema.json#/$defs/usage" },
+    "timings": { "type": "object", "additionalProperties": true }
+  }
+}

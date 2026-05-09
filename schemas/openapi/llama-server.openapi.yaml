@@ -23,12 +23,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                required: [status]
-                properties:
-                  status:
-                    type: string
-                    example: ok
+                $ref: '../json/health-response.schema.json'
         '503':
           description: Model loading or unavailable
           content:
@@ -45,21 +40,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
-                properties:
-                  object:
-                    type: string
-                    example: list
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Model'
-                  models:
-                    type: array
-                    items:
-                      type: object
-                      additionalProperties: true
+                $ref: '../json/models-response.schema.json'
   /v1/chat/completions:
     post:
       summary: OpenAI-compatible chat completions with llama.cpp extensions
@@ -96,33 +77,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: true
-              required: [model, prompt]
-              properties:
-                model:
-                  type: string
-                prompt:
-                  oneOf:
-                    - type: string
-                    - type: array
-                      items:
-                        type: string
-                max_tokens:
-                  type: integer
-                  minimum: 1
-                stream:
-                  type: boolean
-                temperature:
-                  type: number
+              $ref: '../json/completion-request.schema.json'
       responses:
         '200':
           description: Text completion
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '../json/completion-response.schema.json'
   /v1/responses:
     post:
       summary: OpenAI-compatible Responses API subset
@@ -132,38 +94,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: true
-              required: [model, input]
-              properties:
-                model:
-                  type: string
-                input:
-                  oneOf:
-                    - type: string
-                    - type: array
-                      items:
-                        type: object
-                        additionalProperties: true
-                max_output_tokens:
-                  type: integer
-                  minimum: 1
-                temperature:
-                  type: number
-                chat_template_kwargs:
-                  type: object
-                  additionalProperties: true
-                  properties:
-                    enable_thinking:
-                      type: boolean
+              $ref: '../json/responses-request.schema.json'
       responses:
         '200':
           description: Response object
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '../json/responses-response.schema.json'
   /v1/embeddings:
     post:
       summary: OpenAI-compatible embeddings endpoint when llama-server starts with --embeddings
@@ -173,26 +111,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: true
-              required: [model, input]
-              properties:
-                model:
-                  type: string
-                input:
-                  oneOf:
-                    - type: string
-                    - type: array
-                      items:
-                        type: string
+              $ref: '../json/embeddings-request.schema.json'
       responses:
         '200':
           description: Embeddings response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '../json/embeddings-response.schema.json'
         '501':
           description: Not enabled unless server starts with --embeddings
           content:
@@ -208,27 +134,14 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              additionalProperties: true
-              required: [prompt]
-              properties:
-                prompt:
-                  type: string
-                n_predict:
-                  type: integer
-                  minimum: 1
-                stream:
-                  type: boolean
-                temperature:
-                  type: number
+              $ref: '../json/native-completion-request.schema.json'
       responses:
         '200':
           description: Native completion response
           content:
             application/json:
               schema:
-                type: object
-                additionalProperties: true
+                $ref: '../json/native-completion-response.schema.json'
   /slots:
     get:
       summary: llama.cpp-native slot inspection endpoint
@@ -250,7 +163,7 @@ paths:
           content:
             text/plain:
               schema:
-                type: string
+                $ref: '../json/metrics-response.schema.json'
         '501':
           description: Not enabled unless server starts with --metrics
           content:

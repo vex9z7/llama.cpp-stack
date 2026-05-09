@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/responses-request.schema.json",
+  "title": "OpenAI-compatible Responses API Request",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["model", "input"],
+  "properties": {
+    "model": { "type": "string" },
+    "input": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "object", "additionalProperties": true } }
+      ]
+    },
+    "stream": { "type": "boolean" },
+    "max_output_tokens": { "type": "integer", "minimum": 1 },
+    "temperature": { "type": "number", "minimum": 0 },
+    "tools": { "type": "array", "items": { "type": "object", "additionalProperties": true } },
+    "response_format": { "$ref": "chat-completion-request.schema.json#/$defs/responseFormat" },
+    "chat_template_kwargs": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enable_thinking": { "type": "boolean" }
+      }
+    }
+  }
+}

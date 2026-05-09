@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/embeddings-request.schema.json",
+  "title": "OpenAI-compatible Embeddings Request",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["model", "input"],
+  "properties": {
+    "model": { "type": "string" },
+    "input": {
+      "oneOf": [
+        { "type": "string" },
+        { "type": "array", "items": { "type": "string" } },
+        { "type": "array", "items": { "type": "integer" } },
+        { "type": "array", "items": { "type": "array", "items": { "type": "integer" } } }
+      ]
+    },
+    "encoding_format": { "type": "string", "enum": ["float", "base64"] }
+  }
+}
