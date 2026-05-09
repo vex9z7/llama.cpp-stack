@@ -44,7 +44,7 @@ services:
     container_name: llama-gateway
     restart: unless-stopped
     ports:
-      - "${GATEWAY_HOST:-127.0.0.1}:${GATEWAY_PORT:-8090}:8090"
+      - "${GATEWAY_HOST:-127.0.0.1}:${GATEWAY_PORT:-8080}:8090"
     volumes:
       - ./models:/models:rw,z
     security_opt:

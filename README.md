@@ -16,11 +16,12 @@ Requirements: Linux, Docker with Compose plugin, Bash, `curl`.
 
 ```bash
 cp .env.example .env
-# 默认根据 .env 里的 LLAMA_MODEL 从 models/catalog.toml 下载。
-make up        # validates the configured backend/model, then starts llama-server
-make logs      # follow logs
-make down      # stop the service
+make up        # starts the Go gateway + worker-agent pool; removes old single-instance orphans
+make logs      # follow gateway/worker logs
+make down      # stop the dynamic stack
 ```
+
+`make up` now deploys the dynamic gateway on host port `8080` by default, so an existing reverse proxy that used to point at the old `llama-server` can keep the same upstream port after the old container is removed. The old single-instance deployment is still available as `make legacy-up`.
 
 ## Manual reachability test
 
@@ -36,22 +37,22 @@ curl http://127.0.0.1:8080/v1/models
 ```bash
 curl http://127.0.0.1:8080/v1/chat/completions \
   -H 'Content-Type: application/json' \
-  -H 'Authorization: Bearer sk-no-key-required' \
   -d '{
-    "model":"local-llm",
+    "model":"Open4bits/Qwen3-0.6b-gguf/Q4_K_M",
     "messages":[{"role":"user","content":"Say hello in one sentence."}],
     "max_tokens":64,
-    "stream":false
+    "stream":false,
+    "chat_template_kwargs":{"enable_thinking":false}
   }'
 ```
 
-流式检查：
+流式检查（会按需下载 `GATEWAY_SMOKE_MODEL`）：
 
 ```bash
 make smoke
 ```
 
-取消检查：
+取消检查（会按需下载 `GATEWAY_SMOKE_MODEL`）：
 
 ```bash
 make stream-cancel
@@ -65,9 +66,9 @@ The Go dynamic gateway/worker mode is the first implementation of the router des
 
 ```bash
 cp .env.example .env
-make dynamic-up BACKEND=vulkan
-make dynamic-logs
-make probe-gateway BASE_URL=http://127.0.0.1:8090
+make up BACKEND=vulkan
+make logs
+make probe-gateway BASE_URL=http://127.0.0.1:8080
 ```
 
 Gateway endpoints:
@@ -86,7 +87,7 @@ POST /v1/embeddings
 Example dynamic request:
 
 ```bash
-curl http://127.0.0.1:8090/v1/chat/completions \
+curl http://127.0.0.1:8080/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
     "model":"Qwen/Qwen3-4B-GGUF/Q4_K_M",
@@ -134,11 +135,11 @@ Model refs are derived as `<repo>/<quant>`, for example:
 Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
-The current single-instance Compose path still expects an already-local GGUF file via `LLAMA_MODEL_FILE`. Dynamic lazy download belongs to the planned manager backend; see `docs/dynamic-model-manager-design.md`.
+The default deployment uses the Go gateway and lazy-downloads catalog models on demand. The legacy single-instance Compose path still exists behind `make legacy-up` and expects an already-local GGUF file via `LLAMA_MODEL_FILE`.
 
 ## Models
 
-模型文件放在 `./models` 下。单实例模式默认配置会加载：
+模型文件放在 `./models` 下。动态 gateway 会按需下载到 `models/hf/<repo>/<quant>.gguf`。旧单实例模式会加载：
 
 ```text
 models/model.gguf
@@ -157,9 +158,12 @@ LLAMA_ALIAS=qwen3-8b-local
 
 ```text
 .
-├── docker-compose.yml        # llama-server base service
-├── docker-compose.vulkan.yml # Vulkan backend override
-├── docker-compose.cuda.yml   # CUDA backend override
+├── docker-compose.dynamic.yml        # default Go gateway + worker-agent stack
+├── docker-compose.dynamic.vulkan.yml # dynamic Vulkan override
+├── docker-compose.dynamic.cuda.yml   # dynamic CUDA override
+├── docker-compose.yml                # legacy llama-server base service
+├── docker-compose.vulkan.yml         # legacy Vulkan override
+├── docker-compose.cuda.yml           # legacy CUDA override
 ├── Makefile                  # validated compose workflow
 ├── .env.example              # 可复制的本地配置模板
 ├── docs/
@@ -173,6 +177,16 @@ LLAMA_ALIAS=qwen3-8b-local
 ## 关键配置
 
 编辑 `.env`：
+
+动态 gateway：
+
+- `GATEWAY_HOST` / `GATEWAY_PORT`：gateway 宿主机监听地址和端口；默认 `127.0.0.1:8080`。
+- `WORKER_BASE_URLS`：Compose 内部 worker-agent 地址列表。
+- `LLAMA_WORKER_POOL_SIZE`：文档/校验用的 worker 数量；实际数量由 Compose worker 服务决定。
+- `LLAMA_WORKER_CTX_SIZE` / `LLAMA_WORKER_PARALLEL`：每个 worker 启动 llama-server 时的上下文和并发。
+- `HF_ENDPOINT` / `HF_TOKEN`：Hugging Face 下载配置。
+
+通用/legacy：
 
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`。
 - `LLAMA_HOST` / `LLAMA_PORT`：宿主机监听地址和端口；默认只绑定 `127.0.0.1:8080`。
@@ -188,7 +202,7 @@ Integration schemas live under `schemas/` and are documented in `docs/api-schema
 
 ```bash
 make schemas
-make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com LLAMA_ALIAS=local-llm
+make probe-gateway BASE_URL=https://llamacpp-stack.vex9z7.com
 ```
 
 ## Multi-instance
@@ -203,7 +217,7 @@ make instances-up
 
 ## Backend selection
 
-默认使用 Vulkan：
+默认 `make up` 使用 dynamic gateway。默认使用 Vulkan：
 
 ```bash
 make up
@@ -219,6 +233,14 @@ CUDA portability option：
 
 ```bash
 make up BACKEND=cuda
+```
+
+旧单实例模式：
+
+```bash
+make legacy-up BACKEND=vulkan
+make legacy-logs
+make legacy-down
 ```
 
 ## Vulkan/AMD 排障
