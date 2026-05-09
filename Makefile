@@ -80,9 +80,10 @@ dynamic-build:
 	$(DYNAMIC_COMPOSE) build
 
 remove-legacy:
+	-$(DYNAMIC_COMPOSE) down --remove-orphans
 	-$(LEGACY_COMPOSE) down --remove-orphans
-	-$(COMPOSE_CMD) rm -f -s llama 2>/dev/null || true
-	-docker rm -f llama-cpp 2>/dev/null || true
+	-$(COMPOSE_CMD) rm -f -s llama gateway worker-0 worker-1 2>/dev/null || true
+	-docker rm -f llama-cpp llama-gateway llama-worker-0 llama-worker-1 2>/dev/null || true
 
 dynamic-up: dynamic-check remove-legacy
 	$(DYNAMIC_COMPOSE) up -d --build --force-recreate --remove-orphans
