@@ -62,7 +62,7 @@ Manager container
                - idle OR llama-server subprocess for model B
 ```
 
-`LLAMA_MAX_INSTANCES` corresponds to the number of worker-agent containers available, not the number of cataloged models.
+`LLAMA_WORKER_POOL_SIZE` corresponds to the number of worker-agent containers available, not the number of cataloged models.
 
 ## 4. Core constraints
 
@@ -97,7 +97,16 @@ worker idle -> load model -> llama-server running
 worker running -> unload model -> idle
 ```
 
-## 4.3 Capacity policy v1: reject
+## 4.3 Capacity policy v1: loaded-model residency
+
+In router semantics, one loaded worker instance corresponds to one routable model.
+
+```text
+worker instance = one worker-agent container with one loaded llama-server subprocess
+router model    = the public model name routed to that worker instance
+```
+
+Capacity is about how many different models can be resident at once, not how many requests can run at once.
 
 Initial policy:
 
@@ -107,10 +116,11 @@ LLAMA_EVICTION_POLICY=reject
 
 Rules:
 
-1. If requested model is already loaded in a worker, use that worker.
-2. If requested model is not loaded and an idle worker exists, load it into the idle worker.
-3. If requested model is not loaded and no idle worker exists, return HTTP 429.
-4. Do not evict or unload running models automatically in v1.
+1. If requested model is already loaded in a worker, route to that worker.
+2. If that worker's internal `llama-server` request slots are busy, the request may wait/queue inside that worker. Router does not reject based on `llama-server` slots.
+3. If requested model is not loaded and an idle worker exists, load it into the idle worker.
+4. If requested model is not loaded and no idle worker exists, return HTTP 429.
+5. Do not evict or unload running models automatically in v1.
 
 ## 5. Component responsibilities
 
@@ -457,8 +467,8 @@ HTTP/1.1 429 Too Many Requests
 {
   "error": {
     "type": "capacity_error",
-    "code": "max_instances_reached",
-    "message": "No idle worker agents available"
+    "code": "no_idle_worker",
+    "message": "Requested model is not loaded and no idle worker instance is available"
   }
 }
 ```
@@ -540,7 +550,24 @@ manager returns inference_url
 router proxies request
 ```
 
-## 8.3 Model cold, all workers occupied
+## 8.3 Model already loaded but busy
+
+```text
+router -> manager ensure-running(X)
+        |
+        v
+manager returns existing worker inference_url
+        |
+        v
+router proxies to the same worker
+        |
+        v
+worker llama-server handles internal request slots / queueing
+```
+
+Router hides `llama-server` slots and does not reject just because the loaded worker is busy.
+
+## 8.4 Model cold, all workers occupied
 
 ```text
 router -> manager ensure-running(X)
@@ -552,9 +579,21 @@ manager returns 429 capacity_error
 router returns 429 to client
 ```
 
+This rejection only means there is no idle worker instance to load a new model. It does not mean per-model request slots are full.
+
 No eviction in v1.
 
-## 9. `/v1/models` semantics
+## 9. Router model semantics
+
+A loaded worker instance corresponds to one router model.
+
+```text
+router model name -> manager loaded worker -> worker llama-server
+```
+
+Multiple requests for the same router model are forwarded to the same worker instance. If that worker is busy, the request may wait in the worker's `llama-server` scheduler/queue. Router does not expose worker ids, worker topology, or `llama-server` slots.
+
+## 9.1 `/v1/models` semantics
 
 The router may return catalog models, not only loaded models.
 
@@ -642,7 +681,7 @@ No service mounts Docker socket.
 Suggested manager/router env:
 
 ```env
-LLAMA_MAX_INSTANCES=2
+LLAMA_WORKER_POOL_SIZE=2
 LLAMA_EVICTION_POLICY=reject
 LLAMA_INSTANCE_START_TIMEOUT_SECONDS=120
 WORKER_BASE_URLS=http://worker-0:8092,http://worker-1:8092

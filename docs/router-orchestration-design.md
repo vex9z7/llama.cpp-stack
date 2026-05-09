@@ -236,6 +236,18 @@ Initial config can be generated from running instances:
 
 Later, route selection can become policy-based.
 
+## 4.5 Router model-to-instance semantics
+
+One loaded worker instance corresponds to one routable model in the router.
+
+```text
+router model name -> one loaded worker instance -> one llama-server subprocess
+```
+
+Requests for the same router model are always forwarded to the same loaded worker instance. If that worker's internal `llama-server` slots are busy, requests may wait inside the worker's `llama-server`; router does not expose or reject based on slots.
+
+Router only rejects for capacity when the requested model is not currently loaded and no idle worker instance is available to load it.
+
 ## 5. Router behavior
 
 ## 5.1 `/v1/models`
