@@ -16,8 +16,7 @@ Requirements: Linux, Docker with Compose plugin, Bash, `curl`.
 
 ```bash
 cp .env.example .env
-mkdir -p models
-# 将你的 GGUF 模型放到 ./models/model.gguf，或修改 .env 里的 LLAMA_MODEL_FILE。
+# models/ 已由 models/.gitkeep 保留；将你的 GGUF 模型放到 ./models/model.gguf，或修改 .env 里的 LLAMA_MODEL_FILE。
 make up        # validates the configured backend/model, then starts llama-server
 make logs      # follow logs
 make down      # stop the service

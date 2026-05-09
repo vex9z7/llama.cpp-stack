@@ -59,7 +59,6 @@ jobs:
         run: |
           set -euo pipefail
           cp .env.example .env
-          mkdir -p models
           touch models/model.gguf
           make check BACKEND=cpu
           make -n up BACKEND=cpu >/dev/null
