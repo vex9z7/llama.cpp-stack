@@ -36,10 +36,10 @@ schemas:
 	@python3 -c "from pathlib import Path; t=Path('schemas/openapi/llama-server.openapi.yaml').read_text(); assert 'openapi: 3.1.0' in t and '/v1/chat/completions:' in t; print('openapi schema smoke ok')"
 
 probe-api:
-	python3 scripts/probe_api_schemas.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8080}}}" --model "$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)}"
+	python3 scripts/probe_api_schemas.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}}}" --model "$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)}"
 
 probe-gateway:
-	python3 scripts/probe_gateway.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8080}}}"
+	python3 scripts/probe_gateway.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}}}"
 
 models:
 	@python3 -c "import tomllib; rows=tomllib.load(open('models/catalog.toml','rb')).get('models',[]); print(f'{\"MODEL\":<54} {\"PATTERN\"}'); [print(f'{(r.get(\"repo\",\"\") + \"/\" + r.get(\"quant\",\"\")):<54} {r.get(\"pattern\") or r.get(\"file\") or (\"*\" + r.get(\"quant\",\"\") + \"*.gguf\")}') for r in rows]"
@@ -142,7 +142,7 @@ legacy-config:
 	$(LEGACY_COMPOSE) config
 
 smoke:
-	HOST_PORT=$${GATEWAY_PORT:-$${LLAMA_PORT:-8080}} LLAMA_ALIAS=$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)} ./scripts/smoke_stream.sh
+	HOST_PORT=$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}} LLAMA_ALIAS=$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)} ./scripts/smoke_stream.sh
 
 stream-cancel:
-	HOST_PORT=$${GATEWAY_PORT:-$${LLAMA_PORT:-8080}} LLAMA_ALIAS=$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)} ./scripts/test_cancel.sh
+	HOST_PORT=$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}} LLAMA_ALIAS=$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)} ./scripts/test_cancel.sh

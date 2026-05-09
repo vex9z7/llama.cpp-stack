@@ -21,7 +21,7 @@ make logs      # follow gateway/worker logs
 make down      # stop the dynamic stack
 ```
 
-`make up` now deploys the dynamic gateway on host port `8080` by default, so an existing reverse proxy that used to point at the old `llama-server` can keep the same upstream port after the old container is removed. The old single-instance deployment is still available as `make legacy-up`.
+`make up` now deploys the dynamic gateway using the same host bind as the old service by default: `LLAMA_HOST` / `LLAMA_PORT`. The gateway listens on container port `8090`, but the host port is inherited from your existing `.env`. The old single-instance deployment is still available as `make legacy-up`.
 
 ## Manual reachability test
 
@@ -68,7 +68,7 @@ The Go dynamic gateway/worker mode is the first implementation of the router des
 cp .env.example .env
 make up BACKEND=vulkan
 make logs
-make probe-gateway BASE_URL=http://127.0.0.1:8080
+make probe-gateway
 ```
 
 Gateway endpoints:
@@ -180,7 +180,7 @@ LLAMA_ALIAS=qwen3-8b-local
 
 动态 gateway：
 
-- `GATEWAY_HOST` / `GATEWAY_PORT`：gateway 宿主机监听地址和端口；默认 `127.0.0.1:8080`。
+- `GATEWAY_HOST` / `GATEWAY_PORT`：gateway 宿主机监听地址和端口；默认继承 `LLAMA_HOST` / `LLAMA_PORT`；也可显式覆盖。
 - `WORKER_BASE_URLS`：Compose 内部 worker-agent 地址列表。
 - `LLAMA_WORKER_POOL_SIZE`：文档/校验用的 worker 数量；实际数量由 Compose worker 服务决定。
 - `LLAMA_WORKER_CTX_SIZE` / `LLAMA_WORKER_PARALLEL`：每个 worker 启动 llama-server 时的上下文和并发。
