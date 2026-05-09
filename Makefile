@@ -4,8 +4,7 @@ SHELL := /usr/bin/env bash
 export
 
 BACKEND ?= $(or $(LLAMA_BACKEND),vulkan)
-MODEL_ID ?= $(LLAMA_MODEL)
-MODEL_FILE ?= $(if $(LLAMA_MODEL_FILE),$(LLAMA_MODEL_FILE),$(if $(MODEL_ID),hf/$(MODEL_ID).gguf,model.gguf))
+MODEL_FILE ?= $(or $(LLAMA_MODEL_FILE),model.gguf)
 COMPOSE_CMD ?= docker compose
 
 COMPOSE_FILES_cpu := -f docker-compose.yml
@@ -20,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := LLAMA_MODEL_FILE=$(MODEL_FILE) $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check schemas probe-api models downloader-build download instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config up down restart logs ps config smoke stream-cancel
+.PHONY: check schemas probe-api models instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config up down restart logs ps config smoke stream-cancel
 
 schemas:
 	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"
@@ -31,19 +30,6 @@ probe-api:
 
 models:
 	@python3 -c "import tomllib; rows=tomllib.load(open('models/catalog.toml','rb')).get('models',[]); print(f'{\"MODEL\":<54} {\"PATTERN\"}'); [print(f'{(r.get(\"repo\",\"\") + \"/\" + r.get(\"quant\",\"\")):<54} {r.get(\"pattern\") or r.get(\"file\") or (\"*\" + r.get(\"quant\",\"\") + \"*.gguf\")}') for r in rows]"
-
-downloader-build:
-	$${DOCKER_CMD:-docker} build -t "$${DOWNLOADER_IMAGE:-llama-cpp-stack-hf-downloader:local}" docker/hf-downloader
-
-download:
-	MODEL="$${MODEL:-$${LLAMA_MODEL:-}}" HF_REPO="$${HF_REPO:-$${MODEL_REPO:-}}" QUANT="$${QUANT:-}" FILE_PATTERN="$${FILE_PATTERN:-$${MODEL_INCLUDE:-}}" WRITE_ENV="$${WRITE_ENV:-0}" ./scripts/download_model.sh
-
-ensure-model:
-	@if [ -n "$(MODEL_ID)" ]; then \
-		MODEL="$(MODEL_ID)" ./scripts/download_model.sh; \
-	else \
-		echo "LLAMA_MODEL not set; skipping catalog download"; \
-	fi
 
 instances-render:
 	python3 scripts/render_instances.py render --config "$${INSTANCES_CONFIG:-configs/instances.toml}" --output "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}"
@@ -76,7 +62,7 @@ check:
 		cuda) command -v nvidia-smi >/dev/null || (echo "nvidia-smi not found; install NVIDIA driver/container toolkit for CUDA backend" >&2; exit 2); nvidia-smi -L ;; \
 	esac
 
-up: ensure-model check
+up: check
 	$(COMPOSE) up -d --force-recreate
 
 down:

@@ -4,7 +4,7 @@
 
 It answers only one question:
 
-> Where do we download this GGUF model from?
+> Which Hugging Face GGUF models are allowed to be lazy-downloaded by the manager?
 
 It does not describe runtime parameters, aliases, ports, routes, context size, parallel slots, or request overrides.
 
@@ -16,13 +16,13 @@ repo = "Qwen/Qwen3-4B-GGUF"
 quant = "Q4_K_M"
 ```
 
-The local model id is derived directly from repo and quant:
+The local model ref is derived directly from repo and quant:
 
 ```text
 Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
-The `repo` field maps directly to Hugging Face CLI:
+The `repo` field maps directly to Hugging Face CLI semantics:
 
 ```bash
 hf download Qwen/Qwen3-4B-GGUF ...
@@ -54,7 +54,13 @@ file = "exact-file-name.gguf"
 
 ## Stable local filename
 
-After download, the script creates a stable symlink:
+The manager should download into:
+
+```text
+models/hf/<owner>/<repo>/
+```
+
+and create a stable symlink:
 
 ```text
 models/hf/<owner>/<repo>/<quant>.gguf -> <actual-hugging-face-filename>.gguf
@@ -66,49 +72,17 @@ Example:
 models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf -> Qwen3-4B-Q4_K_M.gguf
 ```
 
-This lets deployment use a filename derived from the model id while preserving the original downloaded file.
+This lets runtime code use a deterministic path while preserving the original downloaded filename.
 
-## Deployment-time download
+## Lazy download
 
-Set a catalog model id in `.env`:
-
-```env
-LLAMA_MODEL=Qwen/Qwen3-4B-GGUF/Q4_K_M
-```
-
-Then:
-
-```bash
-make up
-```
-
-`make up` runs the catalog downloader first, then starts `llama-server` with:
+There is intentionally no `make download` path. The planned manager backend owns lazy download:
 
 ```text
-LLAMA_MODEL_FILE=hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
+router request -> manager ensure-running(model_ref) -> download if missing -> load into idle worker
 ```
 
-If `LLAMA_MODEL` is empty, deployment falls back to `LLAMA_MODEL_FILE` / `model.gguf` behavior.
-
-## Downloader container
-
-Deployment-time downloads use a dedicated container by default. The host only needs Docker/Compose, not `hf` or `huggingface-cli`.
-
-```bash
-make downloader-build
-make download MODEL='Qwen/Qwen3-4B-GGUF/Q4_K_M'
-```
-
-Environment knobs:
-
-```env
-DOWNLOADER_MODE=container
-DOWNLOADER_IMAGE=llama-cpp-stack-hf-downloader:local
-DOCKER_CMD=docker
-HF_TOKEN=... # optional, for private repos or higher rate limits
-```
-
-Set `DOWNLOADER_MODE=host` only if you intentionally want to use a host-installed `hf` or `huggingface-cli`.
+Manual prefetch can be reintroduced later as a `llamactl` command that calls the manager API, not as a host-side deployment prerequisite.
 
 ## Included starter catalog
 

@@ -58,9 +58,9 @@ make stream-cancel
 ```
 
 
-## Model catalog / download
+## Model catalog
 
-内置 catalog 是 Hugging Face CLI friendly TOML：`models/catalog.toml`。它只描述模型来源和量化选择，不放运行参数。模型 id 直接派生为 `<repo>/<quant>`。
+`models/catalog.toml` lists Hugging Face models that the future manager may lazy-download on demand. It is source-only and does not contain runtime parameters.
 
 ```toml
 [[models]]
@@ -68,41 +68,25 @@ repo = "Qwen/Qwen3-4B-GGUF"
 quant = "Q4_K_M"
 ```
 
-`quant = "Q4_K_M"` 会派生出 HF CLI 下载筛选：`--include "*Q4_K_M*.gguf"`，避免把同一个 repo 里的所有量化文件都下载下来。
-
-```bash
-make models
-make download MODEL='Qwen/Qwen3-4B-GGUF/Q4_K_M'
-```
-
-下载后会在 `models/hf/<repo>/` 下创建稳定的本地 symlink：
+Model refs are derived as `<repo>/<quant>`, for example:
 
 ```text
-models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf -> Qwen3-4B-Q4_K_M.gguf
+Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
-如果 `.env` 设置了 `LLAMA_MODEL=Qwen/Qwen3-4B-GGUF/Q4_K_M`，`make up` 会在启动前确保模型已下载。
-
-也可以直接指定任意 Hugging Face repo 和文件 glob：
-
-```bash
-make download HF_REPO=Qwen/Qwen3-8B-GGUF QUANT=Q4_K_M
-```
-
-默认使用专门的 Hugging Face downloader 容器，因此宿主机不需要安装 `hf` / `huggingface-cli`。如需使用宿主机 CLI，可设置 `DOWNLOADER_MODE=host`。
+The current single-instance Compose path still expects an already-local GGUF file via `LLAMA_MODEL_FILE`. Dynamic lazy download belongs to the planned manager backend; see `docs/dynamic-model-manager-design.md`.
 
 ## Models
 
-模型文件放在 `./models` 下。默认配置会加载：
+模型文件放在 `./models` 下。单实例模式默认配置会加载：
 
 ```text
-models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
+models/model.gguf
 ```
 
 如需使用其它模型文件：
 
 ```env
-LLAMA_MODEL=Qwen/Qwen3-8B-GGUF/Q4_K_M
 LLAMA_MODEL_FILE=hf/Qwen/Qwen3-8B-GGUF/Q4_K_M.gguf
 LLAMA_ALIAS=qwen3-8b-local
 ```
@@ -132,8 +116,7 @@ LLAMA_ALIAS=qwen3-8b-local
 
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`。
 - `LLAMA_HOST` / `LLAMA_PORT`：宿主机监听地址和端口；默认只绑定 `127.0.0.1:8080`。
-- `LLAMA_MODEL`：catalog 模型 id，格式是 `<repo>/<quant>`，例如 `Qwen/Qwen3-4B-GGUF/Q4_K_M`。
-- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 路径；设置 `LLAMA_MODEL` 时默认是 `hf/<repo>/<quant>.gguf`。
+- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 路径，例如 `model.gguf` 或 `hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf`。
 - `LLAMA_ALIAS`：客户端请求时使用的 model 名称。
 - `LLAMA_CTX_SIZE` / `LLAMA_N_PARALLEL`：上下文总量与并发 slot 数。有效单请求上下文大约是 `CTX_SIZE / N_PARALLEL`。
 - `LLAMA_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload，VRAM 不足时调低。

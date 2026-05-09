@@ -670,16 +670,16 @@ WORKER_AGENT_PORT=8092
 
 Manager can download models directly using `huggingface_hub` into mounted `/models`.
 
-The existing `docker/hf-downloader` remains useful for manual `make download` and deployment-time model prefetching.
-
 Recommended v1:
 
 ```text
 manager includes huggingface_hub
-manager downloads directly
+manager lazy-downloads directly into mounted /models
 ```
 
-This avoids manager needing Docker socket just to run a downloader container.
+Manual prefetch should later be exposed through `llamactl`, which calls the manager API. There should be no host-side `make download` deployment prerequisite.
+
+This keeps download ownership inside the manager and avoids a separate downloader service.
 
 ## 13. Cancellation requirements
 
