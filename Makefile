@@ -26,7 +26,7 @@ DYNAMIC_COMPOSE_FILES := $(DYNAMIC_COMPOSE_FILES_$(BACKEND))
 LEGACY_COMPOSE := LLAMA_MODEL_FILE=$(MODEL_FILE) $(COMPOSE_CMD) $(LEGACY_COMPOSE_FILES)
 DYNAMIC_COMPOSE := $(COMPOSE_CMD) $(DYNAMIC_COMPOSE_FILES)
 
-.PHONY: check go-test schemas probe-api probe-gateway models instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config dynamic-check dynamic-build dynamic-up dynamic-down dynamic-restart dynamic-logs dynamic-ps dynamic-config legacy-check legacy-up legacy-down legacy-restart legacy-logs legacy-ps legacy-config up down restart logs ps config smoke stream-cancel
+.PHONY: check go-test schemas probe-api probe-gateway models instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config dynamic-check dynamic-build dynamic-up dynamic-down dynamic-restart dynamic-logs dynamic-ps dynamic-config remove-legacy legacy-check legacy-up legacy-down legacy-restart legacy-logs legacy-ps legacy-config up down restart logs ps config smoke stream-cancel
 
 go-test:
 	go test ./...
@@ -79,7 +79,12 @@ dynamic-check:
 dynamic-build:
 	$(DYNAMIC_COMPOSE) build
 
-dynamic-up: dynamic-check
+remove-legacy:
+	-$(LEGACY_COMPOSE) down --remove-orphans
+	-$(COMPOSE_CMD) rm -f -s llama 2>/dev/null || true
+	-docker rm -f llama-cpp 2>/dev/null || true
+
+dynamic-up: dynamic-check remove-legacy
 	$(DYNAMIC_COMPOSE) up -d --build --force-recreate --remove-orphans
 
 dynamic-down:
