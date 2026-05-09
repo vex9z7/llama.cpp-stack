@@ -1,5 +1,23 @@
 # Hugging Face model source catalog.
 # Keep this source-only: runtime params, aliases, ports, and routing live elsewhere.
+# Model id is derived as: <repo>/<quant>
+# Stable local path is: models/hf/<repo>/<quant>.gguf
+
+# --- Tiny smoke-test models ---
+
+[[models]]
+repo = "Open4bits/Qwen3-0.6b-gguf"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "ggml-org/Qwen3-1.7B-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "ggml-org/SmolLM3-3B-GGUF"
+quant = "Q4_K_M"
+
+# --- General chat models ---
 
 [[models]]
 repo = "Qwen/Qwen3-4B-GGUF"
@@ -10,5 +28,45 @@ repo = "Qwen/Qwen3-8B-GGUF"
 quant = "Q4_K_M"
 
 [[models]]
+repo = "Qwen/Qwen2.5-3B-Instruct-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "Qwen/Qwen2.5-7B-Instruct-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "bartowski/Llama-3.2-3B-Instruct-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "bartowski/Mistral-7B-Instruct-v0.3-GGUF"
+quant = "Q4_K_M"
+
+# Gemma license terms apply; useful for cross-family compatibility tests.
+[[models]]
+repo = "ggml-org/gemma-3-4b-it-GGUF"
+quant = "Q4_K_M"
+
+# --- Coding-focused models ---
+
+[[models]]
+repo = "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF"
+quant = "Q4_K_M"
+
+# Official Qwen coder repo uses split GGUFs for some larger quants. If this pattern
+# matches multiple files in the future, prefer a community single-file repo below.
+[[models]]
 repo = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "bartowski/Qwen2.5-Coder-7B-Instruct-GGUF"
+quant = "Q4_K_M"
+
+# --- Embedding models ---
+# These require a separate llama-server instance started with --embeddings.
+
+[[models]]
+repo = "n24q02m/Qwen3-Embedding-0.6B-GGUF"
 quant = "Q4_K_M"

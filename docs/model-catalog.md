@@ -109,3 +109,19 @@ HF_TOKEN=... # optional, for private repos or higher rate limits
 ```
 
 Set `DOWNLOADER_MODE=host` only if you intentionally want to use a host-installed `hf` or `huggingface-cli`.
+
+## Included starter catalog
+
+The starter catalog intentionally mixes small smoke-test models, general chat models, coder models, and one embedding model so deployment and router behavior can be tested across model families.
+
+Examples:
+
+```text
+Open4bits/Qwen3-0.6b-gguf/Q4_K_M
+ggml-org/Qwen3-1.7B-GGUF/Q4_K_M
+Qwen/Qwen3-4B-GGUF/Q4_K_M
+Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
+n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M
+```
+
+Some models may have license or runtime requirements beyond this stack. For example, embedding models should run in a separate instance with `--embeddings`, and Gemma models have their own license terms.
