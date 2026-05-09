@@ -58,6 +58,66 @@ make stream-cancel
 ```
 
 
+
+## Dynamic gateway mode
+
+The Go dynamic gateway/worker mode is the first implementation of the router design in `docs/dynamic-model-manager-design.md`. It exposes one OpenAI-compatible gateway and keeps worker/slot details internal.
+
+```bash
+cp .env.example .env
+make dynamic-up BACKEND=vulkan
+make dynamic-logs
+make probe-gateway BASE_URL=http://127.0.0.1:8090
+```
+
+Gateway endpoints:
+
+```text
+GET  /health
+GET  /v1/models
+POST /v1/chat/completions
+POST /v1/completions
+POST /v1/responses
+POST /v1/embeddings
+```
+
+`/v1/models` returns catalog models from `models/catalog.toml`. Requesting one of those model ids lazily downloads the GGUF into `models/hf/<repo>/<quant>.gguf`, loads it into an idle worker-agent container, and proxies the request to that worker's `llama-server`.
+
+Example dynamic request:
+
+```bash
+curl http://127.0.0.1:8090/v1/chat/completions \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "model":"Qwen/Qwen3-4B-GGUF/Q4_K_M",
+    "messages":[{"role":"user","content":"Say hello in one sentence."}],
+    "max_tokens":64,
+    "stream":true,
+    "chat_template_kwargs":{"enable_thinking":false}
+  }'
+```
+
+Capacity semantics for v1:
+
+- one worker-agent container can load one model;
+- requests for an already-loaded model are forwarded to that same worker;
+- same-model concurrency is handled by that worker's `llama-server` slots/queue;
+- if a cold model is requested and all workers already hold other models, gateway returns HTTP 429;
+- no Docker socket is mounted, and no `/control/*`, `/worker/*`, or `/slots` endpoints are exposed publicly.
+
+Dynamic mode uses these files:
+
+```text
+Dockerfile.gateway
+Dockerfile.worker
+docker-compose.dynamic.yml
+docker-compose.dynamic.vulkan.yml
+docker-compose.dynamic.cuda.yml
+cmd/gateway
+cmd/worker
+internal/
+```
+
 ## Model catalog
 
 `models/catalog.toml` lists Hugging Face models that the future manager may lazy-download on demand. It is source-only and does not contain runtime parameters.

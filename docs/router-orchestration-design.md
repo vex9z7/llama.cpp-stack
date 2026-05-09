@@ -513,3 +513,20 @@ Build in this order:
 5. Add optional `llamactl` and later policy/load routing.
 
 This keeps the critical serving path testable before adding dynamic orchestration complexity.
+
+## 12. Implementation stack decision
+
+Use Go for the gateway and worker-agent implementation. The default stack is:
+
+```text
+HTTP server/client  net/http
+Streaming proxy     explicit context-aware proxy code
+Catalog TOML        github.com/pelletier/go-toml/v2
+Logging             log/slog
+Config              env vars + models/catalog.toml
+HF download         minimal Go downloader in gateway manager
+Worker lifecycle    os/exec + syscall
+State               in-memory, rebuilt from worker status
+```
+
+The detailed implementation stack and readiness checklist live in `docs/dynamic-model-manager-design.md`.

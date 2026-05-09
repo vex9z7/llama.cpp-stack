@@ -1,0 +1,11 @@
+.git
+.venv
+.env
+models/**/*.gguf
+models/*.gguf
+models/**/*.tmp
+models/*.tmp
+models/hf
+hf-cache
+*.log
+docker-compose.instances.yml

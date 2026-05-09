@@ -723,3 +723,230 @@ Only after v1 is stable:
 - task-aware routing;
 - model aliases;
 - embeddings-specific workers.
+
+## 14. Go implementation stack
+
+Dynamic gateway/worker implementation should be Go-first.
+
+Rationale:
+
+- the core problem is HTTP proxying, streaming, cancellation, subprocess control, and small state machines;
+- Go `net/http` has clear request-context cancellation semantics for client disconnects;
+- a single static binary keeps gateway and worker images simple;
+- avoiding a web framework reduces behavior hidden behind middleware;
+- performance is more than sufficient for a local router/control layer.
+
+### 14.1 Runtime and dependency choices
+
+Recommended stack:
+
+```text
+Language          Go
+HTTP server      net/http
+HTTP client      net/http
+Streaming proxy  custom io.Copy-style proxy using request context
+TOML             github.com/pelletier/go-toml/v2
+Logging          log/slog
+Config           environment variables + models/catalog.toml
+HF download      minimal Go Hugging Face downloader
+Process control  os/exec + context + syscall
+State            in-memory, reconstructed from workers on startup
+```
+
+Do not introduce these in v1 unless there is a concrete need:
+
+- Gin/Echo/Fiber;
+- gRPC;
+- Redis or a database;
+- Kubernetes client;
+- Docker SDK or Docker socket;
+- Python downloader;
+- Nginx/Caddy as the model router;
+- full OpenTelemetry stack.
+
+### 14.2 Repository layout
+
+Suggested implementation layout:
+
+```text
+cmd/
+  gateway/
+    main.go
+  worker/
+    main.go
+
+internal/
+  catalog/        # parse models/catalog.toml and derive model refs/paths
+  config/         # env parsing and defaults
+  hf/             # minimal Hugging Face file discovery/download
+  manager/        # catalog state, lazy download, worker allocation
+  openai/         # request/response helpers and OpenAI-shaped errors
+  proxy/          # cancellation-aware HTTP/SSE proxy
+  workerclient/   # gateway client for worker-agent internal API
+  llamaprocess/   # worker-side llama-server subprocess lifecycle
+```
+
+Keep package boundaries aligned with the logical design. Router and manager may run in one gateway process, but should not become one tangled package.
+
+### 14.3 Gateway request path
+
+The gateway public handler should be thin:
+
+```text
+/v1/chat/completions request
+  -> parse JSON body enough to read model
+  -> manager.EnsureRunning(ctx, model)
+       -> validate model exists in catalog
+       -> lazily download if missing
+       -> find existing loaded worker or idle worker
+       -> call worker /worker/load if needed
+       -> return backend inference URL
+  -> proxy.Forward(ctx, request, backendURL)
+       -> preserve streaming behavior
+       -> close upstream when client disconnects
+```
+
+The handler should not know how to download models or allocate workers. It should only translate HTTP requests into manager/proxy calls.
+
+### 14.4 Cancellation and streaming
+
+For streaming endpoints, prefer a small explicit proxy over a generic reverse-proxy abstraction.
+
+Required behavior:
+
+```go
+upstreamReq = upstreamReq.WithContext(r.Context())
+resp, err := http.DefaultClient.Do(upstreamReq)
+// copy response headers/status
+// stream resp.Body to ResponseWriter with flushes
+```
+
+When the client disconnects, Go cancels `r.Context()`. The upstream request to `llama-server` must use that same context so generation is interrupted and the llama.cpp slot is released.
+
+This is a correctness requirement, not just an optimization.
+
+### 14.5 Minimal Hugging Face downloader
+
+The gateway manager should own lazy download. V1 should implement only the minimal Hugging Face behavior needed for GGUF catalog entries:
+
+1. read `repo`, `quant`, and optional `pattern` / `file` from `models/catalog.toml`;
+2. list files in the Hugging Face repo;
+3. choose the matching `.gguf` file;
+4. download from the configured Hugging Face endpoint;
+5. write to a temporary file under `/models`;
+6. atomically publish the stable path:
+
+```text
+/models/hf/<repo>/<quant>.gguf
+```
+
+Suggested env:
+
+```env
+HF_ENDPOINT=https://huggingface.co
+HF_TOKEN=
+```
+
+Use `HF_TOKEN` for private/gated repos when present. Public models should work without it.
+
+### 14.6 Worker process control
+
+The worker-agent is also a Go service. Each worker container manages at most one child `llama-server` process.
+
+Worker load flow:
+
+```text
+POST /worker/load
+  -> validate idle
+  -> build llama-server command
+  -> start child process
+  -> poll child /health until ready or timeout
+  -> return inference_url
+```
+
+Worker unload flow:
+
+```text
+POST /worker/unload
+  -> optionally check child /slots
+  -> SIGTERM child
+  -> wait with timeout
+  -> SIGKILL if necessary
+  -> return idle state
+```
+
+Use `os/exec` for process start and `syscall` for signal handling. On worker container shutdown, terminate the child process cleanly.
+
+### 14.7 State model
+
+Gateway state can be in-memory in v1.
+
+On startup:
+
+```text
+read catalog
+read WORKER_BASE_URLS
+GET /worker/status for every worker
+rebuild model_ref -> worker mapping
+```
+
+No database is required. Worker state is the source of truth for loaded subprocesses. Gateway state is a reconstructed cache.
+
+### 14.8 Configuration
+
+Suggested gateway env:
+
+```env
+GATEWAY_ADDR=:8090
+MODELS_DIR=/models
+CATALOG_PATH=/models/catalog.toml
+WORKER_BASE_URLS=http://worker-0:8092,http://worker-1:8092
+LLAMA_EVICTION_POLICY=reject
+LLAMA_INSTANCE_START_TIMEOUT_SECONDS=120
+LLAMA_WORKER_CTX_SIZE=8192
+LLAMA_WORKER_PARALLEL=1
+LLAMA_WORKER_THREADS_HTTP=-1
+LLAMA_WORKER_N_GPU_LAYERS=999
+HF_ENDPOINT=https://huggingface.co
+HF_TOKEN=
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+Suggested worker env:
+
+```env
+WORKER_ID=worker-0
+WORKER_AGENT_ADDR=:8092
+LLAMA_SERVER_ADDR=:8080
+LLAMA_SERVER_BIN=/app/llama-server
+MODELS_DIR=/models
+LOG_LEVEL=info
+LOG_FORMAT=json
+```
+
+Avoid config frameworks in v1. Small explicit env parsing is easier to inspect and test.
+
+### 14.9 Implementation readiness checklist
+
+This design is sufficient to start implementation when the following are accepted:
+
+- public API is gateway-only and OpenAI-compatible;
+- no public control API in default deployment;
+- no Docker socket anywhere;
+- fixed Compose worker-agent pool;
+- one worker-agent container owns one possible `llama-server` subprocess;
+- one loaded worker corresponds to one public router model;
+- catalog models are lazy-downloadable;
+- capacity-full behavior is HTTP 429 when a cold model is requested and no idle worker exists;
+- same-model request concurrency is delegated to that worker's `llama-server` slots/queue;
+- gateway hides workers and slots from clients;
+- Go standard library is the default implementation baseline.
+
+Remaining implementation details can be resolved during coding:
+
+- exact OpenAI-shaped error JSON;
+- exact HF file-list endpoint response parser;
+- exact path of `llama-server` inside the worker image;
+- readiness timeout defaults;
+- test-only access path for internal `/slots` cancellation probes.

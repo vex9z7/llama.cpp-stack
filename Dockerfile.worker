@@ -1,0 +1,13 @@
+ARG LLAMA_WORKER_BASE_IMAGE=ghcr.io/ggml-org/llama.cpp:server
+FROM golang:1.22-bookworm AS build
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags='-s -w' -o /out/llama-worker ./cmd/worker
+
+FROM ${LLAMA_WORKER_BASE_IMAGE}
+USER root
+COPY --from=build /out/llama-worker /usr/local/bin/llama-worker
+EXPOSE 8080 8092
+ENTRYPOINT ["/usr/local/bin/llama-worker"]

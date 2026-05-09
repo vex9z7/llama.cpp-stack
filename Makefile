@@ -11,15 +11,24 @@ COMPOSE_FILES_cpu := -f docker-compose.yml
 COMPOSE_FILES_vulkan := -f docker-compose.yml -f docker-compose.vulkan.yml
 COMPOSE_FILES_cuda := -f docker-compose.yml -f docker-compose.cuda.yml
 
+DYNAMIC_COMPOSE_FILES_cpu := -f docker-compose.dynamic.yml
+DYNAMIC_COMPOSE_FILES_vulkan := -f docker-compose.dynamic.yml -f docker-compose.dynamic.vulkan.yml
+DYNAMIC_COMPOSE_FILES_cuda := -f docker-compose.dynamic.yml -f docker-compose.dynamic.cuda.yml
+
 SUPPORTED_BACKENDS := cpu vulkan cuda
 ifeq ($(filter $(BACKEND),$(SUPPORTED_BACKENDS)),)
 $(error Unsupported BACKEND=$(BACKEND). Use one of: $(SUPPORTED_BACKENDS))
 endif
 
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
+DYNAMIC_COMPOSE_FILES := $(DYNAMIC_COMPOSE_FILES_$(BACKEND))
 COMPOSE := LLAMA_MODEL_FILE=$(MODEL_FILE) $(COMPOSE_CMD) $(COMPOSE_FILES)
+DYNAMIC_COMPOSE := $(COMPOSE_CMD) $(DYNAMIC_COMPOSE_FILES)
 
-.PHONY: check schemas probe-api models instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config up down restart logs ps config smoke stream-cancel
+.PHONY: check go-test schemas probe-api probe-gateway models instances-render instances-check instances-up instances-down instances-logs instances-ps instances-config dynamic-check dynamic-build dynamic-up dynamic-down dynamic-restart dynamic-logs dynamic-ps dynamic-config up down restart logs ps config smoke stream-cancel
+
+go-test:
+	go test ./...
 
 schemas:
 	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"
@@ -27,6 +36,9 @@ schemas:
 
 probe-api:
 	python3 scripts/probe_api_schemas.py --base-url "$${BASE_URL:-http://127.0.0.1:$${LLAMA_PORT:-8080}}" --model "$${LLAMA_ALIAS:-local-llm}"
+
+probe-gateway:
+	python3 scripts/probe_gateway.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-8090}}"
 
 models:
 	@python3 -c "import tomllib; rows=tomllib.load(open('models/catalog.toml','rb')).get('models',[]); print(f'{\"MODEL\":<54} {\"PATTERN\"}'); [print(f'{(r.get(\"repo\",\"\") + \"/\" + r.get(\"quant\",\"\")):<54} {r.get(\"pattern\") or r.get(\"file\") or (\"*\" + r.get(\"quant\",\"\") + \"*.gguf\")}') for r in rows]"
@@ -51,6 +63,35 @@ instances-ps:
 
 instances-config: instances-render
 	$(COMPOSE_CMD) -f "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}" config
+
+dynamic-check:
+	@$(COMPOSE_CMD) version >/dev/null 2>&1 || (echo "Compose command failed: $(COMPOSE_CMD). Install Docker Compose plugin or run with COMPOSE_CMD=docker-compose" >&2; exit 2)
+	@test -f "models/catalog.toml" || (echo "Missing models/catalog.toml" >&2; exit 2)
+	@case "$(BACKEND)" in \
+		cpu) echo "Dynamic backend cpu: no GPU device required" ;; \
+		vulkan) test -e /dev/dri || (echo "Missing /dev/dri for Vulkan backend" >&2; exit 2); echo "Dynamic backend vulkan: /dev/dri found" ;; \
+		cuda) command -v nvidia-smi >/dev/null || (echo "nvidia-smi not found; install NVIDIA driver/container toolkit for CUDA backend" >&2; exit 2); nvidia-smi -L ;; \
+	esac
+
+dynamic-build:
+	$(DYNAMIC_COMPOSE) build
+
+dynamic-up: dynamic-check
+	$(DYNAMIC_COMPOSE) up -d --build --force-recreate
+
+dynamic-down:
+	$(DYNAMIC_COMPOSE) down
+
+dynamic-restart: dynamic-down dynamic-up
+
+dynamic-logs:
+	$(DYNAMIC_COMPOSE) logs -f
+
+dynamic-ps:
+	$(DYNAMIC_COMPOSE) ps
+
+dynamic-config:
+	$(DYNAMIC_COMPOSE) config
 
 check:
 	@$(COMPOSE_CMD) version >/dev/null 2>&1 || (echo "Compose command failed: $(COMPOSE_CMD). Install Docker Compose plugin or run with COMPOSE_CMD=docker-compose" >&2; exit 2)
