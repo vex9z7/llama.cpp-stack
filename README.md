@@ -16,7 +16,7 @@ Requirements: Linux, Docker with Compose plugin, Bash, `curl`.
 
 ```bash
 cp .env.example .env
-# models/ 已由 models/.gitkeep 保留；将你的 GGUF 模型放到 ./models/model.gguf，或修改 .env 里的 LLAMA_MODEL_FILE。
+# 默认根据 .env 里的 LLAMA_MODEL 从 models/catalog.toml 下载。
 make up        # validates the configured backend/model, then starts llama-server
 make logs      # follow logs
 make down      # stop the service
@@ -60,23 +60,33 @@ make stream-cancel
 
 ## Model catalog / download
 
-可以用内置 catalog 先下载一个 GGUF 模型：
+内置 catalog 是 Hugging Face CLI friendly TOML：`models/catalog.toml`。它只描述模型来源和量化选择，不放运行参数。模型 id 直接派生为 `<repo>/<quant>`。
+
+```toml
+[[models]]
+repo = "Qwen/Qwen3-4B-GGUF"
+quant = "Q4_K_M"
+```
+
+`quant = "Q4_K_M"` 会派生出 HF CLI 下载筛选：`--include "*Q4_K_M*.gguf"`，避免把同一个 repo 里的所有量化文件都下载下来。
 
 ```bash
 make models
-make download MODEL=qwen3-4b-q4
+make download MODEL='Qwen/Qwen3-4B-GGUF/Q4_K_M'
 ```
 
-下载后脚本会提示应该写入 `.env` 的 `LLAMA_MODEL_FILE`。如果想自动写入 `.env`：
+下载后会在 `models/hf/<repo>/` 下创建稳定的本地 symlink：
 
-```bash
-make download MODEL=qwen3-4b-q4 WRITE_ENV=1
+```text
+models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf -> Qwen3-4B-Q4_K_M.gguf
 ```
 
-也可以直接指定任意 Hugging Face repo 和 include glob：
+如果 `.env` 设置了 `LLAMA_MODEL=Qwen/Qwen3-4B-GGUF/Q4_K_M`，`make up` 会在启动前确保模型已下载。
+
+也可以直接指定任意 Hugging Face repo 和文件 glob：
 
 ```bash
-make download MODEL_REPO=Qwen/Qwen3-8B-GGUF MODEL_INCLUDE='*Q4_K_M*.gguf'
+make download HF_REPO=Qwen/Qwen3-8B-GGUF QUANT=Q4_K_M
 ```
 
 优先使用本机 `hf` CLI；兼容旧版 `huggingface-cli`。如果本机没有 HF CLI、但有 Docker，会临时用 `python:3.12-slim` 容器执行下载。
@@ -86,17 +96,18 @@ make download MODEL_REPO=Qwen/Qwen3-8B-GGUF MODEL_INCLUDE='*Q4_K_M*.gguf'
 模型文件放在 `./models` 下。默认配置会加载：
 
 ```text
-models/model.gguf
+models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
 ```
 
 如需使用其它模型文件：
 
 ```env
-LLAMA_MODEL_FILE=Qwen3-8B-Q4_K_M.gguf
+LLAMA_MODEL=Qwen/Qwen3-8B-GGUF/Q4_K_M
+LLAMA_MODEL_FILE=hf/Qwen/Qwen3-8B-GGUF/Q4_K_M.gguf
 LLAMA_ALIAS=qwen3-8b-local
 ```
 
-`models/*.gguf` 不入 git，只有 `models/.gitkeep` 用于保留目录。
+`models/**/*.gguf` 不入 git，只有 `models/.gitkeep` 用于保留目录。
 
 ## 目录结构
 
@@ -121,7 +132,8 @@ LLAMA_ALIAS=qwen3-8b-local
 
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`。
 - `LLAMA_HOST` / `LLAMA_PORT`：宿主机监听地址和端口；默认只绑定 `127.0.0.1:8080`。
-- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 文件名，例如 `model.gguf`。
+- `LLAMA_MODEL`：catalog 模型 id，格式是 `<repo>/<quant>`，例如 `Qwen/Qwen3-4B-GGUF/Q4_K_M`。
+- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 路径；设置 `LLAMA_MODEL` 时默认是 `hf/<repo>/<quant>.gguf`。
 - `LLAMA_ALIAS`：客户端请求时使用的 model 名称。
 - `LLAMA_CTX_SIZE` / `LLAMA_N_PARALLEL`：上下文总量与并发 slot 数。有效单请求上下文大约是 `CTX_SIZE / N_PARALLEL`。
 - `LLAMA_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload，VRAM 不足时调低。

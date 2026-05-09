@@ -106,7 +106,7 @@ For early implementation, these can live in one small service or CLI package. Th
 
 ## 4.1 Model catalog
 
-The catalog describes known downloadable/runnable models.
+The catalog should stay deliberately simple and Hugging Face CLI friendly. It describes model sources only, not runtime parameters, aliases, routes, ports, or request overrides.
 
 Suggested file:
 
@@ -118,55 +118,28 @@ Example:
 
 ```toml
 [[models]]
-id = "qwen3-4b-q4"
-name = "Qwen3 4B Q4_K_M"
 repo = "Qwen/Qwen3-4B-GGUF"
-include = "*Q4_K_M*.gguf"
-file = "Qwen3-4B-Q4_K_M.gguf"
-alias = "qwen3-4b-local"
-family = "qwen3"
-size = "4b"
 quant = "Q4_K_M"
-kind = "chat"
-recommended_ctx = 8192
-recommended_parallel = 2
-recommended_backend = "vulkan"
-thinking = true
 
-[models.default_request_overrides]
-chat_template_kwargs = { enable_thinking = false }
-```
-
-Additional examples:
-
-```toml
 [[models]]
-id = "qwen3-8b-q4"
 repo = "Qwen/Qwen3-8B-GGUF"
-include = "*Q4_K_M*.gguf"
-file = "Qwen3-8B-Q4_K_M.gguf"
-alias = "qwen3-8b-local"
-kind = "chat"
-recommended_ctx = 8192
-recommended_parallel = 1
+quant = "Q4_K_M"
 
 [[models]]
-id = "qwen2.5-coder-7b-q4"
 repo = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
-include = "*Q4_K_M*.gguf"
-file = "Qwen2.5-Coder-7B-Instruct-Q4_K_M.gguf"
-alias = "qwen2.5-coder-7b-local"
-kind = "code"
-recommended_ctx = 8192
-recommended_parallel = 1
+quant = "Q4_K_M"
 ```
 
-Why TOML:
+Rules:
 
-- human-editable;
-- supports nested metadata;
-- Python 3.11 has `tomllib` for reading;
-- easy to later expose as JSON through router API.
+- `repo` maps directly to `hf download <repo>`;
+- `quant` derives the file filter `*<quant>*.gguf`;
+- the model id is derived as `<repo>/<quant>`, for example `Qwen/Qwen3-4B-GGUF/Q4_K_M`;
+- optional `pattern` can override the derived glob for unusual repos;
+- optional `file` can pin an exact filename;
+- download creates a stable symlink `models/hf/<repo>/<quant>.gguf` to the actual HF filename.
+
+Runtime concerns live elsewhere. For example, `alias`, `port`, `ctx_size`, and `parallel` belong to runtime/router config, not the source catalog.
 
 ## 4.2 Local model store
 
@@ -189,8 +162,8 @@ Possible commands:
 ```bash
 llamactl models list
 llamactl models local
-llamactl models download qwen3-4b-q4
-llamactl models inspect qwen3-4b-q4
+llamactl models download Qwen/Qwen3-4B-GGUF/Q4_K_M
+llamactl models inspect Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
 ## 4.3 Runtime instance
@@ -202,7 +175,7 @@ Instance fields:
 ```json
 {
   "id": "qwen3-4b-a",
-  "model_id": "qwen3-4b-q4",
+  "model_id": "Qwen/Qwen3-4B-GGUF/Q4_K_M",
   "model_file": "Qwen3-4B-Q4_K_M.gguf",
   "alias": "qwen3-4b-local",
   "backend": "vulkan",
@@ -227,7 +200,7 @@ This state file should be treated as a cache. Docker/container state is source-o
 Possible commands:
 
 ```bash
-llamactl instances start qwen3-4b-q4 --port 8081
+llamactl instances start Qwen/Qwen3-4B-GGUF/Q4_K_M --port 8081
 llamactl instances stop qwen3-4b-a
 llamactl instances list
 llamactl instances logs qwen3-4b-a
@@ -246,7 +219,7 @@ Initial config can be generated from running instances:
     {
       "model": "qwen3-4b-local",
       "backend_url": "http://127.0.0.1:8081",
-      "model_id": "qwen3-4b-q4",
+      "model_id": "Qwen/Qwen3-4B-GGUF/Q4_K_M",
       "kind": "chat",
       "default_request_overrides": {
         "chat_template_kwargs": {
@@ -378,8 +351,8 @@ There are two implementation paths.
 Start with a CLI:
 
 ```bash
-llamactl models download qwen3-4b-q4
-llamactl instances start qwen3-4b-q4 --port 8081
+llamactl models download Qwen/Qwen3-4B-GGUF/Q4_K_M
+llamactl instances start Qwen/Qwen3-4B-GGUF/Q4_K_M --port 8081
 llamactl instances list
 llamactl router config
 ```
@@ -448,7 +421,7 @@ This validates the critical request path before lifecycle management.
 
 ### Phase B: Model catalog migration
 
-Move from `models/catalog.tsv` to `models/catalog.toml`.
+Use `models/catalog.toml` as the source catalog.
 
 Keep TSV temporarily or generate it from TOML for compatibility.
 

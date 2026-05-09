@@ -1,0 +1,14 @@
+# Hugging Face model source catalog.
+# Keep this source-only: runtime params, aliases, ports, and routing live elsewhere.
+
+[[models]]
+repo = "Qwen/Qwen3-4B-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "Qwen/Qwen3-8B-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
+quant = "Q4_K_M"

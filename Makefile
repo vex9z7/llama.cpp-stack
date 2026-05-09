@@ -4,7 +4,8 @@ SHELL := /usr/bin/env bash
 export
 
 BACKEND ?= $(or $(LLAMA_BACKEND),vulkan)
-MODEL_FILE ?= $(or $(LLAMA_MODEL_FILE),model.gguf)
+MODEL_ID ?= $(LLAMA_MODEL)
+MODEL_FILE ?= $(if $(LLAMA_MODEL_FILE),$(LLAMA_MODEL_FILE),$(if $(MODEL_ID),hf/$(MODEL_ID).gguf,model.gguf))
 COMPOSE_CMD ?= docker compose
 
 COMPOSE_FILES_cpu := -f docker-compose.yml
@@ -29,10 +30,17 @@ probe-api:
 	python3 scripts/probe_api_schemas.py --base-url "$${BASE_URL:-http://127.0.0.1:$${LLAMA_PORT:-8080}}" --model "$${LLAMA_ALIAS:-local-llm}"
 
 models:
-	@awk -F '\t' 'BEGIN { printf "%-24s %-36s %-18s %s\n", "NAME", "REPO", "INCLUDE", "DESCRIPTION" } $$0 !~ /^#/ && NF >= 5 { printf "%-24s %-36s %-18s %s\n", $$1, $$2, $$3, $$5 }' models/catalog.tsv
+	@python3 -c "import tomllib; rows=tomllib.load(open('models/catalog.toml','rb')).get('models',[]); print(f'{\"MODEL\":<54} {\"PATTERN\"}'); [print(f'{(r.get(\"repo\",\"\") + \"/\" + r.get(\"quant\",\"\")):<54} {r.get(\"pattern\") or r.get(\"file\") or (\"*\" + r.get(\"quant\",\"\") + \"*.gguf\")}') for r in rows]"
 
 download:
-	MODEL="$${MODEL:-}" MODEL_REPO="$${MODEL_REPO:-}" MODEL_INCLUDE="$${MODEL_INCLUDE:-}" WRITE_ENV="$${WRITE_ENV:-0}" ./scripts/download_model.sh
+	MODEL="$${MODEL:-$${LLAMA_MODEL:-}}" HF_REPO="$${HF_REPO:-$${MODEL_REPO:-}}" QUANT="$${QUANT:-}" FILE_PATTERN="$${FILE_PATTERN:-$${MODEL_INCLUDE:-}}" WRITE_ENV="$${WRITE_ENV:-0}" ./scripts/download_model.sh
+
+ensure-model:
+	@if [ -n "$(MODEL_ID)" ]; then \
+		MODEL="$(MODEL_ID)" ./scripts/download_model.sh; \
+	else \
+		echo "LLAMA_MODEL not set; skipping catalog download"; \
+	fi
 
 instances-render:
 	python3 scripts/render_instances.py render --config "$${INSTANCES_CONFIG:-configs/instances.toml}" --output "$${INSTANCES_COMPOSE:-docker-compose.instances.yml}"
@@ -65,7 +73,7 @@ check:
 		cuda) command -v nvidia-smi >/dev/null || (echo "nvidia-smi not found; install NVIDIA driver/container toolkit for CUDA backend" >&2; exit 2); nvidia-smi -L ;; \
 	esac
 
-up: check
+up: ensure-model check
 	$(COMPOSE) up -d --force-recreate
 
 down:

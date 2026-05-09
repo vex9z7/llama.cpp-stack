@@ -1,30 +1,67 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-CATALOG="${CATALOG:-models/catalog.tsv}"
+CATALOG="${CATALOG:-models/catalog.toml}"
 MODELS_DIR="${MODELS_DIR:-models}"
-MODEL_NAME="${MODEL_NAME:-${MODEL:-}}"
-MODEL_REPO="${MODEL_REPO:-}"
-MODEL_INCLUDE="${MODEL_INCLUDE:-${INCLUDE:-}}"
-MODEL_ALIAS="${MODEL_ALIAS:-}"
+MODEL_REF="${MODEL_REF:-${MODEL:-${LLAMA_MODEL:-}}}"
+HF_REPO="${HF_REPO:-${MODEL_REPO:-}}"
+QUANT="${QUANT:-}"
+FILE_PATTERN="${FILE_PATTERN:-${MODEL_INCLUDE:-${INCLUDE:-}}}"
 WRITE_ENV="${WRITE_ENV:-0}"
 ENV_FILE="${ENV_FILE:-.env}"
 
 usage() {
   cat <<USAGE
 Usage:
-  MODEL=<catalog-name> $0
-  MODEL_REPO=<hf-repo> MODEL_INCLUDE='<glob>' $0
+  MODEL='<repo>/<quant>' $0
+  HF_REPO='<hf-repo>' QUANT='Q4_K_M' $0
+  HF_REPO='<hf-repo>' FILE_PATTERN='<glob>' $0
 
 Examples:
-  MODEL=qwen3-4b-q4 make download
-  MODEL_REPO=Qwen/Qwen3-8B-GGUF MODEL_INCLUDE='*Q4_K_M*.gguf' make download
-  MODEL=qwen3-8b-q4 WRITE_ENV=1 make download
+  MODEL='Qwen/Qwen3-4B-GGUF/Q4_K_M' make download
+  MODEL='Qwen/Qwen3-4B-GGUF/Q4_K_M' WRITE_ENV=1 make download
+  HF_REPO='Qwen/Qwen3-8B-GGUF' QUANT='Q4_K_M' make download
 
 Catalog:
 USAGE
-  awk -F '\t' 'BEGIN { printf "  %-24s %-36s %-18s %s\n", "NAME", "REPO", "INCLUDE", "DESCRIPTION" }
-    $0 !~ /^#/ && NF >= 5 { printf "  %-24s %-36s %-18s %s\n", $1, $2, $3, $5 }' "$CATALOG" 2>/dev/null || true
+  python3 - "$CATALOG" <<'PY' 2>/dev/null || true
+import sys, tomllib
+from pathlib import Path
+path = Path(sys.argv[1])
+data = tomllib.loads(path.read_text())
+print(f"  {'MODEL':<54} {'PATTERN'}")
+for item in data.get('models', []):
+    repo = item.get('repo', '')
+    quant = item.get('quant', '')
+    model = f"{repo}/{quant}" if repo and quant else repo
+    pattern = item.get('pattern') or item.get('file') or (f"*{quant}*.gguf" if quant else '')
+    print(f"  {model:<54} {pattern}")
+PY
+}
+
+quote_assignments_from_catalog() {
+  python3 - "$CATALOG" "$MODEL_REF" <<'PY'
+import shlex, sys, tomllib
+from pathlib import Path
+catalog = Path(sys.argv[1])
+model_ref = sys.argv[2]
+data = tomllib.loads(catalog.read_text())
+for item in data.get('models', []):
+    repo = item.get('repo')
+    quant = item.get('quant')
+    if repo and quant and f"{repo}/{quant}" == model_ref:
+        pattern = item.get('pattern') or item.get('file') or f"*{quant}*.gguf"
+        for key, value in {
+            'HF_REPO': repo,
+            'QUANT': quant,
+            'FILE_PATTERN': pattern,
+            'MODEL_REF': model_ref,
+        }.items():
+            print(f"{key}={shlex.quote(str(value))}")
+        raise SystemExit(0)
+print(f"echo 'Unknown MODEL={model_ref}' >&2")
+print("exit 2")
+PY
 }
 
 if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
@@ -32,80 +69,105 @@ if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
   exit 0
 fi
 
-if [[ -n "$MODEL_NAME" && -z "$MODEL_REPO" ]]; then
+if [[ -n "$MODEL_REF" && -z "$HF_REPO" ]]; then
   if [[ ! -f "$CATALOG" ]]; then
     echo "Missing catalog: $CATALOG" >&2
     exit 2
   fi
-  row=$(awk -F '\t' -v name="$MODEL_NAME" '$0 !~ /^#/ && $1 == name { print; found=1; exit } END { if (!found) exit 1 }' "$CATALOG") || {
-    echo "Unknown MODEL=$MODEL_NAME" >&2
-    usage >&2
-    exit 2
-  }
-  IFS=$'\t' read -r _name MODEL_REPO MODEL_INCLUDE MODEL_ALIAS _description <<<"$row"
+  eval "$(quote_assignments_from_catalog)"
 fi
 
-if [[ -z "$MODEL_REPO" || -z "$MODEL_INCLUDE" ]]; then
-  echo "MODEL_REPO and MODEL_INCLUDE are required unless MODEL names a catalog entry." >&2
+if [[ -z "$FILE_PATTERN" ]]; then
+  if [[ -n "$QUANT" ]]; then
+    FILE_PATTERN="*${QUANT}*.gguf"
+  else
+    echo "FILE_PATTERN or QUANT is required." >&2
+    usage >&2
+    exit 2
+  fi
+fi
+
+if [[ -z "$HF_REPO" ]]; then
+  echo "HF_REPO is required unless MODEL names a catalog entry." >&2
   usage >&2
   exit 2
 fi
 
-mkdir -p "$MODELS_DIR"
+if [[ -z "$QUANT" && -n "$MODEL_REF" ]]; then
+  QUANT="${MODEL_REF##*/}"
+fi
+if [[ -z "$MODEL_REF" && -n "$QUANT" ]]; then
+  MODEL_REF="${HF_REPO}/${QUANT}"
+fi
+if [[ -z "$QUANT" ]]; then
+  echo "QUANT is required to create the stable local path." >&2
+  exit 2
+fi
 
-echo "Downloading GGUF model"
-echo "  repo:    $MODEL_REPO"
-echo "  include: $MODEL_INCLUDE"
-echo "  dir:     $MODELS_DIR"
+repo_dir="$MODELS_DIR/hf/$HF_REPO"
+stable_rel="hf/$HF_REPO/${QUANT}.gguf"
+stable_path="$MODELS_DIR/$stable_rel"
+mkdir -p "$repo_dir"
 
-before=$(mktemp)
-after=$(mktemp)
-trap 'rm -f "$before" "$after"' EXIT
-find "$MODELS_DIR" -maxdepth 1 -type f -name '*.gguf' -printf '%f\n' | sort >"$before"
+printf 'Downloading GGUF model\n'
+printf '  hf repo:      %s\n' "$HF_REPO"
+printf '  pattern:      %s\n' "$FILE_PATTERN"
+printf '  local dir:    %s\n' "$repo_dir"
+printf '  stable path:  %s\n' "$stable_path"
 
 if command -v hf >/dev/null 2>&1; then
-  hf download "$MODEL_REPO" \
-    --include "$MODEL_INCLUDE" \
-    --local-dir "$MODELS_DIR"
+  hf download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
 elif [[ -x .venv/bin/hf ]]; then
-  .venv/bin/hf download "$MODEL_REPO" \
-    --include "$MODEL_INCLUDE" \
-    --local-dir "$MODELS_DIR"
+  .venv/bin/hf download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
 elif command -v huggingface-cli >/dev/null 2>&1; then
-  huggingface-cli download "$MODEL_REPO" \
-    --include "$MODEL_INCLUDE" \
-    --local-dir "$MODELS_DIR"
+  huggingface-cli download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
 elif [[ -x .venv/bin/huggingface-cli ]]; then
-  .venv/bin/huggingface-cli download "$MODEL_REPO" \
-    --include "$MODEL_INCLUDE" \
-    --local-dir "$MODELS_DIR"
+  .venv/bin/huggingface-cli download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
 elif command -v docker >/dev/null 2>&1; then
   docker run --rm \
     -v "$(pwd)/$MODELS_DIR:/models:Z" \
     python:3.12-slim \
-    bash -lc "pip install --no-cache-dir huggingface_hub >/dev/null && hf download '$MODEL_REPO' --include '$MODEL_INCLUDE' --local-dir /models"
+    bash -lc "pip install --no-cache-dir huggingface_hub >/dev/null && hf download '$HF_REPO' --include '$FILE_PATTERN' --local-dir '/models/hf/$HF_REPO'"
 else
   echo "Need hf/huggingface-cli or docker." >&2
   echo "Install with: pip install -U huggingface_hub" >&2
   exit 2
 fi
 
-find "$MODELS_DIR" -maxdepth 1 -type f -name '*.gguf' -printf '%f\n' | sort >"$after"
-new_file=$(comm -13 "$before" "$after" | head -n 1 || true)
-if [[ -z "$new_file" ]]; then
-  new_file=$(find "$MODELS_DIR" -maxdepth 1 -type f -name '*.gguf' -printf '%f\n' | sort -r | head -n 1 || true)
-fi
+selected=$(python3 - "$repo_dir" "$FILE_PATTERN" <<'PY'
+import sys
+from pathlib import Path
+repo_dir = Path(sys.argv[1])
+pattern = sys.argv[2]
+matches = sorted(p for p in repo_dir.glob(pattern) if p.is_file() or p.is_symlink())
+real_matches = [p for p in matches if not p.is_symlink()]
+if len(real_matches) == 1:
+    print(real_matches[0].name)
+elif len(matches) == 1:
+    print(matches[0].name)
+elif not matches:
+    print(f"No .gguf file matches pattern: {pattern}", file=sys.stderr)
+    raise SystemExit(1)
+else:
+    print("Multiple files match pattern; add pattern or file to catalog:", file=sys.stderr)
+    for p in matches:
+        print(f"  {p.name}", file=sys.stderr)
+    raise SystemExit(1)
+PY
+)
 
-if [[ -n "$new_file" ]]; then
-  echo "Selected model file: $new_file"
-  if [[ "$WRITE_ENV" == "1" ]]; then
-    touch "$ENV_FILE"
-    python3 - "$ENV_FILE" "$new_file" "$MODEL_ALIAS" <<'PY'
+printf 'Selected model file: %s\n' "$selected"
+ln -sfn "$selected" "$stable_path"
+printf 'Linked stable model path: %s -> %s\n' "$stable_rel" "$selected"
+
+if [[ "$WRITE_ENV" == "1" ]]; then
+  touch "$ENV_FILE"
+  python3 - "$ENV_FILE" "$MODEL_REF" "$stable_rel" <<'PY'
 from pathlib import Path
 import sys
 path = Path(sys.argv[1])
-model_file = sys.argv[2]
-alias = sys.argv[3]
+model_ref = sys.argv[2]
+model_file = sys.argv[3]
 lines = path.read_text().splitlines() if path.exists() else []
 
 def set_key(lines, key, value):
@@ -121,22 +183,18 @@ def set_key(lines, key, value):
         out.append(f'{key}={value}')
     return out
 
+if model_ref:
+    lines = set_key(lines, 'LLAMA_MODEL', model_ref)
 lines = set_key(lines, 'LLAMA_MODEL_FILE', model_file)
-if alias:
-    lines = set_key(lines, 'LLAMA_ALIAS', alias)
 path.write_text('\n'.join(lines).rstrip() + '\n')
 PY
-    echo "Updated $ENV_FILE with LLAMA_MODEL_FILE=$new_file"
-  else
-    echo "To use it, set in .env:"
-    echo "  LLAMA_MODEL_FILE=$new_file"
-    if [[ -n "$MODEL_ALIAS" ]]; then
-      echo "  LLAMA_ALIAS=$MODEL_ALIAS"
-    fi
-  fi
+  printf 'Updated %s with LLAMA_MODEL_FILE=%s\n' "$ENV_FILE" "$stable_rel"
 else
-  echo "No .gguf file found after download. Check MODEL_INCLUDE pattern." >&2
-  exit 1
+  printf 'To use it, set in .env:\n'
+  if [[ -n "$MODEL_REF" ]]; then
+    printf '  LLAMA_MODEL=%s\n' "$MODEL_REF"
+  fi
+  printf '  LLAMA_MODEL_FILE=%s\n' "$stable_rel"
 fi
 
-ls -lh "$MODELS_DIR"/*.gguf 2>/dev/null || true
+find "$MODELS_DIR/hf" -type l -name '*.gguf' -print 2>/dev/null | sort || true

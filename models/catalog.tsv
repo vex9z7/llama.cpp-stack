@@ -1,4 +1,0 @@
-# name	repo	include	alias	description
-qwen3-4b-q4	Qwen/Qwen3-4B-GGUF	*Q4_K_M*.gguf	qwen3-4b-local	Small Qwen3 GGUF, good first Vulkan smoke-test model.
-qwen3-8b-q4	Qwen/Qwen3-8B-GGUF	*Q4_K_M*.gguf	qwen3-8b-local	Balanced Qwen3 GGUF for local chat/coding experiments.
-qwen2.5-coder-7b-q4	Qwen/Qwen2.5-Coder-7B-Instruct-GGUF	*Q4_K_M*.gguf	qwen2.5-coder-7b-local	Coder-focused GGUF model.

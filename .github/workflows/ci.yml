@@ -60,14 +60,15 @@ jobs:
           set -euo pipefail
           cp .env.example .env
           touch models/model.gguf
-          make check BACKEND=cpu
+          make check BACKEND=cpu LLAMA_MODEL= LLAMA_MODEL_FILE=model.gguf
           make models >/dev/null
           make schemas
           bash -n scripts/download_model.sh
           python3 -m py_compile scripts/probe_api_schemas.py scripts/render_instances.py
           python3 scripts/render_instances.py render --config configs/instances.example.toml --output /tmp/llama-instances.yml
-          make -n download MODEL=qwen3-4b-q4 >/dev/null
-          make -n up BACKEND=cpu >/dev/null
+          make -n download MODEL=Qwen/Qwen3-4B-GGUF/Q4_K_M >/dev/null
+          make -n ensure-model LLAMA_MODEL=Qwen/Qwen3-4B-GGUF/Q4_K_M >/dev/null
+          make -n up BACKEND=cpu LLAMA_MODEL= LLAMA_MODEL_FILE=model.gguf >/dev/null
 
       - name: Validate Compose configs
         shell: bash
