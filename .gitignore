@@ -1,0 +1,11 @@
+# Local models and runtime artifacts
+models/*.gguf
+models/**/*.gguf
+hf-cache/
+*.log
+.env
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
