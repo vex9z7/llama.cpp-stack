@@ -89,3 +89,23 @@ LLAMA_MODEL_FILE=hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
 ```
 
 If `LLAMA_MODEL` is empty, deployment falls back to `LLAMA_MODEL_FILE` / `model.gguf` behavior.
+
+## Downloader container
+
+Deployment-time downloads use a dedicated container by default. The host only needs Docker/Compose, not `hf` or `huggingface-cli`.
+
+```bash
+make downloader-build
+make download MODEL='Qwen/Qwen3-4B-GGUF/Q4_K_M'
+```
+
+Environment knobs:
+
+```env
+DOWNLOADER_MODE=container
+DOWNLOADER_IMAGE=llama-cpp-stack-hf-downloader:local
+DOCKER_CMD=docker
+HF_TOKEN=... # optional, for private repos or higher rate limits
+```
+
+Set `DOWNLOADER_MODE=host` only if you intentionally want to use a host-installed `hf` or `huggingface-cli`.

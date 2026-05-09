@@ -115,23 +115,38 @@ printf '  pattern:      %s\n' "$FILE_PATTERN"
 printf '  local dir:    %s\n' "$repo_dir"
 printf '  stable path:  %s\n' "$stable_path"
 
-if command -v hf >/dev/null 2>&1; then
-  hf download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
-elif [[ -x .venv/bin/hf ]]; then
-  .venv/bin/hf download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
-elif command -v huggingface-cli >/dev/null 2>&1; then
-  huggingface-cli download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
-elif [[ -x .venv/bin/huggingface-cli ]]; then
-  .venv/bin/huggingface-cli download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
-elif command -v docker >/dev/null 2>&1; then
-  docker run --rm \
-    -v "$(pwd)/$MODELS_DIR:/models:Z" \
-    python:3.12-slim \
-    bash -lc "pip install --no-cache-dir huggingface_hub >/dev/null && hf download '$HF_REPO' --include '$FILE_PATTERN' --local-dir '/models/hf/$HF_REPO'"
+DOWNLOADER_MODE="${DOWNLOADER_MODE:-container}"
+DOWNLOADER_IMAGE="${DOWNLOADER_IMAGE:-llama-cpp-stack-hf-downloader:local}"
+DOCKER_CMD="${DOCKER_CMD:-docker}"
+
+if [[ "$DOWNLOADER_MODE" == "host" ]]; then
+  if command -v hf >/dev/null 2>&1; then
+    hf download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
+  elif [[ -x .venv/bin/hf ]]; then
+    .venv/bin/hf download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
+  elif command -v huggingface-cli >/dev/null 2>&1; then
+    huggingface-cli download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
+  elif [[ -x .venv/bin/huggingface-cli ]]; then
+    .venv/bin/huggingface-cli download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "$repo_dir"
+  else
+    echo "DOWNLOADER_MODE=host requires hf or huggingface-cli on the host." >&2
+    exit 2
+  fi
 else
-  echo "Need hf/huggingface-cli or docker." >&2
-  echo "Install with: pip install -U huggingface_hub" >&2
-  exit 2
+  if ! command -v "$DOCKER_CMD" >/dev/null 2>&1; then
+    echo "DOWNLOADER_MODE=container requires Docker-compatible command: $DOCKER_CMD" >&2
+    exit 2
+  fi
+  if ! "$DOCKER_CMD" image inspect "$DOWNLOADER_IMAGE" >/dev/null 2>&1; then
+    "$DOCKER_CMD" build -t "$DOWNLOADER_IMAGE" docker/hf-downloader
+  fi
+  "$DOCKER_CMD" run --rm \
+    -e HF_TOKEN="${HF_TOKEN:-}" \
+    -e HF_HOME=/hf-cache \
+    -v "$(pwd)/$MODELS_DIR:/models:Z" \
+    -v "llama_cpp_stack_hf_cache:/hf-cache" \
+    "$DOWNLOADER_IMAGE" \
+    download "$HF_REPO" --include "$FILE_PATTERN" --local-dir "/models/hf/$HF_REPO"
 fi
 
 selected=$(python3 - "$repo_dir" "$FILE_PATTERN" <<'PY'

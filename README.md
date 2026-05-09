@@ -89,7 +89,7 @@ models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf -> Qwen3-4B-Q4_K_M.gguf
 make download HF_REPO=Qwen/Qwen3-8B-GGUF QUANT=Q4_K_M
 ```
 
-优先使用本机 `hf` CLI；兼容旧版 `huggingface-cli`。如果本机没有 HF CLI、但有 Docker，会临时用 `python:3.12-slim` 容器执行下载。
+默认使用专门的 Hugging Face downloader 容器，因此宿主机不需要安装 `hf` / `huggingface-cli`。如需使用宿主机 CLI，可设置 `DOWNLOADER_MODE=host`。
 
 ## Models
 
