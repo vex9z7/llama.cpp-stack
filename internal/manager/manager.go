@@ -16,8 +16,11 @@ import (
 )
 
 var (
-	ErrModelNotFound = errors.New("model not found in catalog")
-	ErrNoIdleWorker  = errors.New("no idle worker")
+	ErrModelNotFound      = errors.New("model not found in catalog")
+	ErrNoIdleWorker       = errors.New("no idle worker")
+	ErrCapabilityMismatch = errors.New("model capability mismatch")
+	ErrDownloadFailed     = errors.New("model download failed")
+	ErrWorkerLoadFailed   = errors.New("worker load failed")
 )
 
 type Config struct {
@@ -34,6 +37,7 @@ type RunningBackend struct {
 	ModelRef     string
 	WorkerID     string
 	InferenceURL string
+	Kind         string
 }
 
 type ModelStatus struct {
@@ -63,6 +67,13 @@ func New(log *slog.Logger, cat *catalog.Catalog, dl *hf.Downloader, workers []wo
 	return &Manager{log: log, catalog: cat, downloader: dl, workers: workers, cfg: cfg, running: map[string]workerclient.Status{}}
 }
 
+func KindOf(cm catalog.Model) string {
+	if cm.Kind == "" {
+		return "chat"
+	}
+	return cm.Kind
+}
+
 func (m *Manager) Reconcile(ctx context.Context) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -86,26 +97,25 @@ func (m *Manager) ListModels(ctx context.Context) []ModelStatus {
 	for _, cm := range m.catalog.Models {
 		_, running := m.running[cm.Ref()]
 		downloaded := fileExists(cm.StablePath(m.cfg.ModelsDir))
-		kind := cm.Kind
-		if kind == "" {
-			kind = "chat"
-		}
+		kind := KindOf(cm)
 		out = append(out, ModelStatus{ID: cm.Ref(), Object: "model", OwnedBy: "llama.cpp-stack", Downloaded: downloaded, Running: running, ColdStart: !running, Repo: cm.Repo, Quant: cm.Quant, Kind: kind})
 	}
 	return out
 }
 
-func (m *Manager) EnsureRunning(ctx context.Context, ref string) (RunningBackend, error) {
+func (m *Manager) EnsureRunning(ctx context.Context, ref, requiredKind string) (RunningBackend, error) {
 	cm, ok := m.catalog.ByRef(ref)
 	if !ok {
 		return RunningBackend{}, ErrModelNotFound
 	}
-	// Serialize download/allocation/load to keep v1 state simple and avoid
-	// duplicate downloads or double-loading the same model.
+	kind := KindOf(cm)
+	if requiredKind != "" && kind != requiredKind {
+		return RunningBackend{}, fmt.Errorf("%w: model %s has kind %s but endpoint requires %s", ErrCapabilityMismatch, cm.Ref(), kind, requiredKind)
+	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if st, ok := m.running[cm.Ref()]; ok && st.InferenceURL != "" {
-		return RunningBackend{ModelRef: cm.Ref(), WorkerID: st.ID, InferenceURL: st.InferenceURL}, nil
+		return RunningBackend{ModelRef: cm.Ref(), WorkerID: st.ID, InferenceURL: st.InferenceURL, Kind: kind}, nil
 	}
 
 	var idle *workerclient.Client
@@ -119,7 +129,7 @@ func (m *Manager) EnsureRunning(ctx context.Context, ref string) (RunningBackend
 		if st.State == "running" && st.ModelRef != "" {
 			m.running[st.ModelRef] = st
 			if st.ModelRef == cm.Ref() && st.InferenceURL != "" {
-				return RunningBackend{ModelRef: cm.Ref(), WorkerID: st.ID, InferenceURL: st.InferenceURL}, nil
+				return RunningBackend{ModelRef: cm.Ref(), WorkerID: st.ID, InferenceURL: st.InferenceURL, Kind: kind}, nil
 			}
 			continue
 		}
@@ -133,7 +143,7 @@ func (m *Manager) EnsureRunning(ctx context.Context, ref string) (RunningBackend
 
 	modelPath, err := m.downloader.Ensure(ctx, cm)
 	if err != nil {
-		return RunningBackend{}, fmt.Errorf("ensure model file: %w", err)
+		return RunningBackend{}, fmt.Errorf("%w: code=%s: %v", ErrDownloadFailed, hf.Code(err), err)
 	}
 	rel, err := filepath.Rel(m.cfg.ModelsDir, modelPath)
 	if err != nil {
@@ -146,13 +156,13 @@ func (m *Manager) EnsureRunning(ctx context.Context, ref string) (RunningBackend
 		loadCtx, cancel = context.WithTimeout(ctx, m.cfg.StartTimeout)
 		defer cancel()
 	}
-	resp, err := idle.Load(loadCtx, workerclient.LoadRequest{ModelRef: cm.Ref(), ModelPath: rel, ModelName: cm.Ref(), CtxSize: m.cfg.CtxSize, Parallel: m.cfg.Parallel, ThreadsHTTP: m.cfg.ThreadsHTTP, NGPULayers: m.cfg.NGPULayers, ExtraArgs: m.cfg.ExtraArgs, TimeoutSec: int(m.cfg.StartTimeout.Seconds())})
+	resp, err := idle.Load(loadCtx, workerclient.LoadRequest{ModelRef: cm.Ref(), ModelPath: rel, ModelName: cm.Ref(), CtxSize: m.cfg.CtxSize, Parallel: m.cfg.Parallel, ThreadsHTTP: m.cfg.ThreadsHTTP, NGPULayers: m.cfg.NGPULayers, ExtraArgs: m.cfg.ExtraArgs, TimeoutSec: int(m.cfg.StartTimeout.Seconds()), Embeddings: kind == "embedding"})
 	if err != nil {
-		return RunningBackend{}, fmt.Errorf("load worker %s: %w", idle.ID, err)
+		return RunningBackend{}, fmt.Errorf("%w: worker=%s: %v", ErrWorkerLoadFailed, idle.ID, err)
 	}
-	newSt := workerclient.Status{ID: resp.Worker, State: "running", ModelRef: cm.Ref(), ModelPath: rel, ModelName: cm.Ref(), InferenceURL: resp.InferenceURL}
+	newSt := workerclient.Status{ID: resp.Worker, State: "running", ModelRef: cm.Ref(), ModelPath: rel, ModelName: cm.Ref(), InferenceURL: resp.InferenceURL, Embeddings: kind == "embedding"}
 	m.running[cm.Ref()] = newSt
-	return RunningBackend{ModelRef: cm.Ref(), WorkerID: resp.Worker, InferenceURL: resp.InferenceURL}, nil
+	return RunningBackend{ModelRef: cm.Ref(), WorkerID: resp.Worker, InferenceURL: resp.InferenceURL, Kind: kind}, nil
 }
 
 func fileExists(path string) bool {

@@ -18,6 +18,46 @@ import (
 	"github.com/vex9z7/llama.cpp-stack/internal/catalog"
 )
 
+const (
+	CodeRepoNotFound      = "hf_repo_not_found"
+	CodeUnauthorized      = "hf_unauthorized"
+	CodeForbidden         = "hf_forbidden"
+	CodeListFailed        = "hf_list_failed"
+	CodeNoMatchingFile    = "hf_no_matching_file"
+	CodeAmbiguousFiles    = "hf_ambiguous_files"
+	CodeSplitGGUF         = "hf_split_gguf"
+	CodeDownloadFailed    = "hf_download_failed"
+	CodeEmptyDownload     = "hf_empty_download"
+	CodeFileNotFound      = "hf_file_not_found"
+)
+
+type Error struct {
+	Code    string
+	Message string
+	Cause   error
+}
+
+func (e *Error) Error() string {
+	if e.Cause != nil {
+		return e.Message + ": " + e.Cause.Error()
+	}
+	return e.Message
+}
+
+func (e *Error) Unwrap() error { return e.Cause }
+
+func Code(err error) string {
+	var e *Error
+	if errors.As(err, &e) {
+		return e.Code
+	}
+	return "hf_error"
+}
+
+func hferr(code, msg string, cause error) error {
+	return &Error{Code: code, Message: msg, Cause: cause}
+}
+
 type Downloader struct {
 	Endpoint  string
 	Token     string
@@ -63,19 +103,25 @@ func (d *Downloader) listFiles(ctx context.Context, repo string) ([]string, erro
 	d.addAuth(req)
 	resp, err := d.client().Do(req)
 	if err != nil {
-		return nil, err
+		return nil, hferr(CodeListFailed, "huggingface list files request failed", err)
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode == http.StatusNotFound {
-		return nil, fmt.Errorf("huggingface repo not found: %s", repo)
+		return nil, hferr(CodeRepoNotFound, fmt.Sprintf("huggingface repo not found: %s", repo), nil)
+	}
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, hferr(CodeUnauthorized, "huggingface repo requires authentication or token is invalid", nil)
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return nil, hferr(CodeForbidden, "huggingface repo is gated/private or token lacks access", nil)
 	}
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return nil, fmt.Errorf("huggingface list files failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return nil, hferr(CodeListFailed, fmt.Sprintf("huggingface list files failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body))), nil)
 	}
 	var entries []treeEntry
 	if err := json.NewDecoder(resp.Body).Decode(&entries); err != nil {
-		return nil, err
+		return nil, hferr(CodeListFailed, "huggingface list files response was not valid JSON", err)
 	}
 	files := make([]string, 0, len(entries))
 	for _, e := range entries {
@@ -91,10 +137,13 @@ func chooseFile(files []string, m catalog.Model) (string, error) {
 	if m.File != "" {
 		for _, f := range files {
 			if f == m.File || path.Base(f) == m.File {
+				if strings.Contains(strings.ToLower(path.Base(f)), "-of-") {
+					return "", hferr(CodeSplitGGUF, fmt.Sprintf("configured file %q appears to be a split GGUF; pin a single-file GGUF repo or exact first shard support later", f), nil)
+				}
 				return f, nil
 			}
 		}
-		return "", fmt.Errorf("file %q not found in %s", m.File, m.Repo)
+		return "", hferr(CodeFileNotFound, fmt.Sprintf("file %q not found in %s", m.File, m.Repo), nil)
 	}
 	pattern := m.GlobPattern()
 	matches := make([]string, 0)
@@ -107,10 +156,9 @@ func chooseFile(files []string, m catalog.Model) (string, error) {
 		}
 	}
 	if len(matches) == 0 {
-		return "", fmt.Errorf("no GGUF file matches %q in %s", pattern, m.Repo)
+		return "", hferr(CodeNoMatchingFile, fmt.Sprintf("no GGUF file matches %q in %s", pattern, m.Repo), nil)
 	}
 	sort.SliceStable(matches, func(i, j int) bool {
-		// Prefer normal model files over mmproj/imatrix metadata when both match.
 		si := score(matches[i])
 		sj := score(matches[j])
 		if si != sj {
@@ -118,13 +166,26 @@ func chooseFile(files []string, m catalog.Model) (string, error) {
 		}
 		return matches[i] < matches[j]
 	})
-	return matches[0], nil
+	bestScore := score(matches[0])
+	best := make([]string, 0, len(matches))
+	for _, f := range matches {
+		if score(f) == bestScore {
+			best = append(best, f)
+		}
+	}
+	if len(best) > 1 {
+		return "", hferr(CodeAmbiguousFiles, fmt.Sprintf("multiple GGUF files match %q in %s: %s; set file or pattern in catalog", pattern, m.Repo, strings.Join(best, ", ")), nil)
+	}
+	if strings.Contains(strings.ToLower(path.Base(best[0])), "-of-") {
+		return "", hferr(CodeSplitGGUF, fmt.Sprintf("matched file %q appears to be a split GGUF; use a single-file repo or pin a supported file", best[0]), nil)
+	}
+	return best[0], nil
 }
 
 func score(f string) int {
 	b := strings.ToLower(path.Base(f))
 	s := 0
-	for _, bad := range []string{"mmproj", "imatrix", "vision", "mmproj"} {
+	for _, bad := range []string{"mmproj", "imatrix", "vision"} {
 		if strings.Contains(b, bad) {
 			s += 10
 		}
@@ -146,14 +207,21 @@ func (d *Downloader) download(ctx context.Context, repo, file, stable string) er
 	d.addAuth(req)
 	resp, err := d.client().Do(req)
 	if err != nil {
-		return err
+		return hferr(CodeDownloadFailed, "huggingface download request failed", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusUnauthorized {
+		return hferr(CodeUnauthorized, "huggingface download requires authentication or token is invalid", nil)
+	}
+	if resp.StatusCode == http.StatusForbidden {
+		return hferr(CodeForbidden, "huggingface download is gated/private or token lacks access", nil)
+	}
 	if resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
-		return fmt.Errorf("huggingface download failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return hferr(CodeDownloadFailed, fmt.Sprintf("huggingface download failed: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body))), nil)
 	}
 	tmp := stable + ".tmp"
+	_ = os.Remove(tmp)
 	out, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
 	if err != nil {
 		return err
@@ -162,18 +230,18 @@ func (d *Downloader) download(ctx context.Context, repo, file, stable string) er
 	closeErr := out.Close()
 	if copyErr != nil {
 		_ = os.Remove(tmp)
-		return copyErr
+		return hferr(CodeDownloadFailed, "failed while writing downloaded model", copyErr)
 	}
 	if closeErr != nil {
 		_ = os.Remove(tmp)
-		return closeErr
+		return hferr(CodeDownloadFailed, "failed closing downloaded model file", closeErr)
 	}
 	if info, err := os.Stat(tmp); err != nil || info.Size() == 0 {
 		_ = os.Remove(tmp)
 		if err != nil {
 			return err
 		}
-		return errors.New("downloaded file is empty")
+		return hferr(CodeEmptyDownload, "downloaded file is empty", nil)
 	}
 	return os.Rename(tmp, stable)
 }

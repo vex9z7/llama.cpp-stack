@@ -31,3 +31,23 @@ func TestChooseFileExact(t *testing.T) {
 		t.Fatalf("chooseFile exact = %q", got)
 	}
 }
+
+func TestChooseFileAmbiguousRequiresPin(t *testing.T) {
+	_, err := chooseFile([]string{"a-Q4_K_M.gguf", "b-Q4_K_M.gguf"}, catalog.Model{Repo: "o/r", Quant: "Q4_K_M"})
+	if err == nil {
+		t.Fatal("expected ambiguous match error")
+	}
+	if Code(err) != CodeAmbiguousFiles {
+		t.Fatalf("Code(err)=%q", Code(err))
+	}
+}
+
+func TestChooseFileRejectsSplitGGUF(t *testing.T) {
+	_, err := chooseFile([]string{"model-Q4_K_M-00001-of-00002.gguf"}, catalog.Model{Repo: "o/r", Quant: "Q4_K_M"})
+	if err == nil {
+		t.Fatal("expected split GGUF error")
+	}
+	if Code(err) != CodeSplitGGUF {
+		t.Fatalf("Code(err)=%q", Code(err))
+	}
+}

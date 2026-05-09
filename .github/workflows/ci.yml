@@ -69,7 +69,7 @@ jobs:
           make schemas
           make go-test
           test -z "$(gofmt -l cmd internal)"
-          python3 -m py_compile scripts/probe_api_schemas.py scripts/probe_gateway.py scripts/probe_gateway_cancel.py scripts/probe_gateway_capacity.py
+          python3 -m py_compile scripts/probe_api_schemas.py scripts/probe_gateway.py scripts/probe_gateway_cancel.py scripts/probe_gateway_capacity.py scripts/probe_gateway_errors.py
           make -n up BACKEND=cpu >/dev/null
 
       - name: Validate Compose configs

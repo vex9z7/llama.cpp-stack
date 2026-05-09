@@ -108,16 +108,24 @@ func (a *app) inference(w http.ResponseWriter, r *http.Request) {
 		openai.WriteError(w, http.StatusBadRequest, "invalid_request_error", "missing_model", "request body must include model")
 		return
 	}
-	backend, err := a.manager.EnsureRunning(r.Context(), req.Model)
+	backend, err := a.manager.EnsureRunning(r.Context(), req.Model, requiredKind(r.URL.Path))
 	if err != nil {
 		switch {
 		case errors.Is(err, manager.ErrModelNotFound):
 			openai.WriteError(w, http.StatusNotFound, "invalid_request_error", "model_not_found", "model is not in catalog")
+		case errors.Is(err, manager.ErrCapabilityMismatch):
+			openai.WriteError(w, http.StatusBadRequest, "invalid_request_error", "model_capability_mismatch", err.Error())
 		case errors.Is(err, manager.ErrNoIdleWorker):
 			openai.WriteError(w, http.StatusTooManyRequests, "capacity_error", "no_idle_worker", "requested model is not loaded and no idle worker is available")
+		case errors.Is(err, manager.ErrDownloadFailed):
+			a.log.Error("download failed", "model", req.Model, "error", err)
+			openai.WriteError(w, http.StatusServiceUnavailable, "download_error", "download_failed", err.Error())
+		case errors.Is(err, manager.ErrWorkerLoadFailed):
+			a.log.Error("worker load failed", "model", req.Model, "error", err)
+			openai.WriteError(w, http.StatusServiceUnavailable, "startup_error", "worker_load_failed", err.Error())
 		default:
 			a.log.Error("ensure running failed", "model", req.Model, "error", err)
-			openai.WriteError(w, http.StatusServiceUnavailable, "startup_error", "worker_load_failed", err.Error())
+			openai.WriteError(w, http.StatusServiceUnavailable, "upstream_error", "ensure_running_failed", err.Error())
 		}
 		return
 	}
@@ -138,4 +146,11 @@ func logMiddleware(log *slog.Logger, next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 		log.Info("request", "method", r.Method, "path", r.URL.Path, "duration_ms", time.Since(start).Milliseconds())
 	})
+}
+
+func requiredKind(path string) string {
+	if path == "/v1/embeddings" {
+		return "embedding"
+	}
+	return "chat"
 }

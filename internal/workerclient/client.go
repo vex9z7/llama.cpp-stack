@@ -18,13 +18,19 @@ type Client struct {
 }
 
 type Status struct {
-	ID           string `json:"id"`
-	State        string `json:"state"`
-	ModelRef     string `json:"model_ref,omitempty"`
-	ModelPath    string `json:"model_path,omitempty"`
-	ModelName    string `json:"model_name,omitempty"`
-	InferenceURL string `json:"inference_url,omitempty"`
-	PID          int    `json:"pid,omitempty"`
+	ID            string `json:"id"`
+	State         string `json:"state"`
+	ModelRef      string `json:"model_ref,omitempty"`
+	ModelPath     string `json:"model_path,omitempty"`
+	ModelName     string `json:"model_name,omitempty"`
+	InferenceURL  string `json:"inference_url,omitempty"`
+	PID           int    `json:"pid,omitempty"`
+	StartedAt     string `json:"started_at,omitempty"`
+	LoadedAt      string `json:"loaded_at,omitempty"`
+	LastError     string `json:"last_error,omitempty"`
+	StderrTail    string `json:"stderr_tail,omitempty"`
+	Embeddings    bool   `json:"embeddings,omitempty"`
+	LastExitError string `json:"last_exit_error,omitempty"`
 }
 
 type LoadRequest struct {
@@ -37,6 +43,7 @@ type LoadRequest struct {
 	NGPULayers  int    `json:"n_gpu_layers"`
 	ExtraArgs   string `json:"extra_args"`
 	TimeoutSec  int    `json:"timeout_seconds"`
+	Embeddings  bool   `json:"embeddings"`
 }
 
 type LoadResponse struct {

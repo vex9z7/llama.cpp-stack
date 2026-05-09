@@ -70,3 +70,4 @@ quant = "Q4_K_M"
 [[models]]
 repo = "n24q02m/Qwen3-Embedding-0.6B-GGUF"
 quant = "Q4_K_M"
+kind = "embedding"

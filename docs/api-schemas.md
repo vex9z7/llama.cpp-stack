@@ -103,3 +103,37 @@ make probe-gateway BASE_URL=https://llamacpp-stack.vex9z7.com
 ```
 
 This catches false positives in permissive schemas and false negatives caused by schema drift.
+
+
+## Gateway error codes
+
+The Go gateway returns OpenAI-shaped error envelopes:
+
+```json
+{
+  "error": {
+    "message": "...",
+    "type": "invalid_request_error",
+    "code": "model_not_found"
+  }
+}
+```
+
+Stable gateway error codes:
+
+- `invalid_json`
+- `missing_model`
+- `model_not_found`
+- `model_capability_mismatch`
+- `no_idle_worker`
+- `download_failed`
+- `worker_load_failed`
+- `ensure_running_failed`
+
+Probe helpers:
+
+```bash
+make probe-errors BASE_URL=https://llamacpp-stack.vex9z7.com
+make probe-capacity BASE_URL=https://llamacpp-stack.vex9z7.com
+make probe-cancel BASE_URL=https://llamacpp-stack.vex9z7.com
+```

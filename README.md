@@ -160,6 +160,7 @@ V1 capacity policy is simple and explicit:
 - `LLAMA_WORKER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
 - `HF_ENDPOINT` / `HF_TOKEN`：Hugging Face 下载配置。
 - `GATEWAY_SMOKE_MODEL`：`make smoke` / `make probe-api` 使用的模型。
+- catalog `kind`：默认 `chat`；embedding 模型设置 `kind = "embedding"`，gateway 会为该模型启动 `llama-server --embeddings`，并只允许走 `/v1/embeddings`。
 
 ## Commands
 
@@ -172,6 +173,7 @@ make ps
 make config
 make models
 make probe-gateway
+make probe-errors
 make smoke
 make stream-cancel
 ```
