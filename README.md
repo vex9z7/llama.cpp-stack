@@ -127,6 +127,14 @@ LLAMA_ALIAS=qwen3-8b-local
 - `LLAMA_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload，VRAM 不足时调低。
 - `LLAMA_EXTRA_ARGS`：额外传给 `llama-server` 的参数，例如某些版本支持的 metrics/slots/API-key 参数。
 
+## API schemas
+
+Integration schemas live under `schemas/` and are documented in `docs/api-schemas.md`. They cover the OpenAI-compatible `/v1/*` subset plus llama.cpp-native endpoints such as `/health` and `/slots`.
+
+```bash
+make schemas
+```
+
 ## Backend selection
 
 默认使用 Vulkan：

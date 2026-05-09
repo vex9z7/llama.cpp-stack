@@ -19,7 +19,11 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := LLAMA_MODEL_FILE=$(MODEL_FILE) $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check models download up down restart logs ps config smoke stream-cancel
+.PHONY: check schemas models download up down restart logs ps config smoke stream-cancel
+
+schemas:
+	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"
+	@python3 -c "from pathlib import Path; t=Path('schemas/openapi/llama-server.openapi.yaml').read_text(); assert 'openapi: 3.1.0' in t and '/v1/chat/completions:' in t; print('openapi schema smoke ok')"
 
 models:
 	@awk -F '\t' 'BEGIN { printf "%-24s %-36s %-18s %s\n", "NAME", "REPO", "INCLUDE", "DESCRIPTION" } $$0 !~ /^#/ && NF >= 5 { printf "%-24s %-36s %-18s %s\n", $$1, $$2, $$3, $$5 }' models/catalog.tsv

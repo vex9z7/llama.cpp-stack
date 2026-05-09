@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/slots-response.schema.json",
+  "title": "llama.cpp /slots Response",
+  "type": "array",
+  "items": {
+    "type": "object",
+    "additionalProperties": true,
+    "required": ["id", "n_ctx", "is_processing"],
+    "properties": {
+      "id": { "type": "integer" },
+      "n_ctx": { "type": "integer" },
+      "speculative": { "type": "boolean" },
+      "is_processing": { "type": "boolean" },
+      "id_task": { "type": "integer" },
+      "params": { "type": "object", "additionalProperties": true },
+      "next_token": {
+        "type": "array",
+        "items": { "type": "object", "additionalProperties": true }
+      }
+    }
+  }
+}
