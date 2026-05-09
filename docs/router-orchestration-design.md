@@ -1,5 +1,8 @@
 # Model Router / Orchestration Layer Design
 
+> Update: dynamic lifecycle should be implemented through a separate manager backend, not by giving the router Docker socket access. See `docs/dynamic-model-manager-design.md` for the slot-based manager design with `LLAMA_MAX_INSTANCES` and reject-on-full v1 policy.
+
+
 ## 1. Purpose
 
 This document defines the next architecture direction for `llama.cpp-stack`: a lightweight model router and orchestration layer in front of multiple `llama-server` backends.

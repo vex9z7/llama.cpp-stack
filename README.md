@@ -150,7 +150,7 @@ make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com LLAMA_ALIAS=local-llm
 
 ## Multi-instance
 
-For multiple simultaneously loaded models, see `docs/multi-instance.md`. The workflow uses `configs/instances.toml` to generate `docker-compose.instances.yml`.
+For future dynamic multi-model serving, see `docs/dynamic-model-manager-design.md`. The older static generated-compose workflow is documented in `docs/multi-instance.md`. The workflow uses `configs/instances.toml` to generate `docker-compose.instances.yml`.
 
 ```bash
 cp configs/instances.example.toml configs/instances.toml
