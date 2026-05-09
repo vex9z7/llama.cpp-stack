@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint and config checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Check formatting basics
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import sys
+
+          allowed_suffixes = {".env", ".example", ".gitignore", ".md", ".yml", ".yaml"}
+          allowed_names = {"Makefile"}
+          skip_dirs = {".git", "models"}
+          failures = []
+
+          for path in sorted(Path(".").rglob("*")):
+              if not path.is_file():
+                  continue
+              if any(part in skip_dirs for part in path.parts):
+                  continue
+              if path.name not in allowed_names and path.suffix not in allowed_suffixes:
+                  continue
+              data = path.read_bytes()
+              rel = path.as_posix()
+              if data and not data.endswith(b"\n"):
+                  failures.append(f"{rel}: missing trailing newline")
+              for lineno, line in enumerate(data.splitlines(), start=1):
+                  if line.rstrip(b" \t") != line:
+                      failures.append(f"{rel}:{lineno}: trailing whitespace")
+
+          if failures:
+              print("\n".join(failures))
+              sys.exit(1)
+          PY
+
+      - name: Validate Makefile defaults
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp .env.example .env
+          mkdir -p models
+          touch models/model.gguf
+          make check BACKEND=cpu
+          make -n up BACKEND=cpu >/dev/null
+
+      - name: Validate Compose configs
+        shell: bash
+        run: |
+          set -euo pipefail
+          LLAMA_MODEL_FILE=model.gguf docker compose -f docker-compose.yml config >/tmp/compose.cpu.yml
+          LLAMA_MODEL_FILE=model.gguf docker compose -f docker-compose.yml -f docker-compose.vulkan.yml config >/tmp/compose.vulkan.yml
+          LLAMA_MODEL_FILE=model.gguf docker compose -f docker-compose.yml -f docker-compose.cuda.yml config >/tmp/compose.cuda.yml

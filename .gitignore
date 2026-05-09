@@ -1,6 +1,8 @@
 # Local models and runtime artifacts
 models/*.gguf
 models/**/*.gguf
+models/*.tmp
+!models/.gitkeep
 hf-cache/
 *.log
 .env

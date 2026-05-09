@@ -114,8 +114,7 @@ GGUF Models
 
 ### Persistent storage
 
-- `./models:/models:ro`：宿主机放置 GGUF 模型，容器只读挂载。
-- `hf-cache` named volume：预留给后续 HF 拉取/缓存场景。
+- `./models:/models:ro,Z`：宿主机放置 GGUF 模型，容器只读挂载；`:Z` 与已部署的 `whisper.cpp-stack` 保持一致，便于 SELinux 环境使用。
 
 ### GPU access
 
@@ -130,17 +129,24 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 
 ## 6. 运行配置
 
-关键参数：
+当前实现参考了已成功部署的 `whisper.cpp-stack`：
 
-- `LLAMA_ARG_MODEL`：模型路径
-- `LLAMA_ARG_ALIAS`：OpenAI API 中暴露的模型名
-- `LLAMA_ARG_CTX_SIZE`：总上下文窗口
-- `LLAMA_ARG_N_PARALLEL`：并发 slot 数
-- `LLAMA_ARG_N_GPU_LAYERS`：GPU offload 层数
-- `LLAMA_ARG_CONT_BATCHING`：连续 batching，适合多客户端
-- `LLAMA_ARG_CACHE_PROMPT`：prompt cache，提高重复上下文效率
-- `LLAMA_ARG_ENDPOINT_METRICS`：metrics endpoint
-- `LLAMA_ARG_ENDPOINT_SLOTS`：slot inspection endpoint
+- 用 `Makefile` 统一 `check/up/down/logs/config` 工作流
+- 用 base compose + backend override 文件切换 CPU/Vulkan/CUDA
+- 模型目录只保存本地大文件，不把模型提交到 git
+- healthcheck 使用轻量 TCP reachability check，避免调用重型推理接口
+
+关键配置：
+
+- `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`
+- `LLAMA_HOST` / `LLAMA_PORT`：宿主机监听地址和端口
+- `LLAMA_MODEL_FILE`：`./models` 下的 GGUF 文件名
+- `LLAMA_ALIAS`：OpenAI-compatible API 中暴露的模型名
+- `LLAMA_CTX_SIZE`：总上下文窗口
+- `LLAMA_N_PARALLEL`：并发 slot 数
+- `LLAMA_THREADS_HTTP`：HTTP server 线程数
+- `LLAMA_N_GPU_LAYERS`：GPU offload 层数
+- `LLAMA_EXTRA_ARGS`：传给 `llama-server` 的额外参数
 
 注意：`CTX_SIZE` 通常会在并发 slot 之间分配；例如 `8192 / 2` 时，每个并发请求可用上下文大约为 4096 tokens。
 
@@ -149,8 +155,8 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 ### 7.1 基础启动
 
 ```bash
-docker compose up -d
-docker compose logs -f llama-server
+make up
+make logs
 curl http://127.0.0.1:8080/health
 curl http://127.0.0.1:8080/v1/models
 ```
@@ -164,7 +170,7 @@ curl http://127.0.0.1:8080/v1/models
 运行：
 
 ```bash
-./scripts/smoke_stream.sh
+make smoke
 ```
 
 预期：客户端能持续收到 SSE token/chunk。
@@ -174,7 +180,7 @@ curl http://127.0.0.1:8080/v1/models
 运行：
 
 ```bash
-./scripts/test_cancel.sh
+make stream-cancel
 ```
 
 预期：脚本主动中断 streaming client 后，服务端 slot 应释放；可通过 `/slots` 和 logs 观察。
@@ -197,7 +203,7 @@ curl http://127.0.0.1:8080/v1/models
 3. 复制仓库
 4. 复制 `models/*.gguf`
 5. 复制或重建 `.env`
-6. `docker compose up -d`
+6. `make up`
 
 推荐在验证稳定后 pin 镜像 tag，避免上游 latest/tag 变化导致不可复现。
 
