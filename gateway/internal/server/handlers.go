@@ -65,7 +65,12 @@ func (a *App) humaInference(ctx huma.Context) {
 	}
 	headers := http.Header{}
 	ctx.EachHeader(func(name, value string) { headers.Add(name, value) })
-	resp, err := a.proxy.Do(ctx.Context(), ctx.Method(), ctx.URL().Path, ctx.URL().RawQuery, headers, a.manager.RouterBaseURL(), body)
+	upstreamBody, err := adaptRequestBody(ctx.URL().Path, body)
+	if err != nil {
+		writeOpenAIErrorHuma(ctx, http.StatusBadRequest, "invalid_request_error", "invalid_request", err.Error())
+		return
+	}
+	resp, err := a.proxy.Do(ctx.Context(), ctx.Method(), ctx.URL().Path, ctx.URL().RawQuery, headers, a.manager.RouterBaseURL(), upstreamBody)
 	if err != nil {
 		a.log.Warn("proxy failed", "model", req.Model, "error", err)
 		writeOpenAIErrorHuma(ctx, http.StatusServiceUnavailable, "upstream_error", "router_unavailable", err.Error())

@@ -6,7 +6,105 @@ package generated
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for EasyInputMessageRole.
+const (
+	Assistant EasyInputMessageRole = "assistant"
+	Developer EasyInputMessageRole = "developer"
+	System    EasyInputMessageRole = "system"
+	User      EasyInputMessageRole = "user"
+)
+
+// Valid indicates whether the value is a known member of the EasyInputMessageRole enum.
+func (e EasyInputMessageRole) Valid() bool {
+	switch e {
+	case Assistant:
+		return true
+	case Developer:
+		return true
+	case System:
+		return true
+	case User:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for EasyInputMessageType.
+const (
+	Message EasyInputMessageType = "message"
+)
+
+// Valid indicates whether the value is a known member of the EasyInputMessageType enum.
+func (e EasyInputMessageType) Valid() bool {
+	switch e {
+	case Message:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for InputMessageContentType.
+const (
+	InputAudio InputMessageContentType = "input_audio"
+	InputFile  InputMessageContentType = "input_file"
+	InputImage InputMessageContentType = "input_image"
+	InputText  InputMessageContentType = "input_text"
+	OutputText InputMessageContentType = "output_text"
+)
+
+// Valid indicates whether the value is a known member of the InputMessageContentType enum.
+func (e InputMessageContentType) Valid() bool {
+	switch e {
+	case InputAudio:
+		return true
+	case InputFile:
+		return true
+	case InputImage:
+		return true
+	case InputText:
+		return true
+	case OutputText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseFunctionCallType.
+const (
+	FunctionCall ResponseFunctionCallType = "function_call"
+)
+
+// Valid indicates whether the value is a known member of the ResponseFunctionCallType enum.
+func (e ResponseFunctionCallType) Valid() bool {
+	switch e {
+	case FunctionCall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseFunctionCallOutputType.
+const (
+	FunctionCallOutput ResponseFunctionCallOutputType = "function_call_output"
+)
+
+// Valid indicates whether the value is a known member of the ResponseFunctionCallOutputType enum.
+func (e ResponseFunctionCallOutputType) Valid() bool {
+	switch e {
+	case FunctionCallOutput:
+		return true
+	default:
+		return false
+	}
+}
 
 // ChatCompletion defines model for ChatCompletion.
 type ChatCompletion struct {
@@ -37,6 +135,31 @@ type CompletionUsage struct {
 	TotalTokens             int                     `json:"total_tokens"`
 }
 
+// EasyInputMessage defines model for EasyInputMessage.
+type EasyInputMessage struct {
+	Content              EasyInputMessageContent `json:"content"`
+	Role                 EasyInputMessageRole    `json:"role"`
+	Type                 *EasyInputMessageType   `json:"type,omitempty"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// EasyInputMessageRole defines model for EasyInputMessage.Role.
+type EasyInputMessageRole string
+
+// EasyInputMessageType defines model for EasyInputMessage.Type.
+type EasyInputMessageType string
+
+// EasyInputMessageContent defines model for EasyInputMessageContent.
+type EasyInputMessageContent struct {
+	union json.RawMessage
+}
+
+// EasyInputMessageContent0 defines model for .
+type EasyInputMessageContent0 = string
+
+// EasyInputMessageContent1 defines model for .
+type EasyInputMessageContent1 = []InputMessageContent
+
 // EmbeddingResponse defines model for EmbeddingResponse.
 type EmbeddingResponse struct {
 	Usage                *EmbeddingUsage        `json:"usage,omitempty"`
@@ -60,6 +183,16 @@ type ErrorObject struct {
 	Message string  `json:"message"`
 	Type    string  `json:"type"`
 }
+
+// InputMessageContent defines model for InputMessageContent.
+type InputMessageContent struct {
+	Text                 *string                 `json:"text,omitempty"`
+	Type                 InputMessageContentType `json:"type"`
+	AdditionalProperties map[string]interface{}  `json:"-"`
+}
+
+// InputMessageContentType defines model for InputMessageContent.Type.
+type InputMessageContentType string
 
 // Model defines model for Model.
 type Model struct {
@@ -104,6 +237,53 @@ type Response struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
+// ResponseCreateRequest defines model for ResponseCreateRequest.
+type ResponseCreateRequest struct {
+	Input                *ResponseInput         `json:"input,omitempty"`
+	Model                string                 `json:"model"`
+	Stream               *bool                  `json:"stream,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// ResponseFunctionCall defines model for ResponseFunctionCall.
+type ResponseFunctionCall struct {
+	Arguments            string                   `json:"arguments"`
+	CallId               string                   `json:"call_id"`
+	Name                 string                   `json:"name"`
+	Type                 ResponseFunctionCallType `json:"type"`
+	AdditionalProperties map[string]interface{}   `json:"-"`
+}
+
+// ResponseFunctionCallType defines model for ResponseFunctionCall.Type.
+type ResponseFunctionCallType string
+
+// ResponseFunctionCallOutput defines model for ResponseFunctionCallOutput.
+type ResponseFunctionCallOutput struct {
+	CallId               string                         `json:"call_id"`
+	Output               string                         `json:"output"`
+	Type                 ResponseFunctionCallOutputType `json:"type"`
+	AdditionalProperties map[string]interface{}         `json:"-"`
+}
+
+// ResponseFunctionCallOutputType defines model for ResponseFunctionCallOutput.Type.
+type ResponseFunctionCallOutputType string
+
+// ResponseInput defines model for ResponseInput.
+type ResponseInput struct {
+	union json.RawMessage
+}
+
+// ResponseInput0 defines model for .
+type ResponseInput0 = string
+
+// ResponseInput1 defines model for .
+type ResponseInput1 = []ResponseInputItem
+
+// ResponseInputItem defines model for ResponseInputItem.
+type ResponseInputItem struct {
+	union json.RawMessage
+}
+
 // ResponseInputTokensDetails defines model for ResponseInputTokensDetails.
 type ResponseInputTokensDetails struct {
 	CachedTokens int `json:"cached_tokens"`
@@ -133,7 +313,7 @@ type CreateCompletionJSONRequestBody = ModelRequest
 type CreateEmbeddingJSONRequestBody = ModelRequest
 
 // CreateResponseJSONRequestBody defines body for CreateResponse for application/json ContentType.
-type CreateResponseJSONRequestBody = ModelRequest
+type CreateResponseJSONRequestBody = ResponseCreateRequest
 
 // Getter for additional properties for ChatCompletion. Returns the specified
 // element and whether it was found
@@ -271,6 +451,100 @@ func (a Completion) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
+// Getter for additional properties for EasyInputMessage. Returns the specified
+// element and whether it was found
+func (a EasyInputMessage) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for EasyInputMessage
+func (a *EasyInputMessage) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for EasyInputMessage to handle AdditionalProperties
+func (a *EasyInputMessage) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["content"]; found {
+		err = json.Unmarshal(raw, &a.Content)
+		if err != nil {
+			return fmt.Errorf("error reading 'content': %w", err)
+		}
+		delete(object, "content")
+	}
+
+	if raw, found := object["role"]; found {
+		err = json.Unmarshal(raw, &a.Role)
+		if err != nil {
+			return fmt.Errorf("error reading 'role': %w", err)
+		}
+		delete(object, "role")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for EasyInputMessage to handle AdditionalProperties
+func (a EasyInputMessage) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["content"], err = json.Marshal(a.Content)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'content': %w", err)
+	}
+
+	object["role"], err = json.Marshal(a.Role)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'role': %w", err)
+	}
+
+	if a.Type != nil {
+		object["type"], err = json.Marshal(a.Type)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'type': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
 // Getter for additional properties for EmbeddingResponse. Returns the specified
 // element and whether it was found
 func (a EmbeddingResponse) Get(fieldName string) (value interface{}, found bool) {
@@ -328,6 +602,87 @@ func (a EmbeddingResponse) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'usage': %w", err)
 		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for InputMessageContent. Returns the specified
+// element and whether it was found
+func (a InputMessageContent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for InputMessageContent
+func (a *InputMessageContent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for InputMessageContent to handle AdditionalProperties
+func (a *InputMessageContent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["text"]; found {
+		err = json.Unmarshal(raw, &a.Text)
+		if err != nil {
+			return fmt.Errorf("error reading 'text': %w", err)
+		}
+		delete(object, "text")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for InputMessageContent to handle AdditionalProperties
+func (a InputMessageContent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Text != nil {
+		object["text"], err = json.Marshal(a.Text)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'text': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -471,4 +826,509 @@ func (a Response) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseCreateRequest. Returns the specified
+// element and whether it was found
+func (a ResponseCreateRequest) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseCreateRequest
+func (a *ResponseCreateRequest) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseCreateRequest to handle AdditionalProperties
+func (a *ResponseCreateRequest) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["input"]; found {
+		err = json.Unmarshal(raw, &a.Input)
+		if err != nil {
+			return fmt.Errorf("error reading 'input': %w", err)
+		}
+		delete(object, "input")
+	}
+
+	if raw, found := object["model"]; found {
+		err = json.Unmarshal(raw, &a.Model)
+		if err != nil {
+			return fmt.Errorf("error reading 'model': %w", err)
+		}
+		delete(object, "model")
+	}
+
+	if raw, found := object["stream"]; found {
+		err = json.Unmarshal(raw, &a.Stream)
+		if err != nil {
+			return fmt.Errorf("error reading 'stream': %w", err)
+		}
+		delete(object, "stream")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseCreateRequest to handle AdditionalProperties
+func (a ResponseCreateRequest) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Input != nil {
+		object["input"], err = json.Marshal(a.Input)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'input': %w", err)
+		}
+	}
+
+	object["model"], err = json.Marshal(a.Model)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'model': %w", err)
+	}
+
+	if a.Stream != nil {
+		object["stream"], err = json.Marshal(a.Stream)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'stream': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseFunctionCall. Returns the specified
+// element and whether it was found
+func (a ResponseFunctionCall) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseFunctionCall
+func (a *ResponseFunctionCall) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseFunctionCall to handle AdditionalProperties
+func (a *ResponseFunctionCall) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["arguments"]; found {
+		err = json.Unmarshal(raw, &a.Arguments)
+		if err != nil {
+			return fmt.Errorf("error reading 'arguments': %w", err)
+		}
+		delete(object, "arguments")
+	}
+
+	if raw, found := object["call_id"]; found {
+		err = json.Unmarshal(raw, &a.CallId)
+		if err != nil {
+			return fmt.Errorf("error reading 'call_id': %w", err)
+		}
+		delete(object, "call_id")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseFunctionCall to handle AdditionalProperties
+func (a ResponseFunctionCall) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["arguments"], err = json.Marshal(a.Arguments)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'arguments': %w", err)
+	}
+
+	object["call_id"], err = json.Marshal(a.CallId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'call_id': %w", err)
+	}
+
+	object["name"], err = json.Marshal(a.Name)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'name': %w", err)
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseFunctionCallOutput. Returns the specified
+// element and whether it was found
+func (a ResponseFunctionCallOutput) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseFunctionCallOutput
+func (a *ResponseFunctionCallOutput) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseFunctionCallOutput to handle AdditionalProperties
+func (a *ResponseFunctionCallOutput) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["call_id"]; found {
+		err = json.Unmarshal(raw, &a.CallId)
+		if err != nil {
+			return fmt.Errorf("error reading 'call_id': %w", err)
+		}
+		delete(object, "call_id")
+	}
+
+	if raw, found := object["output"]; found {
+		err = json.Unmarshal(raw, &a.Output)
+		if err != nil {
+			return fmt.Errorf("error reading 'output': %w", err)
+		}
+		delete(object, "output")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseFunctionCallOutput to handle AdditionalProperties
+func (a ResponseFunctionCallOutput) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["call_id"], err = json.Marshal(a.CallId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'call_id': %w", err)
+	}
+
+	object["output"], err = json.Marshal(a.Output)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'output': %w", err)
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// AsEasyInputMessageContent0 returns the union data inside the EasyInputMessageContent as a EasyInputMessageContent0
+func (t EasyInputMessageContent) AsEasyInputMessageContent0() (EasyInputMessageContent0, error) {
+	var body EasyInputMessageContent0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEasyInputMessageContent0 overwrites any union data inside the EasyInputMessageContent as the provided EasyInputMessageContent0
+func (t *EasyInputMessageContent) FromEasyInputMessageContent0(v EasyInputMessageContent0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEasyInputMessageContent0 performs a merge with any union data inside the EasyInputMessageContent, using the provided EasyInputMessageContent0
+func (t *EasyInputMessageContent) MergeEasyInputMessageContent0(v EasyInputMessageContent0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsEasyInputMessageContent1 returns the union data inside the EasyInputMessageContent as a EasyInputMessageContent1
+func (t EasyInputMessageContent) AsEasyInputMessageContent1() (EasyInputMessageContent1, error) {
+	var body EasyInputMessageContent1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEasyInputMessageContent1 overwrites any union data inside the EasyInputMessageContent as the provided EasyInputMessageContent1
+func (t *EasyInputMessageContent) FromEasyInputMessageContent1(v EasyInputMessageContent1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEasyInputMessageContent1 performs a merge with any union data inside the EasyInputMessageContent, using the provided EasyInputMessageContent1
+func (t *EasyInputMessageContent) MergeEasyInputMessageContent1(v EasyInputMessageContent1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t EasyInputMessageContent) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *EasyInputMessageContent) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsResponseInput0 returns the union data inside the ResponseInput as a ResponseInput0
+func (t ResponseInput) AsResponseInput0() (ResponseInput0, error) {
+	var body ResponseInput0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseInput0 overwrites any union data inside the ResponseInput as the provided ResponseInput0
+func (t *ResponseInput) FromResponseInput0(v ResponseInput0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseInput0 performs a merge with any union data inside the ResponseInput, using the provided ResponseInput0
+func (t *ResponseInput) MergeResponseInput0(v ResponseInput0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResponseInput1 returns the union data inside the ResponseInput as a ResponseInput1
+func (t ResponseInput) AsResponseInput1() (ResponseInput1, error) {
+	var body ResponseInput1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseInput1 overwrites any union data inside the ResponseInput as the provided ResponseInput1
+func (t *ResponseInput) FromResponseInput1(v ResponseInput1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseInput1 performs a merge with any union data inside the ResponseInput, using the provided ResponseInput1
+func (t *ResponseInput) MergeResponseInput1(v ResponseInput1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ResponseInput) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ResponseInput) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsEasyInputMessage returns the union data inside the ResponseInputItem as a EasyInputMessage
+func (t ResponseInputItem) AsEasyInputMessage() (EasyInputMessage, error) {
+	var body EasyInputMessage
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromEasyInputMessage overwrites any union data inside the ResponseInputItem as the provided EasyInputMessage
+func (t *ResponseInputItem) FromEasyInputMessage(v EasyInputMessage) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeEasyInputMessage performs a merge with any union data inside the ResponseInputItem, using the provided EasyInputMessage
+func (t *ResponseInputItem) MergeEasyInputMessage(v EasyInputMessage) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResponseFunctionCall returns the union data inside the ResponseInputItem as a ResponseFunctionCall
+func (t ResponseInputItem) AsResponseFunctionCall() (ResponseFunctionCall, error) {
+	var body ResponseFunctionCall
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseFunctionCall overwrites any union data inside the ResponseInputItem as the provided ResponseFunctionCall
+func (t *ResponseInputItem) FromResponseFunctionCall(v ResponseFunctionCall) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseFunctionCall performs a merge with any union data inside the ResponseInputItem, using the provided ResponseFunctionCall
+func (t *ResponseInputItem) MergeResponseFunctionCall(v ResponseFunctionCall) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResponseFunctionCallOutput returns the union data inside the ResponseInputItem as a ResponseFunctionCallOutput
+func (t ResponseInputItem) AsResponseFunctionCallOutput() (ResponseFunctionCallOutput, error) {
+	var body ResponseFunctionCallOutput
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseFunctionCallOutput overwrites any union data inside the ResponseInputItem as the provided ResponseFunctionCallOutput
+func (t *ResponseInputItem) FromResponseFunctionCallOutput(v ResponseFunctionCallOutput) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseFunctionCallOutput performs a merge with any union data inside the ResponseInputItem, using the provided ResponseFunctionCallOutput
+func (t *ResponseInputItem) MergeResponseFunctionCallOutput(v ResponseFunctionCallOutput) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ResponseInputItem) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ResponseInputItem) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
 }

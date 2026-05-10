@@ -85,7 +85,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ModelRequest'
+              $ref: '#/components/schemas/ResponseCreateRequest'
       responses:
         '200':
           description: Responses API response
@@ -132,6 +132,83 @@ components:
       additionalProperties: true
       properties:
         model:
+          type: string
+    ResponseCreateRequest:
+      type: object
+      required: [model]
+      additionalProperties: true
+      properties:
+        model:
+          type: string
+        input:
+          $ref: '#/components/schemas/ResponseInput'
+        stream:
+          type: boolean
+    ResponseInput:
+      oneOf:
+        - type: string
+        - type: array
+          items:
+            $ref: '#/components/schemas/ResponseInputItem'
+    ResponseInputItem:
+      oneOf:
+        - $ref: '#/components/schemas/EasyInputMessage'
+        - $ref: '#/components/schemas/ResponseFunctionCall'
+        - $ref: '#/components/schemas/ResponseFunctionCallOutput'
+    EasyInputMessage:
+      type: object
+      required: [role, content]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [message]
+        role:
+          type: string
+          enum: [user, assistant, system, developer]
+        content:
+          $ref: '#/components/schemas/EasyInputMessageContent'
+    EasyInputMessageContent:
+      oneOf:
+        - type: string
+        - type: array
+          items:
+            $ref: '#/components/schemas/InputMessageContent'
+    InputMessageContent:
+      type: object
+      required: [type]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [input_text, output_text, input_image, input_file, input_audio]
+        text:
+          type: string
+    ResponseFunctionCall:
+      type: object
+      required: [type, call_id, name, arguments]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [function_call]
+        call_id:
+          type: string
+        name:
+          type: string
+        arguments:
+          type: string
+    ResponseFunctionCallOutput:
+      type: object
+      required: [type, call_id, output]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [function_call_output]
+        call_id:
+          type: string
+        output:
           type: string
     ErrorBody:
       type: object

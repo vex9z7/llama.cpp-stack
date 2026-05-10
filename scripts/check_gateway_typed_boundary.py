@@ -35,9 +35,12 @@ def check_openai_aliases() -> None:
     require('import gen "github.com/vex9z7/llama.cpp-stack/gateway/internal/openaiapi/generated"' in text,
             "openaiapi aliases must import generated package")
     for name in [
-        "ChatCompletion", "Completion", "CompletionUsage", "EmbeddingResponse", "EmbeddingUsage",
-        "ErrorBody", "ErrorObject", "Model", "ModelList", "ModelMeta", "ModelRequest",
-        "PromptTokensDetails", "Response", "ResponseUsage",
+        "ChatCompletion", "Completion", "CompletionUsage", "EasyInputMessage", "EasyInputMessageContent",
+        "EasyInputMessageRole", "EasyInputMessageType", "EmbeddingResponse", "EmbeddingUsage",
+        "ErrorBody", "ErrorObject", "InputMessageContent", "InputMessageContentType", "Model",
+        "ModelList", "ModelMeta", "ModelRequest", "PromptTokensDetails", "Response",
+        "ResponseCreateRequest", "ResponseFunctionCall", "ResponseFunctionCallOutput",
+        "ResponseInput", "ResponseInputItem", "ResponseUsage",
     ]:
         require(f"type {name} = gen.{name}" in text, f"openaiapi.{name} must alias generated type")
 
@@ -71,6 +74,14 @@ def check_adapter_imports_and_normalization() -> None:
         require("gateway/internal/openaiapi" in text, f"{path} must produce openaiapi types")
         require("map[string]any" not in text, f"{path} should not use untyped map[string]any")
 
+    requests = read("gateway/internal/apiadapter/requests.go")
+    require("openaiapi.ResponseCreateRequest" in requests, "Responses request adapter must consume generated OpenAI request type")
+    require("openaiapi.ResponseInputItem" in requests, "Responses request adapter must normalize generated input items")
+    require("openaiapi.InputMessageContent" in requests, "Responses request adapter must emit typed message content")
+    require("InputMessageContentTypeOutputText" in requests, "Responses request adapter must normalize assistant string history to output_text")
+    require("InputMessageContentTypeInputText" in requests, "Responses request adapter must normalize user/system/developer string input to input_text")
+    require("map[string]any" not in requests, "Responses request adapter should not use untyped map[string]any")
+
     responses = read("gateway/internal/apiadapter/responses.go")
     require("OutputTokensDetails: openaiapi.ResponseOutputTokensDetails{ReasoningTokens: 0}" in responses,
             "Responses adapter must fill OpenAI output_tokens_details.reasoning_tokens")
@@ -86,9 +97,22 @@ def check_server_boundary() -> None:
     require("openaiapi.ErrorBody" in text, "server errors must use openaiapi.ErrorBody")
     require("map[string]any{\"error\"" not in text, "server must not hand-roll OpenAI error maps")
 
-    adapter = read("gateway/internal/server/response_adapter.go")
+    handler = read("gateway/internal/server/handlers.go")
+    require("adaptRequestBody(ctx.URL().Path, body)" in handler, "server must adapt OpenAI request bodies before proxying upstream")
+
+    request_adapter = read("gateway/internal/server/request_adapter.go")
+    require("apiadapter.AdaptResponsesRequestBody" in request_adapter, "request adapter must call apiadapter.AdaptResponsesRequestBody")
+
+    response_adapter = read("gateway/internal/server/response_adapter.go")
     for fn in ["apiadapter.AdaptChatCompletionBody", "apiadapter.AdaptCompletionBody", "apiadapter.AdaptResponsesBody", "apiadapter.AdaptEmbeddingBody", "apiadapter.AdaptResponsesSSEPayload"]:
-        require(fn in adapter, f"response adapter must call {fn}")
+        require(fn in response_adapter, f"response adapter must call {fn}")
+
+
+def check_openai_schema_request_contract() -> None:
+    schema = read("openai-api-schema.yaml")
+    require("$ref: '#/components/schemas/ResponseCreateRequest'" in schema, "/v1/responses request must use ResponseCreateRequest, not bare ModelRequest")
+    for name in ["EasyInputMessage", "ResponseInputItem", "ResponseFunctionCall", "ResponseFunctionCallOutput"]:
+        require(f"    {name}:" in schema, f"OpenAI gateway schema must include {name}")
 
 
 def check_tool_pin() -> None:
@@ -107,6 +131,7 @@ def main() -> int:
     check_no_handwritten_shadow_types()
     check_adapter_imports_and_normalization()
     check_server_boundary()
+    check_openai_schema_request_contract()
     check_tool_pin()
     print("gateway typed boundary checks passed.")
     return 0

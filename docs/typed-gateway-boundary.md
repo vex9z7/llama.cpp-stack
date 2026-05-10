@@ -64,7 +64,9 @@ gateway/internal/llamacppapi
 
 
 gateway/internal/apiadapter
-  Conversion functions from llama.cpp typed responses to OpenAI typed responses.
+  Conversion functions at the public boundary: OpenAI typed requests to the
+  explicit llama.cpp request shape where needed, and llama.cpp typed responses
+  to OpenAI typed responses.
 
 
 gateway/internal/server
@@ -81,7 +83,7 @@ all non-streaming inference responses exposed by the current public API:
 - `GET /health`: gateway-owned typed health payload.
 - `GET /v1/models`: OpenAI-style typed model list.
 - gateway-originated errors: OpenAI-style typed error object.
-- `POST /v1/responses`: typed llama.cpp response -> typed OpenAI response.
+- `POST /v1/responses`: typed OpenAI request normalization before proxying, and typed llama.cpp response -> typed OpenAI response.
 - `POST /v1/chat/completions`: typed llama.cpp completion usage -> typed OpenAI completion usage.
 - `POST /v1/completions`: typed llama.cpp completion usage -> typed OpenAI completion usage.
 - `POST /v1/embeddings`: typed llama.cpp embedding usage -> typed OpenAI embedding usage.
@@ -90,6 +92,13 @@ Streaming inference remains framed as SSE. The gateway types and adapts the
 Responses API `response.completed` event, because it contains the final OpenAI
 `ResponseUsage` contract. Other streaming events are passed through unchanged
 unless/until a concrete OpenAI contract mismatch is identified.
+
+The Responses request side is also typed for the input item forms the gateway
+normalizes. OpenAI accepts compact conversation-history messages such as
+`{"role":"assistant","content":"Okay."}`. The pinned llama.cpp Responses
+implementation requires a more explicit item shape, so the gateway normalizes
+message shorthand before proxying while preserving already-typed function-call
+history.
 
 ### Responses API flow
 
@@ -120,6 +129,19 @@ SSE frame
 Unknown fields are preserved through raw JSON maps. Typed fields that are part of
 the OpenAI contract override upstream raw fields at the public boundary.
 
+### Request normalization rule
+
+For OpenAI Responses request input arrays:
+
+- message items with string content get `type: "message"`.
+- `assistant` string content becomes `[{"type":"output_text","text":"..."}]`.
+- `user`, `system`, and `developer` string content becomes `[{"type":"input_text","text":"..."}]`.
+- already-typed function-call and function-call-output items pass through
+  unchanged.
+
+This fixes OpenAI-compatible multi-turn assistant history without adding
+Pipecat-specific behavior.
+
 ### Usage normalization rule
 
 For OpenAI Responses usage:
@@ -145,6 +167,9 @@ Static/local checks should verify:
 5. llama.cpp typed usage with nil details converts to OpenAI typed usage with
    `reasoning_tokens: 0`.
 6. SSE `response.completed` events are adapted without breaking event framing.
+7. Responses request shorthand assistant history is normalized to typed
+   `output_text` message content before proxying upstream.
+8. Already-typed function-call history passes through unchanged.
 
 ## Future phases
 
@@ -170,6 +195,7 @@ make check-gateway-typed-boundary
 ```
 
 `check-gateway-typed-boundary` statically verifies that gateway boundary packages
-alias generated types, that adapters consume `llamacppapi` types and produce
-`openaiapi` types, and that gateway-owned model/error responses use typed
-OpenAI-compatible structs instead of handwritten maps.
+alias generated types, that response adapters consume `llamacppapi` types and
+produce `openaiapi` types, that the Responses request adapter consumes generated
+OpenAI request/input types, and that gateway-owned model/error responses use
+typed OpenAI-compatible structs instead of handwritten maps.
