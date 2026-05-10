@@ -18,7 +18,7 @@ Router mode is currently marked experimental upstream, so the stack should keep 
 ## 2. Target architecture
 
 ```text
-Client / Pipecat / Agents
+Client / Apps / Agents
         |
         v
 Gateway
@@ -604,7 +604,6 @@ Only after a concrete product requirement appears:
 - metrics;
 - task-aware routing;
 - edge node routing;
-- Pipecat-specific defaults.
 
 ## 12. Risks and mitigations
 

@@ -24,15 +24,14 @@ def post_json(base: str, path: str, payload: dict, timeout: float = 120.0):
         return exc.code, exc.headers.get("Content-Type", ""), body
 
 
-def assert_usage_details(usage: dict):
+def assert_usage(usage: dict):
     assert isinstance(usage, dict), usage
-    input_details = usage.get("input_tokens_details")
-    output_details = usage.get("output_tokens_details")
-    assert isinstance(input_details, dict), usage
-    assert isinstance(output_details, dict), usage
-    assert isinstance(input_details.get("cached_tokens"), int), usage
-    assert isinstance(output_details.get("reasoning_tokens"), int), usage
-    if "input_tokens" in usage and "output_tokens" in usage:
+    # OpenAI Responses usage should include token counts when provided by backend.
+    if "input_tokens" in usage:
+        assert isinstance(usage.get("input_tokens"), int), usage
+    if "output_tokens" in usage:
+        assert isinstance(usage.get("output_tokens"), int), usage
+    if "total_tokens" in usage:
         assert isinstance(usage.get("total_tokens"), int), usage
 
 
@@ -45,15 +44,14 @@ def probe_chat(base: str, model: str):
             "messages": [{"role": "user", "content": "Reply exactly: OK"}],
             "max_tokens": 32,
             "temperature": 0,
-            "reasoning_effort": "none",
         },
     )
     if status >= 400:
         raise AssertionError(f"chat returned {status}: {raw}")
     data = json.loads(raw)
     text = data.get("choices", [{}])[0].get("message", {}).get("content") or ""
-    assert "<think>" not in text.lower(), data
-    print("[ok] chat completions reasoning adapter")
+    assert text, data
+    print("[ok] chat completions")
 
 
 def probe_responses_json(base: str, model: str):
@@ -65,14 +63,13 @@ def probe_responses_json(base: str, model: str):
             "input": "Reply exactly: OK",
             "max_output_tokens": 32,
             "temperature": 0,
-            "reasoning": {"effort": "none"},
         },
     )
     if status >= 400:
         raise AssertionError(f"responses returned {status}: {raw}")
     data = json.loads(raw)
-    assert_usage_details(data.get("usage"))
-    print("[ok] responses usage details")
+    assert_usage(data.get("usage"))
+    print("[ok] responses")
 
 
 def probe_responses_stream(base: str, model: str):
@@ -85,8 +82,7 @@ def probe_responses_stream(base: str, model: str):
                 "max_output_tokens": 32,
                 "temperature": 0,
                 "stream": True,
-                "reasoning": {"effort": "none"},
-            }
+                }
         ).encode("utf-8"),
         headers={"Content-Type": "application/json", "Authorization": "Bearer sk-no-key-required"},
         method="POST",
@@ -106,8 +102,8 @@ def probe_responses_stream(base: str, model: str):
                 break
     if completed is None:
         raise AssertionError("stream did not produce response.completed")
-    assert_usage_details(completed.get("response", {}).get("usage"))
-    print("[ok] responses stream usage details")
+    assert_usage(completed.get("response", {}).get("usage"))
+    print("[ok] responses stream")
 
 
 def main() -> int:

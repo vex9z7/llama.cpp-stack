@@ -4,7 +4,7 @@
 
 ## 目标
 
-- 提供 OpenAI-compatible API，便于接入 Pipecat、agent orchestration 和后续工具生态。
+- 提供 OpenAI-compatible API，便于接入 agent orchestration 和后续工具生态。
 - 支持流式输出和客户端取消，避免断开的请求继续占用 GPU。
 - 使用 Docker Compose 部署，依赖隔离、可迁移、易重启。
 - 支持 AMD GPU Vulkan 加速和 GGUF 模型。
@@ -41,8 +41,7 @@ curl http://127.0.0.1:8080/v1/chat/completions \
     "model":"Open4bits/Qwen3-0.6b-gguf/Q4_K_M",
     "messages":[{"role":"user","content":"Say hello in one sentence."}],
     "max_tokens":64,
-    "stream":false,
-    "chat_template_kwargs":{"enable_thinking":false}
+    "stream":false
   }'
 ```
 
@@ -61,7 +60,7 @@ make stream-cancel
 ## Architecture
 
 ```text
-Client / Pipecat / Agents
+Client / Apps / Agents
         |
         v
 Go Gateway container

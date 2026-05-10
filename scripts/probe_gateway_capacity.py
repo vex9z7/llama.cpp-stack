@@ -27,7 +27,6 @@ def post(base: str, model: str, timeout: float):
         "messages": [{"role": "user", "content": "Reply with exactly OK."}],
         "max_tokens": 8,
         "stream": False,
-        "chat_template_kwargs": {"enable_thinking": False},
     }
     req = urllib.request.Request(
         base.rstrip("/") + "/v1/chat/completions",

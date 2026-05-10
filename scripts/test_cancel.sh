@@ -14,8 +14,7 @@ cat >"$payload" <<JSON
   "messages": [{"role":"user","content":"Write a very long numbered essay about request cancellation in streaming inference. Continue until stopped."}],
   "max_tokens": 2048,
   "temperature": 0.8,
-  "stream": true,
-  "chat_template_kwargs": {"enable_thinking": false}
+  "stream": true
 }
 JSON
 

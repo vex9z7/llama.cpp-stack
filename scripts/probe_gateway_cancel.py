@@ -44,7 +44,6 @@ def main() -> int:
         "max_tokens": 2048,
         "temperature": 0.8,
         "stream": True,
-        "chat_template_kwargs": {"enable_thinking": False},
     }
 
     started = time.monotonic()
@@ -63,7 +62,6 @@ def main() -> int:
         "messages": [{"role": "user", "content": "Reply with exactly OK."}],
         "max_tokens": 8,
         "stream": False,
-        "chat_template_kwargs": {"enable_thinking": False},
     }
     follow_started = time.monotonic()
     with post_json(args.base_url, "/v1/chat/completions", short_payload, timeout=args.followup_timeout) as follow:

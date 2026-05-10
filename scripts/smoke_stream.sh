@@ -13,8 +13,7 @@ curl -NfsS "${BASE_URL}/chat/completions" \
   "messages": [{"role":"user","content":"Count from 1 to 20, separated by commas."}],
   "max_tokens": 128,
   "temperature": 0.2,
-  "stream": true,
-  "chat_template_kwargs": {"enable_thinking": false}
+  "stream": true
 }
 JSON
 printf '\n'
