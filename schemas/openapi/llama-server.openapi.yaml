@@ -3,19 +3,19 @@ info:
   title: llama.cpp-stack API Surface
   version: 0.1.0
   description: |
-    Local integration spec for the llama.cpp llama-server surface used by this stack.
-    The /v1/* endpoints are OpenAI-compatible, while /health, /slots, /metrics,
-    and /completion are llama.cpp-native endpoints. This file intentionally models
-    the subset that we have validated and plan to integrate against.
+    Public gateway contract for llama.cpp-stack. The gateway exposes OpenAI-compatible
+    /v1/* endpoints plus /health, while hiding llama.cpp router management/native
+    endpoints such as /slots, /metrics, /props, /models/load, /models/unload, and
+    /completion.
 servers:
   - url: https://llamacpp-stack.vex9z7.com
     description: Current deployed stack
-  - url: http://127.0.0.1:8080
-    description: Local development
+  - url: http://127.0.0.1:8090
+    description: Local gateway development
 paths:
   /health:
     get:
-      summary: Native health check
+      summary: Gateway health check
       operationId: getHealth
       responses:
         '200':
@@ -25,7 +25,7 @@ paths:
               schema:
                 $ref: '../json/health-response.schema.json'
         '503':
-          description: Model loading or unavailable
+          description: Backend unavailable
           content:
             application/json:
               schema:
@@ -121,51 +121,6 @@ paths:
                 $ref: '../json/embeddings-response.schema.json'
         '501':
           description: Not enabled unless server starts with --embeddings
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
-  /completion:
-    post:
-      summary: llama.cpp-native raw completion endpoint
-      operationId: createNativeCompletion
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '../json/native-completion-request.schema.json'
-      responses:
-        '200':
-          description: Native completion response
-          content:
-            application/json:
-              schema:
-                $ref: '../json/native-completion-response.schema.json'
-  /slots:
-    get:
-      summary: llama.cpp-native slot inspection endpoint
-      operationId: listSlots
-      responses:
-        '200':
-          description: Slot state list
-          content:
-            application/json:
-              schema:
-                $ref: '../json/slots-response.schema.json'
-  /metrics:
-    get:
-      summary: Prometheus metrics when llama-server starts with --metrics
-      operationId: getMetrics
-      responses:
-        '200':
-          description: Prometheus metrics
-          content:
-            text/plain:
-              schema:
-                $ref: '../json/metrics-response.schema.json'
-        '501':
-          description: Not enabled unless server starts with --metrics
           content:
             application/json:
               schema:
