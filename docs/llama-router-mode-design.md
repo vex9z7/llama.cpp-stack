@@ -72,8 +72,7 @@ Responsibilities:
 - maintain the stable local model path layout;
 - generate `models-preset.generated.ini` from downloaded catalog models;
 - call router `/models?reload=1` after catalog/download/preset changes;
-- optionally run a gateway scheduler policy before forwarding, for example
-  strict capacity checks or explicit load/unload decisions;
+- leave model load/unload scheduling to llama.cpp router mode by default;
 - proxy allowed inference requests to llama.cpp router mode;
 - preserve request bodies and llama.cpp/OpenAI-compatible response shapes as much
   as possible;
@@ -91,26 +90,25 @@ Non-responsibilities:
 - do not store logs in files;
 - do not become a replacement implementation of llama.cpp router mode.
 
-## 3.2 Gateway scheduler/manager owns
+## 3.2 Gateway model manager owns
 
-The scheduler/manager is in-process gateway logic, not a separate public control
-API.
+The model manager is in-process gateway logic, not a separate public control
+API. It prepares models for the backend but does not schedule loaded instances.
 
 Responsibilities:
 
-- track catalog/download/router state needed by request handling;
+- track catalog/download/router metadata needed by request handling;
 - serialize same-model lazy downloads and preset reloads;
-- maintain in-memory LRU/last-used metadata if gateway-level scheduling is
-  enabled;
-- decide whether to load, unload, reject, or forward when capacity policy is
-  configured in the gateway;
-- call the internal router management APIs needed to realize that decision.
+- ensure a requested catalog model exists locally before proxying;
+- render presets and call `/models?reload=1` when the downloaded model set changes.
 
 Non-responsibilities:
 
+- do not implement LRU or loaded-instance scheduling in v1;
+- do not call `/models/load` or `/models/unload` as part of the normal request path;
 - do not expose a public admin plane in v1;
 - do not mount Docker socket or manage containers directly;
-- do not persist scheduler state in a database initially.
+- do not persist model-manager state in a database initially.
 
 ## 3.3 Upstream llama.cpp router mode owns
 
@@ -270,7 +268,7 @@ version = 1
 
 [*]
 ctx-size = 8192
-parallel = 1
+parallel = -1
 threads-http = -1
 n-gpu-layers = 999
 jinja = true
@@ -367,27 +365,25 @@ Use upstream llama.cpp router controls first:
 POST /models/unload        explicit unload
 ```
 
-Default recommendation:
+Default recommendation follows llama.cpp defaults unless explicitly overridden:
 
 ```text
-models-max = configured instance limit
-models-autoload = enabled
-sleep-idle-seconds = disabled initially, then tune after testing
+models-max = 4             # llama.cpp default, 0 = unlimited
+models-autoload = enabled  # llama.cpp default
+parallel = -1              # llama.cpp automatic slot selection
+sleep-idle-seconds = 0     # disabled in this stack until tuned
 ```
 
-Capacity behavior should be validated with probes because upstream router mode may choose LRU unload instead of our earlier "reject cold model when full" behavior.
+Default v1 policy accepts upstream router behavior: when a cold model is
+requested and the loaded model count has reached `--models-max`, llama.cpp router
+mode performs LRU unload and then loads the requested model. The gateway should
+not duplicate that behavior unless a concrete product requirement appears, such
+as pinned models, priority, or VRAM-aware placement.
 
-Default v1 policy can simply accept upstream router behavior. If we want stricter semantics, implement it in the gateway before forwarding:
-
-```text
-request cold model X
-  -> gateway reads router /models status
-  -> if loaded count >= configured max and strict policy is enabled
-       return 429 no_idle_model_slot
-  -> otherwise forward and let router autoload/LRU
-```
-
-This keeps policy outside llama.cpp while still delegating actual load/unload to router mode.
+Slot count is not dynamically adjusted by the gateway. `LLAMA_ROUTER_PARALLEL`
+controls the preset `parallel` value passed to child model instances; `-1` means
+llama.cpp chooses automatically. Changing slot count for a loaded model requires
+changing the preset and reloading that model instance, not a hot slot resize.
 
 ## 9. Cancellation and streaming
 
@@ -487,7 +483,6 @@ model_capability_mismatch
 download_failed
 router_reload_failed
 router_unavailable
-no_idle_model_slot       # only if strict capacity policy is enabled
 ```
 
 Upstream llama.cpp errors may be passed through unless they need normalization for a known integration.
@@ -595,11 +590,12 @@ Status: implemented as the default gateway boundary.
 - gateway exposes generated OpenAPI at `/openapi.json`;
 - CI should compare the generated OpenAPI surface against fixed contracts.
 
-### Phase 5: Policy layer
+### Phase 5: Optional platform layer
 
-Only after the router-mode baseline is stable:
+Only after a concrete product requirement appears:
 
-- strict reject instead of LRU when full;
+- pinned or priority models;
+- VRAM-aware placement;
 - auth;
 - metrics;
 - task-aware routing;
@@ -615,7 +611,7 @@ Only after the router-mode baseline is stable:
 | model id/path mismatch | derive ids and paths from catalog in one package; avoid duplicate naming logic |
 | public exposure of management endpoints | gateway is default public entrypoint; do not publish router service directly |
 | lazy download race | per-model file lock and atomic rename |
-| LRU behavior surprises users | document `--models-max`; add gateway policy later if strict reject is needed |
+| LRU behavior surprises users | document `--models-max`; add gateway policy later only if pinning, priority, or VRAM-aware placement is needed |
 
 ## 13. Current recommendation
 

@@ -99,9 +99,10 @@ Gateway
         capability checks, cancellation-aware proxy, public error shape
   does not own: inference execution, child llama-server processes, public slots
 
-Gateway scheduler/manager
-  owns: in-process model state, same-model locking, optional load/unload policy
-  does not own: Docker container lifecycle or a public admin API
+Gateway model manager
+  owns: in-process catalog/download/preset state and same-model locking
+  does not own: scheduling, LRU, model load/unload, Docker container lifecycle,
+                or a public admin API
 
 llama.cpp router mode
   owns: child llama-server lifecycle, model load/unload, models-max capacity,
@@ -168,11 +169,11 @@ Then the gateway regenerates the router preset, asks `llama-server` router mode 
 
 Runtime model residency is delegated to llama.cpp router mode:
 
-- `LLAMA_MODELS_MAX` controls the maximum number of loaded model instances;
+- `LLAMA_MODELS_MAX` controls the maximum number of loaded model instances; default `4`, matching llama.cpp;
 - router mode autoloads requested models when enabled;
 - when capacity is reached, router mode may unload the least-recently-used model;
-- same-model concurrency is handled by llama.cpp slots/queue inside the child instance;
-- strict "reject instead of LRU" policy can be added in the gateway later if needed.
+- same-model concurrency is handled by llama.cpp slots/queue inside the child instance; `LLAMA_ROUTER_PARALLEL=-1` keeps llama.cpp automatic slot selection;
+- custom gateway scheduling such as pinning, priority, or VRAM-aware placement can be added later only when needed.
 
 ## Repository layout
 
@@ -207,10 +208,10 @@ Runtime model residency is delegated to llama.cpp router mode:
 - `LLAMA_HOST` / `LLAMA_PORT`：gateway 宿主机监听地址和端口。
 - `GATEWAY_HOST` / `GATEWAY_PORT`：可选覆盖；留空则继承 `LLAMA_HOST` / `LLAMA_PORT`。
 - `LLAMA_ROUTER_URL`：gateway 访问内部 llama.cpp router mode 的地址。
-- `LLAMA_MODELS_MAX`：router mode 最多同时加载的模型实例数。
+- `LLAMA_MODELS_MAX`：router mode 最多同时加载的模型实例数；默认 `4`，跟随 llama.cpp。
 - `LLAMA_MODELS_AUTOLOAD`：是否允许 router mode 按请求自动加载模型。
 - `LLAMA_SLEEP_IDLE_SECONDS`：空闲模型自动释放时间；`0` 表示关闭。
-- `LLAMA_ROUTER_CTX_SIZE` / `LLAMA_ROUTER_PARALLEL`：生成 router preset 时的上下文和并发默认值。
+- `LLAMA_ROUTER_CTX_SIZE` / `LLAMA_ROUTER_PARALLEL`：生成 router preset 时的上下文和 slot 默认值；`LLAMA_ROUTER_PARALLEL=-1` 表示使用 llama.cpp 自动选择。
 - `LLAMA_ROUTER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
 - `HF_ENDPOINT` / `HF_TOKEN`：Hugging Face 下载配置。
 - `GATEWAY_SMOKE_MODEL`：`make smoke` / `make probe-api` 使用的模型。

@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Probe router-mode gateway model switching behavior.
 
-The gateway now delegates load/unload capacity to llama.cpp router mode. This
-probe loads several catalog models in sequence and accepts either successful
-router-mode LRU switching or an explicit strict-capacity 429 if that policy is
-enabled later. It may trigger lazy model downloads on first run.
+The gateway delegates load/unload capacity to llama.cpp router mode. This probe
+loads several catalog models in sequence and expects router-mode LRU switching to
+keep requests successful when the loaded-model limit is reached. It may trigger
+lazy model downloads on first run.
 """
 from __future__ import annotations
 
@@ -70,13 +70,8 @@ def main() -> int:
     if status == 200:
         print(f"gateway router-mode switching probe ok: third_model={models[2]} status=200")
         return 0
-    if status == 429:
-        err = data.get("error", {})
-        assert err.get("code") in {"no_idle_model_slot"}, data
-        print(f"gateway strict capacity probe ok: third_model={models[2]} status=429 code={err.get('code')}")
-        return 0
     print(json.dumps(data, indent=2), file=sys.stderr)
-    raise AssertionError(f"expected third model to either succeed or return strict-capacity 429, got {status}")
+    raise AssertionError(f"expected third model to succeed via router-mode LRU switching, got {status}")
     return 0
 
 

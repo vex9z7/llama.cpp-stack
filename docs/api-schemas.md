@@ -125,7 +125,6 @@ Stable gateway error codes:
 - `missing_model`
 - `model_not_found`
 - `model_capability_mismatch`
-- `no_idle_model_slot`
 - `download_failed`
 - `router_reload_failed`
 - `router_unavailable`
