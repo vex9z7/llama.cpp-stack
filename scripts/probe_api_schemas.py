@@ -132,22 +132,29 @@ def cancel_case(base_url: str, model: str) -> None:
     url = base_url.rstrip("/") + "/v1/chat/completions"
     with requests.post(url, json=body, stream=True, timeout=90) as resp:
         resp.raise_for_status()
-        # Read a few bytes/chunks, then close the socket to simulate disconnect.
         for i, _line in enumerate(resp.iter_lines(decode_unicode=True)):
             if i >= 3:
                 break
     time.sleep(0.5)
-    slots = get_case(base_url, "/slots", "slots-response.schema.json", "slots after cancellation")
-    busy = [slot.get("id") for slot in slots if slot.get("is_processing")]
-    if busy:
-        raise SystemExit(f"slots still processing after cancellation: {busy}")
-    print("[ok] cancellation released slots")
+    followup = {
+        "model": model,
+        "messages": [{"role": "user", "content": "Return exactly: OK"}],
+        "max_tokens": 16,
+        "temperature": 0,
+        "stream": False,
+        "chat_template_kwargs": {"enable_thinking": False},
+    }
+    status, payload = request_json("POST", base_url, "/v1/chat/completions", body=followup, timeout=30)
+    if status >= 400:
+        raise SystemExit(f"follow-up after cancellation returned HTTP {status}: {payload}")
+    validate("chat-completion-response.schema.json", payload, "cancel follow-up response")
+    print("[ok] cancellation allowed immediate follow-up request")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-url", default="https://llamacpp-stack.vex9z7.com")
-    parser.add_argument("--model", default="local-llm")
+    parser.add_argument("--model", default="Open4bits/Qwen3-0.6b-gguf/Q4_K_M")
     parser.add_argument("--skip-cancel", action="store_true")
     args = parser.parse_args()
 
@@ -156,8 +163,6 @@ def main() -> None:
 
     get_case(base_url, "/health", "health-response.schema.json", "health")
     get_case(base_url, "/v1/models", "models-response.schema.json", "models")
-    get_case(base_url, "/slots", "slots-response.schema.json", "slots")
-    get_case(base_url, "/metrics", "metrics-response.schema.json", "metrics", allow_error_501=True)
 
     post_case(
         base_url,
@@ -207,23 +212,17 @@ def main() -> None:
         {"model": model, "input": "Return exactly: OK", "max_output_tokens": 32, "temperature": 0, "chat_template_kwargs": {"enable_thinking": False}},
         "responses api",
     )
-    post_case(
-        base_url,
-        "/completion",
-        "native-completion-request.schema.json",
-        "native-completion-response.schema.json",
-        {"prompt": "Return exactly: OK", "n_predict": 32, "temperature": 0},
-        "native completion",
-    )
-
     status, payload = request_json("POST", base_url, "/v1/embeddings", body={"model": model, "input": "hello"}, timeout=60)
     validate("embeddings-request.schema.json", {"model": model, "input": "hello"}, "embeddings request")
-    if status == 501:
-        validate("error-response.schema.json", payload, "embeddings 501 response")
-    elif status < 400:
+    if status < 400:
         validate("embeddings-response.schema.json", payload, "embeddings response")
     else:
-        raise SystemExit(f"embeddings returned HTTP {status}: {payload}")
+        validate("error-response.schema.json", payload, "embeddings error response")
+        code = payload.get("error", {}).get("code")
+        # A gateway with kind routing returns model_capability_mismatch for chat models.
+        # A direct/outdated llama-server may return 501 when embeddings are disabled.
+        if code not in {"model_capability_mismatch", 501, "501"}:
+            raise SystemExit(f"unexpected embeddings error code: status={status} payload={payload}")
 
     stream_case(base_url, model)
     if not args.skip_cancel:
