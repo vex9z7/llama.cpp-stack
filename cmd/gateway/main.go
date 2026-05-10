@@ -157,6 +157,9 @@ func (a *app) humaInference(ctx huma.Context) {
 	}
 	defer func() { _ = resp.Body.Close() }()
 	appendResponseHeaders(ctx, resp.Header)
+	if resp.Header.Get("Content-Type") == "" {
+		ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
+	}
 	ctx.SetStatus(resp.StatusCode)
 	if err := proxy.CopyFlush(ctx.BodyWriter(), resp.Body); err != nil {
 		a.log.Warn("proxy copy failed", "model", req.Model, "error", err)
@@ -204,14 +207,14 @@ func appendResponseHeaders(ctx huma.Context, headers http.Header) {
 }
 
 func writeHumaJSON(ctx huma.Context, status int, v any) {
+	ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
 	ctx.SetStatus(status)
-	ctx.SetHeader("Content-Type", "application/json")
 	_ = json.NewEncoder(ctx.BodyWriter()).Encode(v)
 }
 
 func writeOpenAIErrorHuma(ctx huma.Context, status int, typ, code, msg string) {
+	ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
 	ctx.SetStatus(status)
-	ctx.SetHeader("Content-Type", "application/json")
 	_ = json.NewEncoder(ctx.BodyWriter()).Encode(map[string]any{"error": map[string]any{"message": msg, "type": typ, "code": code}})
 }
 
