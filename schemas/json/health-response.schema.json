@@ -8,10 +8,6 @@
     "status"
   ],
   "properties": {
-    "service": {
-      "type": "string",
-      "description": "Gateway extension identifying the service."
-    },
     "status": {
       "type": "string",
       "examples": [

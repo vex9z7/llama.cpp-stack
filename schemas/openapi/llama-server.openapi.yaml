@@ -1,36 +1,42 @@
 openapi: 3.1.0
 info:
-  title: llama.cpp-stack Gateway API
-  version: 0.2.0
+  title: llama.cpp-stack API Surface
+  version: 0.1.0
   description: |
-    Public API surface for the Go gateway. The gateway exposes an
-    OpenAI-compatible /v1 subset plus /health. It intentionally hides
-    llama.cpp-native worker internals such as /slots, /metrics, /completion,
-    /worker/*, and /control/*.
+    Local integration spec for the llama.cpp llama-server surface used by this stack.
+    The /v1/* endpoints are OpenAI-compatible, while /health, /slots, /metrics,
+    and /completion are llama.cpp-native endpoints. This file intentionally models
+    the subset that we have validated and plan to integrate against.
 servers:
   - url: https://llamacpp-stack.vex9z7.com
     description: Current deployed stack
-  - url: http://127.0.0.1:8090
+  - url: http://127.0.0.1:8080
     description: Local development
 paths:
   /health:
     get:
-      summary: Gateway health check
+      summary: Native health check
       operationId: getHealth
       responses:
         '200':
-          description: Gateway is ready
+          description: Server is ready
           content:
             application/json:
               schema:
                 $ref: '../json/health-response.schema.json'
+        '503':
+          description: Model loading or unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
   /v1/models:
     get:
-      summary: OpenAI-compatible model catalog
+      summary: OpenAI-compatible model list
       operationId: listModels
       responses:
         '200':
-          description: Catalog model list with gateway meta extensions
+          description: Model list
           content:
             application/json:
               schema:
@@ -57,7 +63,7 @@ paths:
                 type: string
                 description: Server-sent events where each data line contains a chat.completion.chunk JSON object.
         default:
-          description: Gateway or upstream error
+          description: Error
           content:
             application/json:
               schema:
@@ -79,12 +85,6 @@ paths:
             application/json:
               schema:
                 $ref: '../json/completion-response.schema.json'
-        default:
-          description: Gateway or upstream error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /v1/responses:
     post:
       summary: OpenAI-compatible Responses API subset
@@ -97,24 +97,14 @@ paths:
               $ref: '../json/responses-request.schema.json'
       responses:
         '200':
-          description: Response object or response event stream
+          description: Response object
           content:
             application/json:
               schema:
                 $ref: '../json/responses-response.schema.json'
-            text/event-stream:
-              schema:
-                type: string
-                description: Server-sent events such as response.created and response.output_text.delta.
-        default:
-          description: Gateway or upstream error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
   /v1/embeddings:
     post:
-      summary: OpenAI-compatible embeddings endpoint for catalog models with kind=embedding
+      summary: OpenAI-compatible embeddings endpoint when llama-server starts with --embeddings
       operationId: createEmbedding
       requestBody:
         required: true
@@ -129,14 +119,72 @@ paths:
             application/json:
               schema:
                 $ref: '../json/embeddings-response.schema.json'
-        default:
-          description: Gateway or upstream error, for example model_capability_mismatch
+        '501':
+          description: Not enabled unless server starts with --embeddings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /completion:
+    post:
+      summary: llama.cpp-native raw completion endpoint
+      operationId: createNativeCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../json/native-completion-request.schema.json'
+      responses:
+        '200':
+          description: Native completion response
+          content:
+            application/json:
+              schema:
+                $ref: '../json/native-completion-response.schema.json'
+  /slots:
+    get:
+      summary: llama.cpp-native slot inspection endpoint
+      operationId: listSlots
+      responses:
+        '200':
+          description: Slot state list
+          content:
+            application/json:
+              schema:
+                $ref: '../json/slots-response.schema.json'
+  /metrics:
+    get:
+      summary: Prometheus metrics when llama-server starts with --metrics
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Prometheus metrics
+          content:
+            text/plain:
+              schema:
+                $ref: '../json/metrics-response.schema.json'
+        '501':
+          description: Not enabled unless server starts with --metrics
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
 components:
   schemas:
+    Model:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+          example: model
+        created:
+          type: integer
+        owned_by:
+          type: string
     ErrorResponse:
       type: object
       required: [error]

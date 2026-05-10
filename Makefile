@@ -26,7 +26,7 @@ go-test:
 
 schemas:
 	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"
-	@python3 -c "from pathlib import Path; t=Path('schemas/openapi/gateway.openapi.yaml').read_text(); assert 'openapi: 3.1.0' in t and '/v1/chat/completions:' in t and '/slots:' not in t; print('openapi schema smoke ok')"
+	@python3 -c "from pathlib import Path; t=Path('schemas/openapi/llama-server.openapi.yaml').read_text(); assert 'openapi: 3.1.0' in t and '/v1/chat/completions:' in t; print('openapi schema smoke ok')"
 
 probe-api:
 	python3 scripts/probe_api_schemas.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}}}" --model "$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)}"
