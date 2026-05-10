@@ -252,11 +252,22 @@ func (d *Downloader) addAuth(req *http.Request) {
 	}
 }
 
+var defaultHTTPClient = &http.Client{
+	Timeout: 0,
+	Transport: &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ResponseHeaderTimeout: 60 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+	},
+}
+
 func (d *Downloader) client() *http.Client {
 	if d.Client != nil {
 		return d.Client
 	}
-	return &http.Client{Timeout: 0, Transport: &http.Transport{Proxy: http.ProxyFromEnvironment, ResponseHeaderTimeout: 60 * time.Second}}
+	return defaultHTTPClient
 }
 
 func fileExists(path string) bool {

@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"testing"
@@ -11,8 +11,8 @@ import (
 func TestOpenAPISurface(t *testing.T) {
 	r := chi.NewRouter()
 	api := humachi.New(r, huma.DefaultConfig("test", "0.0.0"))
-	a := &app{}
-	a.register(api)
+	a := &App{}
+	a.Register(api)
 	want := []string{"/health", "/v1/models", "/v1/chat/completions", "/v1/completions", "/v1/responses", "/v1/embeddings"}
 	for _, path := range want {
 		if api.OpenAPI().Paths[path] == nil {
