@@ -48,7 +48,73 @@ The gateway is the default public service. The llama.cpp router should normally 
 
 ## 3. Responsibility split
 
-## 3.1 Upstream llama.cpp router mode owns
+The deployed stack has two network services in the default path:
+
+```text
+public client -> Go gateway -> internal llama.cpp router mode -> child llama-server
+```
+
+The gateway and router are deliberately separate responsibility boundaries even
+though both participate in request handling. The gateway owns product policy and
+public API shape. The upstream router owns actual model process lifecycle and
+llama.cpp request execution.
+
+## 3.1 Gateway owns
+
+The gateway is the public service and policy boundary.
+
+Responsibilities:
+
+- expose the public OpenAI-compatible endpoint surface;
+- publish `/openapi.json` for the public gateway contract;
+- enforce the catalog allowlist before any request reaches llama.cpp;
+- enforce endpoint/model capability checks, for example chat vs embedding;
+- resolve Hugging Face GGUF files from `models/catalog.toml`;
+- lazily download missing model files;
+- maintain the stable local model path layout;
+- generate `models-preset.generated.ini` from downloaded catalog models;
+- call router `/models?reload=1` after catalog/download/preset changes;
+- optionally run a gateway scheduler policy before forwarding, for example
+  strict capacity checks or explicit load/unload decisions;
+- proxy allowed inference requests to llama.cpp router mode;
+- preserve request bodies and llama.cpp/OpenAI-compatible response shapes as much
+  as possible;
+- propagate client disconnect/cancellation through the upstream HTTP request;
+- hide router internals from public clients;
+- normalize gateway-originated errors into OpenAI-shaped error objects;
+- emit structured logs to stdout/stderr.
+
+Non-responsibilities:
+
+- do not run inference;
+- do not directly create child `llama-server` processes;
+- do not expose `/slots`, `/props`, `/metrics`, `/models/load`, or
+  `/models/unload` publicly;
+- do not store logs in files;
+- do not become a replacement implementation of llama.cpp router mode.
+
+## 3.2 Gateway scheduler/manager owns
+
+The scheduler/manager is in-process gateway logic, not a separate public control
+API.
+
+Responsibilities:
+
+- track catalog/download/router state needed by request handling;
+- serialize same-model lazy downloads and preset reloads;
+- maintain in-memory LRU/last-used metadata if gateway-level scheduling is
+  enabled;
+- decide whether to load, unload, reject, or forward when capacity policy is
+  configured in the gateway;
+- call the internal router management APIs needed to realize that decision.
+
+Non-responsibilities:
+
+- do not expose a public admin plane in v1;
+- do not mount Docker socket or manage containers directly;
+- do not persist scheduler state in a database initially.
+
+## 3.3 Upstream llama.cpp router mode owns
 
 - discovering local GGUF models from `--models-dir`;
 - reading model presets from `--models-preset`;
@@ -63,26 +129,118 @@ The gateway is the default public service. The llama.cpp router should normally 
 - streaming response behavior;
 - request cancellation when the client disconnects.
 
-## 3.2 Gateway owns
+Non-responsibilities:
 
-- public OpenAI-compatible endpoint surface;
-- catalog allowlist enforcement;
-- Hugging Face file resolution and lazy download;
-- stable local model path layout;
-- generated `models-preset.ini` management;
-- calling router `/models?reload=1` after catalog/download changes;
-- proxying allowed requests to llama.cpp router mode;
-- propagating client disconnect cancellation to upstream requests;
-- hiding or restricting experimental management routes;
-- optional strict capacity policy if upstream LRU behavior is not desired;
-- optional auth/rate-limit/metrics later.
+- do not define the public product API by itself;
+- do not own the Hugging Face catalog;
+- do not download missing models from the internet;
+- do not decide which catalog entries are allowed for public use.
 
-## 3.3 llama.cpp-stack tooling owns
+## 3.4 llama.cpp-stack tooling owns
 
 - curated `models/catalog.toml`;
 - Docker Compose profiles for Vulkan/CUDA/CPU;
 - contract tests against OpenAI-compatible and llama.cpp API schemas;
 - documentation and operational probes.
+
+## 3.5 Logging roles and event keywords
+
+Logging policy:
+
+- application logs go only to stdout/stderr;
+- production format should be JSON (`LOG_FORMAT=json`);
+- local development may use text (`LOG_FORMAT=text`);
+- the stack does not write log files, rotate log files, or own log retention;
+- Docker, journald, Loki, Vector, Fluent Bit, or another collector should own
+  ingestion and storage.
+
+Use stable event keywords in the `msg` field and add structured attributes for
+filtering. Suggested attributes across roles:
+
+```text
+request_id
+method
+path
+status
+duration_ms
+model
+endpoint
+stream
+error
+```
+
+Gateway HTTP boundary keywords:
+
+```text
+gateway.start
+gateway.shutdown
+gateway.http.request
+gateway.http.error
+gateway.openapi.served
+gateway.health
+```
+
+Gateway catalog/download/preset keywords:
+
+```text
+catalog.load
+catalog.reload
+model.ensure.start
+model.ensure.done
+model.ensure.failed
+model.download.start
+model.download.done
+model.download.failed
+model.preset.render
+model.preset.reload_router
+```
+
+Gateway scheduler/manager keywords:
+
+```text
+scheduler.inspect
+scheduler.hit
+scheduler.miss
+scheduler.load
+scheduler.unload
+scheduler.capacity_full
+scheduler.reject
+scheduler.lru_select
+scheduler.idle_select
+```
+
+Gateway proxy/cancellation keywords:
+
+```text
+proxy.forward
+proxy.response
+proxy.stream.start
+proxy.stream.done
+proxy.client_cancel
+proxy.upstream_error
+```
+
+Internal llama.cpp router observations should keep their native logs, but any
+gateway-side calls to router management APIs should use:
+
+```text
+router.health
+router.models
+router.models.reload
+router.models.load
+router.models.unload
+router.unavailable
+```
+
+Tooling/probe keywords:
+
+```text
+probe.schema
+probe.gateway
+probe.cancel
+probe.smoke
+probe.failed
+```
 
 ## 4. Model identity and local paths
 

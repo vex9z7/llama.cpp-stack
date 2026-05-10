@@ -91,6 +91,57 @@ POST /v1/embeddings
 
 The gateway does not expose `/control/*`, `/worker/*`, backend URLs, or llama.cpp router management endpoints such as `/models/load`, `/models/unload`, `/slots`, `/props`, or `/metrics` publicly.
 
+## Runtime responsibility boundaries
+
+```text
+Gateway
+  owns: public API, OpenAPI, catalog allowlist, lazy download, preset reload,
+        capability checks, cancellation-aware proxy, public error shape
+  does not own: inference execution, child llama-server processes, public slots
+
+Gateway scheduler/manager
+  owns: in-process model state, same-model locking, optional load/unload policy
+  does not own: Docker container lifecycle or a public admin API
+
+llama.cpp router mode
+  owns: child llama-server lifecycle, model load/unload, models-max capacity,
+        LRU/idle behavior, llama.cpp-native streaming and cancellation
+  does not own: Hugging Face download or public catalog allowlisting
+
+Tooling
+  owns: catalog files, Docker Compose profiles, probes, schema checks, docs
+```
+
+## Logging
+
+The stack logs to stdout/stderr only. It does not write or rotate log files.
+Production should use structured JSON logs:
+
+```env
+LOG_FORMAT=json
+LOG_LEVEL=info
+```
+
+Local debugging may use:
+
+```env
+LOG_FORMAT=text
+```
+
+Stable log/event keywords are grouped by role:
+
+```text
+gateway.*     public HTTP lifecycle, health, OpenAPI, request errors
+catalog.*     catalog load/reload
+model.*       lazy download, model ensure, preset rendering
+scheduler.*   load/unload decisions, capacity, LRU/idle selection
+router.*      internal llama.cpp router calls and availability
+proxy.*       forwarding, streaming, cancellation, upstream errors
+probe.*       smoke/schema/cancel/gateway probes
+```
+
+See `docs/llama-router-mode-design.md` for the detailed keyword list.
+
 ## Model catalog
 
 `models/catalog.toml` lists Hugging Face GGUF sources. It is source-only and does not contain ports or worker assignments.
