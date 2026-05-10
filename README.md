@@ -248,11 +248,12 @@ make up BACKEND=cuda
 
 ## API schemas
 
-Integration schemas live under `schemas/` and are documented in `docs/api-schemas.md`. Router-mode architecture is documented in `docs/llama-router-mode-design.md`.
+The vendored OpenAI OpenAPI snapshot lives under `openai-openapi/` and is documented in `docs/api-schemas.md`. Router-mode architecture is documented in `docs/llama-router-mode-design.md`.
 
 ```bash
 make schemas
-make probe-gateway BASE_URL=https://llamacpp-stack.vex9z7.com
+make check-openai-openapi
+make probe-api BASE_URL=https://llamacpp-stack.vex9z7.com
 ```
 
 ## Vulkan/AMD 排障

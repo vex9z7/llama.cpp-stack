@@ -140,7 +140,7 @@ Non-responsibilities:
 
 - curated `models/catalog.toml`;
 - Docker Compose profiles for Vulkan/CUDA/CPU;
-- contract tests against OpenAI-compatible and llama.cpp API schemas;
+- vendored OpenAI OpenAPI snapshot checks plus public gateway behavior probes;
 - documentation and operational probes.
 
 ## 3.5 Logging roles and event keywords
@@ -503,7 +503,7 @@ API boundary/OpenAPI  Huma on the chi adapter
 Core library code     plain Go packages
 CLI / generators      Go flag package first; Cobra only if CLI grows
 HTTP client/proxy     net/http, explicit context-aware streaming code
-Schema validation     generated OpenAPI diff + JSON Schema/fixture probes
+Schema source        vendored OpenAI OpenAPI snapshot + behavior probes
 ```
 
 ### 11.1 Why chi
@@ -528,7 +528,7 @@ Benefits:
 - explicit operation registration for the public API surface;
 - generated OpenAPI document from the registered gateway routes;
 - a clearer place to document request/response/error shapes;
-- generated OpenAPI can be compared against fixed schemas/contracts in CI;
+- generated OpenAPI and behavior probes can be compared against the vendored OpenAI snapshot in CI;
 - Huma can run on top of chi, so we still keep standard `net/http` semantics.
 
 We should not use Huma as a deep application framework. It should define the boundary; plain Go packages should implement the behavior.
@@ -611,7 +611,7 @@ Only after a concrete product requirement appears:
 | Risk | Mitigation |
 |---|---|
 | router mode is experimental | keep smoke/cancellation/schema probes; pin image/tag; keep the gateway/backend boundary small |
-| upstream API changes | treat schemas/probes as contract tests; review llama.cpp release notes before bumping |
+| upstream API changes | treat OpenAI snapshot checks and behavior probes as contract tests; review llama.cpp release notes before bumping |
 | model id/path mismatch | derive ids and paths from catalog in one package; avoid duplicate naming logic |
 | public exposure of management endpoints | gateway is default public entrypoint; do not publish router service directly |
 | lazy download race | per-model file lock and atomic rename |

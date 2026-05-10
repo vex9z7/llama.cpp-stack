@@ -1,7 +1,0 @@
-{
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://vex9z7.github.io/llama.cpp-stack/schemas/json/metrics-response.schema.json",
-  "title": "Prometheus Metrics Text Response",
-  "type": "string",
-  "description": "Prometheus text exposition format returned by GET /metrics when llama-server starts with --metrics."
-}

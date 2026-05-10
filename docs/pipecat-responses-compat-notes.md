@@ -244,7 +244,7 @@ If the request already contains `chat_template_kwargs.enable_thinking`, do not o
 
 ### P0: Responses usage response adapter
 
-Implement usage details normalization for:
+Status: implemented. Usage details normalization applies to:
 
 ```text
 /v1/responses non-stream
@@ -255,7 +255,7 @@ This should fix the observed Pipecat crash and allow tool-call frame handling to
 
 ### P1: Reasoning request adapter
 
-Implement OpenAI-ish reasoning disable mapping for:
+Status: implemented. OpenAI-ish reasoning disable mapping applies to:
 
 ```text
 /v1/chat/completions

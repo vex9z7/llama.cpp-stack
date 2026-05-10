@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned. The current gateway mostly proxies OpenAI-compatible llama.cpp routes, but request/response compatibility should be improved before treating the public endpoint as a drop-in OpenAI backend for application code.
+In progress. The gateway mostly proxies OpenAI-compatible llama.cpp routes, with small deterministic request/response adapters where llama.cpp output differs from OpenAI/Pipecat client expectations.
 
 Pipecat-specific observed gaps and priorities are tracked in `docs/pipecat-responses-compat-notes.md`.
 
@@ -63,7 +63,7 @@ Rules:
 
 ## First response adapter: Responses usage details
 
-Priority: P0.
+Priority: P0. Status: implemented in `gateway/internal/apiadapter`.
 
 Pipecat HTTP Responses currently streams text successfully but can crash when `usage.output_tokens_details` is `null` or missing. The gateway should normalize `/v1/responses` usage objects without rewriting unrelated response fields.
 
@@ -95,6 +95,8 @@ Apply to:
 If token counts are missing, only fill the details objects; do not invent token totals that cannot be derived.
 
 ## First adapter: reasoning/thinking disable
+
+Status: implemented in `gateway/internal/apiadapter`.
 
 Qwen3-style models may emit thinking unless the llama.cpp template receives:
 
@@ -240,14 +242,14 @@ The gateway should not eagerly rewrite Responses API output.
 
 Current policy:
 
-- Proxy llama.cpp `/v1/responses` response shape as-is when it passes local schemas.
+- Proxy llama.cpp `/v1/responses` response shape as-is except for deterministic OpenAI compatibility normalization such as usage details.
 - Ensure HTTP headers are compatible, especially `Content-Type`.
 - Add minimal response normalization only when an OpenAI SDK/client compatibility issue is reproduced.
 - Any response normalization must have schema tests and deployed endpoint probes.
 
 ## Proposed code boundary
 
-Add a small internal package:
+Adapter package:
 
 ```text
 gateway/internal/apiadapter
@@ -298,7 +300,7 @@ Runtime probes:
 
 - `/v1/chat/completions` with `reasoning_effort=none` returns no raw `<think>` content for Qwen3 test model.
 - `/v1/responses` with `reasoning.effort=none` returns no raw `<think>` content for Qwen3 test model.
-- Both responses pass existing JSON schema validation.
+- Both responses pass OpenAI compatibility behavior probes.
 
 ## Documentation updates after implementation
 

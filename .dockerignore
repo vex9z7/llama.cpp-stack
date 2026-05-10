@@ -11,3 +11,5 @@ hf-cache
 docker-compose.instances.yml
 
 models/models-preset.generated.ini
+__pycache__
+openai-openapi

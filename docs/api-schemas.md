@@ -1,151 +1,80 @@
-# API schemas
+# API contract and OpenAI schema source
 
-This repo keeps a local schema snapshot for the llama.cpp API surface we intend to integrate against.
+This stack treats the vendored OpenAI OpenAPI snapshot as the ground truth for the public OpenAI-compatible API shape.
 
-## Source of truth
+Snapshot location:
 
-The gateway's public `/v1/*` contract should be aligned to OpenAI first, then adapted to llama.cpp backend reality. Source precedence:
+```text
+openai-openapi/spec/openapi.documented.yml
+openai-openapi/SNAPSHOT
+```
 
-1. OpenAI API Reference and the vendored upstream OpenAPI snapshot:
-   - <https://platform.openai.com/docs/api-reference>
-   - `openai-openapi/spec/openapi.documented.yml`
-   - snapshot metadata: `openai-openapi/SNAPSHOT`
-2. OpenAI SDK generated types, when client compatibility differs from the raw OpenAPI text.
-3. llama.cpp server docs and README for backend-specific behavior:
-   - <https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md>
-   - <https://www.mintlify.com/ggml-org/llama.cpp/api/rest/overview>
-   - <https://www.mintlify.com/ggml-org/llama.cpp/inference/server>
-4. Black-box probes against the public gateway endpoint:
-   - `GET /health`
-   - `GET /v1/models`
-   - `POST /v1/chat/completions`
-   - `POST /v1/completions`
-   - `POST /v1/responses`
-   - `POST /v1/embeddings`
-
-Internal llama.cpp-native schemas are retained only for direct backend probes.
-The gateway intentionally hides `/slots`, `/metrics`, and `/completion`.
-
-Update the vendored OpenAI snapshot with:
+Update/check commands:
 
 ```bash
 make update-openai-openapi
 make check-openai-openapi
+make schemas
 ```
 
-## Files
+`make schemas` is now an alias for validating the vendored OpenAI schema snapshot. The previous hand-written `schemas/json` and `schemas/openapi` files were removed to avoid maintaining a parallel, drifting schema copy.
 
-- `schemas/openapi/llama-server.openapi.yaml`
-  - OpenAPI 3.1 subset for the endpoints this stack uses.
-- `schemas/json/chat-completion-request.schema.json`
-- `schemas/json/chat-completion-response.schema.json`
-- `schemas/json/completion-request.schema.json`
-- `schemas/json/completion-response.schema.json`
-- `schemas/json/responses-request.schema.json`
-- `schemas/json/responses-response.schema.json`
-- `schemas/json/models-response.schema.json`
-- `schemas/json/embeddings-request.schema.json`
-- `schemas/json/embeddings-response.schema.json`
-- `schemas/json/health-response.schema.json`
-- `schemas/json/slots-response.schema.json` — internal backend probe only
-- `schemas/json/native-completion-request.schema.json` — internal backend probe only
-- `schemas/json/native-completion-response.schema.json` — internal backend probe only
-- `schemas/json/metrics-response.schema.json` — internal backend probe only
-- `schemas/json/error-response.schema.json`
+## Source-of-truth order
 
-## Important compatibility notes
+1. OpenAI API Reference and vendored OpenAI OpenAPI snapshot.
+2. OpenAI SDK generated types when practical client compatibility differs from raw schema text.
+3. llama.cpp backend behavior.
+4. Public gateway probes and Pipecat compatibility probes.
 
-`/v1/chat/completions`, `/v1/completions`, `/v1/responses`, `/v1/models`, and `/v1/embeddings` are OpenAI-compatible endpoints, not the official OpenAI service.
+The gateway should adapt llama.cpp backend reality toward the OpenAI-compatible public contract where the mapping is deterministic and safe.
 
-The public gateway also exposes `/health`. Llama.cpp-native `/slots`, `/metrics`, and `/completion` are internal backend endpoints and are not part of the public gateway surface.
+## Public gateway surface
 
-OpenAI compatibility adapter work is planned in `docs/openai-compat-adapter-plan.md`; Pipecat-specific findings are tracked in `docs/pipecat-responses-compat-notes.md`. Until that lands, known llama.cpp extensions such as `chat_template_kwargs.enable_thinking` may still be needed for some model-specific behavior.
-
-For Qwen3, thinking/reasoning is controlled per request with:
-
-```json
-{
-  "chat_template_kwargs": {
-    "enable_thinking": false
-  }
-}
+```text
+GET  /health
+GET  /v1/models
+POST /v1/chat/completions
+POST /v1/completions
+POST /v1/responses
+POST /v1/embeddings
 ```
 
-Do not use `reasoning_format: "none"` as a thinking-off switch. In testing, that caused raw `<think>` text to move into `content` rather than preventing thinking.
+The public gateway intentionally hides llama.cpp-native or router-management endpoints:
 
-Backend `/metrics` returns `501` unless llama.cpp starts with `--metrics`.
+```text
+/slots
+/metrics
+/props
+/completion
+/models/load
+/models/unload
+```
 
-`/v1/embeddings` is exposed by the gateway, but the gateway first checks catalog `kind = "embedding"`; embedding quality also depends on model and pooling configuration.
+## Adapter obligations
 
-## Maintenance policy
+Known compatibility fixes are documented in:
 
-Treat these schemas as an integration contract for this stack, not a complete upstream spec. When upgrading llama.cpp or changing models, run the API probe again and update the schemas if observed behavior changes.
+```text
+docs/openai-compat-adapter-plan.md
+docs/pipecat-responses-compat-notes.md
+```
 
-## Schema coverage
+Current priority behavior:
 
-The schema set includes request and response schemas for the public gateway endpoints, plus a few internal backend-only schemas used by direct llama.cpp probes:
+- `/v1/responses` usage objects are normalized so `input_tokens_details.cached_tokens` and `output_tokens_details.reasoning_tokens` are present.
+- `/v1/responses` streaming `response.completed` events receive the same usage normalization.
+- OpenAI-ish reasoning disable fields are accepted on `/v1/chat/completions` and `/v1/responses`, then translated to llama.cpp/Qwen `chat_template_kwargs.enable_thinking=false` when the caller has not set that extension explicitly.
 
-| Endpoint | Request schema | Response schema | Scope |
-| --- | --- | --- | --- |
-| `GET /health` | n/a | `health-response.schema.json` | public gateway |
-| `GET /v1/models` | n/a | `models-response.schema.json` | public gateway |
-| `POST /v1/chat/completions` | `chat-completion-request.schema.json` | `chat-completion-response.schema.json` | public gateway |
-| `POST /v1/completions` | `completion-request.schema.json` | `completion-response.schema.json` | public gateway |
-| `POST /v1/responses` | `responses-request.schema.json` | `responses-response.schema.json` | public gateway |
-| `POST /v1/embeddings` | `embeddings-request.schema.json` | `embeddings-response.schema.json` / `error-response.schema.json` when disabled | public gateway |
-| `POST /completion` | `native-completion-request.schema.json` | `native-completion-response.schema.json` | internal backend only |
-| `GET /slots` | n/a | `slots-response.schema.json` | internal backend only |
-| `GET /metrics` | n/a | `metrics-response.schema.json` / `error-response.schema.json` when disabled | internal backend only |
+## Probes
 
-The top-level request/response schemas are intentionally exact (`additionalProperties: false`) to avoid false positives. Nested implementation-specific objects such as timings, metadata, generation settings, and slot params remain permissive because llama.cpp evolves quickly and exposes backend-specific details there.
-
-## Runtime validation
-
-Use the probe script to validate both outbound requests and inbound responses against these schemas:
+Use behavior probes instead of local hand-written schema validation:
 
 ```bash
-python3 -m pip install -r requirements-dev.txt
-python3 scripts/probe_api_schemas.py --base-url https://llamacpp-stack.vex9z7.com --model local-llm
+make probe-gateway
+make probe-api
+make probe-errors
+make probe-capacity
+make probe-cancel
 ```
 
-Or via Make:
-
-```bash
-make probe-gateway BASE_URL=https://llamacpp-stack.vex9z7.com
-```
-
-This catches false positives in permissive schemas and false negatives caused by schema drift.
-
-
-## Gateway error codes
-
-The Go gateway returns OpenAI-shaped error envelopes:
-
-```json
-{
-  "error": {
-    "message": "...",
-    "type": "invalid_request_error",
-    "code": "model_not_found"
-  }
-}
-```
-
-Stable gateway error codes:
-
-- `invalid_json`
-- `missing_model`
-- `model_not_found`
-- `model_capability_mismatch`
-- `download_failed`
-- `router_reload_failed`
-- `router_unavailable`
-- `ensure_available_failed`
-
-Probe helpers:
-
-```bash
-make probe-errors BASE_URL=https://llamacpp-stack.vex9z7.com
-make probe-capacity BASE_URL=https://llamacpp-stack.vex9z7.com
-make probe-cancel BASE_URL=https://llamacpp-stack.vex9z7.com
-```
+`make probe-api` runs `scripts/probe_openai_compat.py` and checks the gateway behavior that matters most for OpenAI/Pipecat compatibility, including Responses usage details.

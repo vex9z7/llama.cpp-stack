@@ -2,8 +2,7 @@
 """Small readiness probe for the dynamic Go gateway.
 
 This intentionally avoids chat completion by default because that may trigger a
-large lazy model download. Use make probe-api against the gateway when a model
-request should be tested end-to-end.
+large lazy model download. Use make probe-api against the gateway when OpenAI-compatible model requests should be tested end-to-end.
 """
 from __future__ import annotations
 

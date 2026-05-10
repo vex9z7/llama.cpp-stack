@@ -9,12 +9,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/apiadapter"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/config"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/hf"
@@ -146,9 +148,14 @@ func (a *app) humaInference(ctx huma.Context) {
 		a.writeEnsureError(ctx, req.Model, err)
 		return
 	}
+	adapted, err := apiadapter.AdaptRequest(ctx.URL().Path, body)
+	if err != nil {
+		writeOpenAIErrorHuma(ctx, http.StatusBadRequest, "invalid_request_error", "invalid_json", "request body must be JSON")
+		return
+	}
 	headers := http.Header{}
 	ctx.EachHeader(func(name, value string) { headers.Add(name, value) })
-	resp, err := a.proxy.Do(ctx.Context(), ctx.Method(), ctx.URL().Path, ctx.URL().RawQuery, headers, a.manager.RouterBaseURL(), body)
+	resp, err := a.proxy.Do(ctx.Context(), ctx.Method(), ctx.URL().Path, ctx.URL().RawQuery, headers, a.manager.RouterBaseURL(), adapted.Body)
 	if err != nil {
 		a.log.Warn("proxy failed", "model", req.Model, "error", err)
 		writeOpenAIErrorHuma(ctx, http.StatusServiceUnavailable, "upstream_error", "router_unavailable", err.Error())
@@ -160,6 +167,28 @@ func (a *app) humaInference(ctx huma.Context) {
 		ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
 	}
 	ctx.SetStatus(resp.StatusCode)
+	if ctx.URL().Path == apiadapter.PathResponses && resp.StatusCode < http.StatusBadRequest {
+		if strings.Contains(resp.Header.Get("Content-Type"), "text/event-stream") {
+			if err := apiadapter.NormalizeResponsesSSE(ctx.BodyWriter(), resp.Body); err != nil {
+				a.log.Warn("responses stream adapter failed", "model", req.Model, "error", err)
+			}
+			return
+		}
+		if strings.Contains(resp.Header.Get("Content-Type"), "application/json") || resp.Header.Get("Content-Type") == "" {
+			data, err := io.ReadAll(resp.Body)
+			if err != nil {
+				a.log.Warn("responses adapter read failed", "model", req.Model, "error", err)
+				return
+			}
+			out, _, err := apiadapter.NormalizeResponsesJSON(data)
+			if err != nil {
+				a.log.Warn("responses adapter normalize failed", "model", req.Model, "error", err)
+				out = data
+			}
+			_, _ = ctx.BodyWriter().Write(out)
+			return
+		}
+	}
 	if err := proxy.CopyFlush(ctx.BodyWriter(), resp.Body); err != nil {
 		a.log.Warn("proxy copy failed", "model", req.Model, "error", err)
 	}
