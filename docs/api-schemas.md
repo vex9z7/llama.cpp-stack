@@ -125,10 +125,10 @@ Stable gateway error codes:
 - `missing_model`
 - `model_not_found`
 - `model_capability_mismatch`
-- `no_idle_worker`
+- `no_idle_model_slot`
 - `download_failed`
-- `worker_load_failed`
-- `ensure_running_failed`
+- `router_reload_failed`
+- `router_unavailable`
 
 Probe helpers:
 

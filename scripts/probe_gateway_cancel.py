@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Probe gateway streaming cancellation behavior.
 
-This public probe cannot inspect worker /slots because the gateway intentionally
-hides worker internals. It verifies the externally important behavior instead:
+This public probe cannot inspect backend /slots because the gateway intentionally
+hides backend internals. It verifies the externally important behavior instead:
 start a long stream, close the client connection, then immediately complete a
-short request against the same model. If cancellation leaves the only worker
-slot stuck, the follow-up request should time out or fail.
+short request against the same model. If cancellation leaves the backend slot
+stuck, the follow-up request should time out or fail.
 """
 from __future__ import annotations
 

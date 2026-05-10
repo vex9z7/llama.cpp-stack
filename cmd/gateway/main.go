@@ -47,7 +47,7 @@ func main() {
 	}
 	routerURL := config.String("LLAMA_ROUTER_URL", "http://llama-router:8080")
 	dl := &hf.Downloader{Endpoint: config.String("HF_ENDPOINT", "https://huggingface.co"), Token: config.String("HF_TOKEN", ""), ModelsDir: modelsDir}
-	mgr := routermanager.New(log, cat, dl, routerclient.New(routerURL), routermanager.Config{ModelsDir: modelsDir, PresetPath: config.String("LLAMA_MODELS_PRESET", modelsDir+"/models-preset.generated.ini"), CtxSize: config.Int("LLAMA_ROUTER_CTX_SIZE", config.Int("LLAMA_WORKER_CTX_SIZE", 8192)), Parallel: config.Int("LLAMA_ROUTER_PARALLEL", config.Int("LLAMA_WORKER_PARALLEL", 1)), ThreadsHTTP: config.Int("LLAMA_ROUTER_THREADS_HTTP", config.Int("LLAMA_WORKER_THREADS_HTTP", -1)), NGPULayers: config.Int("LLAMA_ROUTER_N_GPU_LAYERS", config.Int("LLAMA_WORKER_N_GPU_LAYERS", 999)), ExtraArgs: config.String("LLAMA_ROUTER_EXTRA_ARGS", config.String("LLAMA_WORKER_EXTRA_ARGS", "")), ReloadTimeout: config.DurationSeconds("LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS", 30*time.Second)})
+	mgr := routermanager.New(log, cat, dl, routerclient.New(routerURL), routermanager.Config{ModelsDir: modelsDir, PresetPath: config.String("LLAMA_MODELS_PRESET", modelsDir+"/models-preset.generated.ini"), CtxSize: config.Int("LLAMA_ROUTER_CTX_SIZE", 8192), Parallel: config.Int("LLAMA_ROUTER_PARALLEL", 1), ThreadsHTTP: config.Int("LLAMA_ROUTER_THREADS_HTTP", -1), NGPULayers: config.Int("LLAMA_ROUTER_N_GPU_LAYERS", 999), ExtraArgs: config.String("LLAMA_ROUTER_EXTRA_ARGS", ""), ReloadTimeout: config.DurationSeconds("LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS", 30*time.Second)})
 	if err := mgr.RenderPreset(); err != nil {
 		log.Error("render initial preset", "error", err)
 		os.Exit(1)

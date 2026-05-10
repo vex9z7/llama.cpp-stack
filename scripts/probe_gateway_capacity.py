@@ -72,7 +72,7 @@ def main() -> int:
         return 0
     if status == 429:
         err = data.get("error", {})
-        assert err.get("code") in {"no_idle_model_slot", "no_idle_worker"}, data
+        assert err.get("code") in {"no_idle_model_slot"}, data
         print(f"gateway strict capacity probe ok: third_model={models[2]} status=429 code={err.get('code')}")
         return 0
     print(json.dumps(data, indent=2), file=sys.stderr)

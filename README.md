@@ -89,7 +89,7 @@ POST /v1/responses
 POST /v1/embeddings
 ```
 
-The gateway does not expose `/control/*`, `/worker/*`, backend URLs, or llama.cpp router management endpoints such as `/models/load`, `/models/unload`, `/slots`, `/props`, or `/metrics` publicly.
+The gateway does not expose backend URLs or llama.cpp router management endpoints such as `/models/load`, `/models/unload`, `/slots`, `/props`, or `/metrics` publicly.
 
 ## Runtime responsibility boundaries
 
@@ -142,7 +142,7 @@ detailed keyword list.
 
 ## Model catalog
 
-`models/catalog.toml` lists Hugging Face GGUF sources. It is source-only and does not contain ports or worker assignments.
+`models/catalog.toml` lists Hugging Face GGUF sources. It is source-only and does not contain ports.
 
 ```toml
 [[models]]
@@ -179,24 +179,21 @@ Runtime model residency is delegated to llama.cpp router mode:
 ```text
 .
 ├── Dockerfile.gateway
-├── Dockerfile.worker                 # historical fallback worker-agent image
 ├── docker-compose.dynamic.yml        # Go gateway + llama-server router mode
 ├── docker-compose.dynamic.vulkan.yml # Vulkan override for router
 ├── docker-compose.dynamic.cuda.yml   # CUDA override for router
 ├── Makefile                          # validated compose workflow
 ├── cmd/
-│   ├── gateway/
-│   └── worker/
+│   └── gateway/
 ├── internal/
 │   ├── catalog/
+│   ├── config/
 │   ├── hf/
+│   ├── openai/
 │   ├── preset/
 │   ├── proxy/
 │   ├── routerclient/
-│   ├── routermanager/
-│   ├── manager/          # historical fallback worker-agent manager
-│   ├── workerclient/     # historical fallback worker-agent client
-│   └── llamaprocess/     # historical fallback worker process control
+│   └── routermanager/
 ├── docs/
 ├── models/
 └── scripts/

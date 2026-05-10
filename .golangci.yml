@@ -25,7 +25,6 @@ linters:
   settings:
     gosec:
       excludes:
-        - G204 # subprocess paths/args are controlled by deployment config in the worker fallback
         - G301 # shared model directories are intentionally group/world-readable in local deployments
         - G302 # downloaded model/preset files are intentionally readable by router containers
         - G304 # file paths are intentionally configurable in this local deployment tool

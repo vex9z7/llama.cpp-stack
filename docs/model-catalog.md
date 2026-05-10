@@ -76,13 +76,13 @@ This lets runtime code use a deterministic path while preserving the original do
 
 ## Lazy download
 
-There is intentionally no `make download` path. The planned manager backend owns lazy download:
+There is intentionally no `make download` path. The gateway owns lazy download:
 
 ```text
-router request -> manager ensure-running(model_ref) -> download if missing -> load into idle worker
+gateway request -> ensure model available -> download if missing -> render preset -> router reload -> proxy to backend
 ```
 
-Manual prefetch can be reintroduced later as a `llamactl` command that calls the manager API, not as a host-side deployment prerequisite.
+Manual prefetch can be reintroduced later as an operator command, not as a host-side deployment prerequisite.
 
 ## Included starter catalog
 

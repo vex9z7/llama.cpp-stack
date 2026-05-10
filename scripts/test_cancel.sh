@@ -31,4 +31,4 @@ wait "$pid" 2>/dev/null || true
 
 printf 'Cancelled client request. Bytes received before cancel: '
 wc -c <"$out"
-printf '\nGateway intentionally does not expose /slots publicly. Check worker logs for upstream cancellation/freeing messages if needed.\n'
+printf '\nGateway intentionally does not expose /slots publicly. Check backend logs for upstream cancellation/freeing messages if needed.\n'

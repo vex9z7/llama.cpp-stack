@@ -4,8 +4,6 @@
 
 Decision: use an application gateway as the default public entrypoint, backed by `llama-server` router mode as the dynamic model lifecycle layer.
 
-This supersedes the earlier fixed worker-agent pool design. The old design is still useful as historical context, but new implementation work should prefer this document unless router mode proves insufficient in testing.
-
 The gateway is not a replacement for llama.cpp router mode. It is a thin product/control layer that fills the gaps router mode does not currently own for this project: catalog allowlisting, Hugging Face lazy download, preset generation/reload, public API shaping, and contract checks. If upstream router mode later implements some of these features well enough, the gateway should delegate to upstream rather than duplicate them.
 
 Rationale:
@@ -13,9 +11,9 @@ Rationale:
 - `llama-server` router mode is implemented inside upstream llama.cpp;
 - it already manages child model instances, dynamic load/unload, autoload, LRU, and idle sleep;
 - it preserves llama.cpp-native OpenAI-compatible API behavior, streaming, cancellation, Vulkan, and GGUF support;
-- maintaining our own worker-agent lifecycle would duplicate fast-moving upstream behavior.
+- maintaining our own child-process lifecycle would duplicate fast-moving upstream behavior.
 
-Router mode is currently marked experimental upstream, so the stack should keep probes and a fallback path. However, it is still a better maintenance boundary than reimplementing the process manager ourselves.
+Router mode is currently marked experimental upstream, so the stack should keep probes and clear contract tests. However, it is still a better maintenance boundary than reimplementing the process manager ourselves.
 
 ## 2. Target architecture
 
@@ -612,7 +610,7 @@ Only after the router-mode baseline is stable:
 
 | Risk | Mitigation |
 |---|---|
-| router mode is experimental | keep smoke/cancellation/schema probes; pin image/tag; keep old worker design docs as fallback |
+| router mode is experimental | keep smoke/cancellation/schema probes; pin image/tag; keep the gateway/backend boundary small |
 | upstream API changes | treat schemas/probes as contract tests; review llama.cpp release notes before bumping |
 | model id/path mismatch | derive ids and paths from catalog in one package; avoid duplicate naming logic |
 | public exposure of management endpoints | gateway is default public entrypoint; do not publish router service directly |
@@ -629,4 +627,4 @@ Docker Compose + Huma-based thin gateway
 + catalog/preset/download tooling
 ```
 
-Do not continue expanding the custom worker-agent pool unless router mode fails a must-have requirement. Implement the gateway as a thin policy/download/proxy layer, not as a second model process manager.
+Keep the gateway as a thin policy/download/proxy layer, not as a second model process manager.
