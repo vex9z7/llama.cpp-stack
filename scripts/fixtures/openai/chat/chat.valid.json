@@ -1,0 +1,15 @@
+{
+  "id": "chatcmpl_static_valid",
+  "object": "chat.completion",
+  "usage": {
+    "prompt_tokens": 1,
+    "prompt_tokens_details": {
+      "cached_tokens": 0
+    },
+    "completion_tokens": 2,
+    "completion_tokens_details": {
+      "reasoning_tokens": 0
+    },
+    "total_tokens": 3
+  }
+}

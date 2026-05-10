@@ -24,11 +24,24 @@ func (a *App) humaHealth(ctx huma.Context) {
 
 func (a *App) humaModels(ctx huma.Context) {
 	models := a.manager.ListModels(ctx.Context())
-	data := make([]map[string]any, 0, len(models))
+	data := make([]openaiapi.Model, 0, len(models))
 	for _, m := range models {
-		data = append(data, map[string]any{"id": m.ID, "object": "model", "owned_by": m.OwnedBy, "meta": map[string]any{"downloaded": m.Downloaded, "router_status": m.RouterStatus, "running": m.Running, "cold_start": m.ColdStart, "repo": m.Repo, "quant": m.Quant, "kind": m.Kind}})
+		data = append(data, openaiapi.Model{
+			ID:      m.ID,
+			Object:  m.Object,
+			OwnedBy: m.OwnedBy,
+			Meta: openaiapi.ModelMeta{
+				Downloaded:   m.Downloaded,
+				RouterStatus: m.RouterStatus,
+				Running:      m.Running,
+				ColdStart:    m.ColdStart,
+				Repo:         m.Repo,
+				Quant:        m.Quant,
+				Kind:         m.Kind,
+			},
+		})
 	}
-	writeHumaJSON(ctx, http.StatusOK, map[string]any{"object": "list", "data": data})
+	writeHumaJSON(ctx, http.StatusOK, openaiapi.ModelList{Object: "list", Data: data})
 }
 
 func (a *App) humaInference(ctx huma.Context) {
@@ -111,7 +124,7 @@ func writeHumaJSON(ctx huma.Context, status int, v any) {
 func writeOpenAIErrorHuma(ctx huma.Context, status int, typ, code, msg string) {
 	ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
 	ctx.SetStatus(status)
-	_ = json.NewEncoder(ctx.BodyWriter()).Encode(map[string]any{"error": map[string]any{"message": msg, "type": typ, "code": code}})
+	_ = json.NewEncoder(ctx.BodyWriter()).Encode(openaiapi.ErrorBody{Error: openaiapi.ErrorObject{Message: msg, Type: typ, Code: code}})
 }
 
 func requiredKind(path string) string {

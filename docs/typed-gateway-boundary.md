@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned and implemented in the gateway layer only.
+Implemented in the gateway layer only.
 
 This plan does **not** change llama.cpp router mode, router scheduling, model
 loading flags, compose router wiring, or the llama.cpp container behavior. The
@@ -73,10 +73,25 @@ gateway/internal/server
   maps inline.
 ```
 
-### Responses API phase
+### Implemented typed coverage
 
-The first typed boundary covers `/v1/responses`, because this is where the
-current OpenAI contract mismatch exists.
+The gateway now has typed coverage for all public gateway-owned responses and
+all non-streaming inference responses exposed by the current public API:
+
+- `GET /health`: gateway-owned typed health payload.
+- `GET /v1/models`: OpenAI-style typed model list.
+- gateway-originated errors: OpenAI-style typed error object.
+- `POST /v1/responses`: typed llama.cpp response -> typed OpenAI response.
+- `POST /v1/chat/completions`: typed llama.cpp completion usage -> typed OpenAI completion usage.
+- `POST /v1/completions`: typed llama.cpp completion usage -> typed OpenAI completion usage.
+- `POST /v1/embeddings`: typed llama.cpp embedding usage -> typed OpenAI embedding usage.
+
+Streaming inference remains framed as SSE. The gateway types and adapts the
+Responses API `response.completed` event, because it contains the final OpenAI
+`ResponseUsage` contract. Other streaming events are passed through unchanged
+unless/until a concrete OpenAI contract mismatch is identified.
+
+### Responses API flow
 
 For non-streaming responses:
 
@@ -133,12 +148,6 @@ Static/local checks should verify:
 
 ## Future phases
 
-After Responses is typed and stable, apply the same pattern to:
-
-1. Chat Completions usage and message shape.
-2. Embeddings responses.
-3. Legacy completions.
-4. Request validation for supported OpenAI request subsets.
-
-Each phase should keep llama.cpp router mode untouched and should introduce typed
-adapters at the gateway boundary rather than changing router internals.
+Future work should deepen typing for streaming event variants and request-body
+validation. Each phase must keep llama.cpp router mode untouched and introduce
+typed adapters at the gateway boundary rather than changing router internals.

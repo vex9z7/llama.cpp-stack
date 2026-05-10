@@ -24,6 +24,8 @@ def assert_openai_snapshot_contract(spec_path: Path) -> None:
     required_needles = [
         "ResponseUsage:",
         "output_tokens_details:",
+        "completion_tokens_details:",
+        "prompt_tokens_details:",
         "reasoning_tokens:",
         "- output_tokens_details",
         "- reasoning_tokens",
@@ -40,6 +42,29 @@ def usage_from_payload(payload: dict[str, Any]) -> dict[str, Any]:
     if isinstance(response, dict) and isinstance(response.get("usage"), dict):
         return response["usage"]
     raise ContractError("payload does not contain a Responses usage object")
+
+
+def assert_generation_usage_contract(payload: dict[str, Any]) -> None:
+    usage = usage_from_payload(payload)
+    for field in ["prompt_tokens", "prompt_tokens_details", "completion_tokens", "completion_tokens_details", "total_tokens"]:
+        if field not in usage:
+            raise ContractError(f"usage missing required field: {field}")
+    if not isinstance(usage["prompt_tokens"], int):
+        raise ContractError("usage.prompt_tokens must be an integer")
+    if not isinstance(usage["completion_tokens"], int):
+        raise ContractError("usage.completion_tokens must be an integer")
+    if not isinstance(usage["total_tokens"], int):
+        raise ContractError("usage.total_tokens must be an integer")
+    prompt_details = usage["prompt_tokens_details"]
+    if not isinstance(prompt_details, dict):
+        raise ContractError("usage.prompt_tokens_details must be an object")
+    if not isinstance(prompt_details.get("cached_tokens"), int):
+        raise ContractError("usage.prompt_tokens_details.cached_tokens must be an integer")
+    completion_details = usage["completion_tokens_details"]
+    if not isinstance(completion_details, dict):
+        raise ContractError("usage.completion_tokens_details must be an object")
+    if not isinstance(completion_details.get("reasoning_tokens"), int):
+        raise ContractError("usage.completion_tokens_details.reasoning_tokens must be an integer")
 
 
 def assert_response_usage_contract(payload: dict[str, Any]) -> None:
@@ -68,10 +93,15 @@ def assert_response_usage_contract(payload: dict[str, Any]) -> None:
         raise ContractError("usage.output_tokens_details.reasoning_tokens must be an integer")
 
 
-def check_fixture(path: Path, expect_valid: bool) -> None:
+def check_fixture(path: Path, expect_valid: bool, contract: str) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     try:
-        assert_response_usage_contract(payload)
+        if contract == "responses":
+            assert_response_usage_contract(payload)
+        elif contract == "generation":
+            assert_generation_usage_contract(payload)
+        else:
+            raise ContractError(f"unknown contract: {contract}")
     except ContractError:
         if expect_valid:
             raise
@@ -85,20 +115,21 @@ def check_fixture(path: Path, expect_valid: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--spec", default="openai-openapi/spec/openapi.documented.yml")
-    parser.add_argument("--fixtures", default="scripts/fixtures/openai/responses")
+    parser.add_argument("--response-fixtures", default="scripts/fixtures/openai/responses")
+    parser.add_argument("--chat-fixtures", default="scripts/fixtures/openai/chat")
     args = parser.parse_args()
 
     assert_openai_snapshot_contract(Path(args.spec))
-    fixtures = Path(args.fixtures)
-    valid = sorted(fixtures.glob("*.valid.json"))
-    invalid = sorted(fixtures.glob("*.invalid.json"))
-    if not valid or not invalid:
-        raise ContractError("expected both valid and invalid static fixtures")
-    for path in valid:
-        check_fixture(path, expect_valid=True)
-    for path in invalid:
-        check_fixture(path, expect_valid=False)
-    print("OpenAI Responses static contract checks passed.")
+    for fixture_dir, contract in [(Path(args.response_fixtures), "responses"), (Path(args.chat_fixtures), "generation")]:
+        valid = sorted(fixture_dir.glob("*.valid.json"))
+        invalid = sorted(fixture_dir.glob("*.invalid.json"))
+        if not valid or not invalid:
+            raise ContractError(f"expected both valid and invalid static fixtures in {fixture_dir}")
+        for path in valid:
+            check_fixture(path, expect_valid=True, contract=contract)
+        for path in invalid:
+            check_fixture(path, expect_valid=False, contract=contract)
+    print("OpenAI static contract checks passed.")
     return 0
 
 
