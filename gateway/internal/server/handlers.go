@@ -27,17 +27,17 @@ func (a *App) humaModels(ctx huma.Context) {
 	data := make([]openaiapi.Model, 0, len(models))
 	for _, m := range models {
 		data = append(data, openaiapi.Model{
-			ID:      m.ID,
+			Id:      m.ID,
 			Object:  m.Object,
 			OwnedBy: m.OwnedBy,
 			Meta: openaiapi.ModelMeta{
 				Downloaded:   m.Downloaded,
-				RouterStatus: m.RouterStatus,
+				RouterStatus: stringPtr(m.RouterStatus),
 				Running:      m.Running,
 				ColdStart:    m.ColdStart,
 				Repo:         m.Repo,
 				Quant:        m.Quant,
-				Kind:         m.Kind,
+				Kind:         stringPtr(m.Kind),
 			},
 		})
 	}
@@ -124,7 +124,7 @@ func writeHumaJSON(ctx huma.Context, status int, v any) {
 func writeOpenAIErrorHuma(ctx huma.Context, status int, typ, code, msg string) {
 	ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
 	ctx.SetStatus(status)
-	_ = json.NewEncoder(ctx.BodyWriter()).Encode(openaiapi.ErrorBody{Error: openaiapi.ErrorObject{Message: msg, Type: typ, Code: code}})
+	_ = json.NewEncoder(ctx.BodyWriter()).Encode(openaiapi.ErrorBody{Error: openaiapi.ErrorObject{Message: msg, Type: typ, Code: stringPtr(code)}})
 }
 
 func requiredKind(path string) string {
@@ -132,4 +132,11 @@ func requiredKind(path string) string {
 		return "embedding"
 	}
 	return "chat"
+}
+
+func stringPtr(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
 }

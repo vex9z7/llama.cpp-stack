@@ -1,0 +1,284 @@
+openapi: 3.1.0
+info:
+  title: OpenAI gateway contract subset for llama.cpp-stack
+  version: 2026-05-10
+  description: >
+    Reviewed OpenAI-compatible public contract subset implemented by the
+    llama.cpp-stack gateway. The upstream ground truth is the vendored OpenAI
+    OpenAPI snapshot in openai-openapi/spec/openapi.documented.yml; this subset
+    contains only the endpoints and components enforced by the gateway typed
+    boundary.
+x-llamacpp-stack:
+  source: openai-openapi/spec/openapi.documented.yml
+paths:
+  /v1/models:
+    get:
+      operationId: listModels
+      responses:
+        '200':
+          description: Model list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelList'
+        default:
+          description: Gateway-originated OpenAI-compatible error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /v1/chat/completions:
+    post:
+      operationId: createChatCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: Chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletion'
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          description: Gateway-originated OpenAI-compatible error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /v1/completions:
+    post:
+      operationId: createCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: Completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Completion'
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          description: Gateway-originated OpenAI-compatible error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /v1/responses:
+    post:
+      operationId: createResponse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: Responses API response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+            text/event-stream:
+              schema:
+                type: string
+        default:
+          description: Gateway-originated OpenAI-compatible error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+  /v1/embeddings:
+    post:
+      operationId: createEmbedding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: Embedding response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+        default:
+          description: Gateway-originated OpenAI-compatible error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorBody'
+components:
+  schemas:
+    ModelRequest:
+      type: object
+      required: [model]
+      additionalProperties: true
+      properties:
+        model:
+          type: string
+    ErrorBody:
+      type: object
+      required: [error]
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorObject'
+    ErrorObject:
+      type: object
+      required: [message, type]
+      properties:
+        message:
+          type: string
+        type:
+          type: string
+        code:
+          type: string
+    ModelList:
+      type: object
+      required: [object, data]
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Model'
+    Model:
+      type: object
+      required: [id, object, owned_by, meta]
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        owned_by:
+          type: string
+        meta:
+          $ref: '#/components/schemas/ModelMeta'
+    ModelMeta:
+      type: object
+      required: [downloaded, running, cold_start, repo, quant]
+      properties:
+        downloaded:
+          type: boolean
+        router_status:
+          type: string
+        running:
+          type: boolean
+        cold_start:
+          type: boolean
+        repo:
+          type: string
+        quant:
+          type: string
+        kind:
+          type: string
+    PromptTokensDetails:
+      type: object
+      required: [cached_tokens]
+      properties:
+        cached_tokens:
+          type: integer
+        audio_tokens:
+          type: integer
+    CompletionTokensDetails:
+      type: object
+      required: [reasoning_tokens]
+      properties:
+        reasoning_tokens:
+          type: integer
+        audio_tokens:
+          type: integer
+        accepted_prediction_tokens:
+          type: integer
+        rejected_prediction_tokens:
+          type: integer
+    CompletionUsage:
+      type: object
+      required: [prompt_tokens, completion_tokens, total_tokens, prompt_tokens_details, completion_tokens_details]
+      properties:
+        prompt_tokens:
+          type: integer
+        completion_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+        prompt_tokens_details:
+          $ref: '#/components/schemas/PromptTokensDetails'
+        completion_tokens_details:
+          $ref: '#/components/schemas/CompletionTokensDetails'
+    ResponseInputTokensDetails:
+      type: object
+      required: [cached_tokens]
+      properties:
+        cached_tokens:
+          type: integer
+    ResponseOutputTokensDetails:
+      type: object
+      required: [reasoning_tokens]
+      properties:
+        reasoning_tokens:
+          type: integer
+    ResponseUsage:
+      type: object
+      required: [input_tokens, input_tokens_details, output_tokens, output_tokens_details, total_tokens]
+      properties:
+        input_tokens:
+          type: integer
+        input_tokens_details:
+          $ref: '#/components/schemas/ResponseInputTokensDetails'
+        output_tokens:
+          type: integer
+        output_tokens_details:
+          $ref: '#/components/schemas/ResponseOutputTokensDetails'
+        total_tokens:
+          type: integer
+    ChatCompletion:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/CompletionUsage'
+    Completion:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/CompletionUsage'
+    Response:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/ResponseUsage'
+    EmbeddingUsage:
+      type: object
+      required: [prompt_tokens, total_tokens]
+      properties:
+        prompt_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+    EmbeddingResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/EmbeddingUsage'

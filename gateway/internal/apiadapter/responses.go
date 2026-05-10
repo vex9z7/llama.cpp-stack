@@ -8,29 +8,26 @@ import (
 )
 
 func OpenAIResponseFromLlama(in llamacppapi.Response) openaiapi.Response {
-	return openaiapi.Response{Fields: in.Fields, Usage: OpenAIUsageFromLlama(in.Usage)}
+	return openaiapi.Response{AdditionalProperties: in.AdditionalProperties, Usage: OpenAIUsageFromLlama(in.Usage)}
 }
 
 func OpenAIResponseCompletedEventFromLlama(in llamacppapi.ResponseCompletedEvent) openaiapi.ResponseCompletedEvent {
-	return openaiapi.ResponseCompletedEvent{Fields: in.Fields, Response: OpenAIResponseFromLlama(in.Response)}
+	return openaiapi.ResponseCompletedEvent{AdditionalProperties: in.AdditionalProperties, Type: in.Type, Response: OpenAIResponseFromLlama(in.Response)}
 }
 
 func OpenAIUsageFromLlama(in *llamacppapi.ResponseUsage) *openaiapi.ResponseUsage {
 	if in == nil {
 		return nil
 	}
-	out := &openaiapi.ResponseUsage{
+	return &openaiapi.ResponseUsage{
 		InputTokens:  in.InputTokens,
 		OutputTokens: in.OutputTokens,
 		TotalTokens:  in.TotalTokens,
+		InputTokensDetails: openaiapi.ResponseInputTokensDetails{
+			CachedTokens: in.InputTokensDetails.CachedTokens,
+		},
+		OutputTokensDetails: openaiapi.ResponseOutputTokensDetails{ReasoningTokens: 0},
 	}
-	if in.InputTokensDetails != nil {
-		out.InputTokensDetails.CachedTokens = in.InputTokensDetails.CachedTokens
-	}
-	if in.OutputTokensDetails != nil {
-		out.OutputTokensDetails.ReasoningTokens = in.OutputTokensDetails.ReasoningTokens
-	}
-	return out
 }
 
 func AdaptResponsesBody(body []byte) ([]byte, error) {

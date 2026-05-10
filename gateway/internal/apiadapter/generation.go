@@ -11,22 +11,15 @@ func OpenAICompletionUsageFromLlama(in *llamacppapi.CompletionUsage) *openaiapi.
 	if in == nil {
 		return nil
 	}
-	out := &openaiapi.CompletionUsage{
+	return &openaiapi.CompletionUsage{
 		PromptTokens:     in.PromptTokens,
 		CompletionTokens: in.CompletionTokens,
 		TotalTokens:      in.TotalTokens,
+		PromptTokensDetails: openaiapi.PromptTokensDetails{
+			CachedTokens: in.PromptTokensDetails.CachedTokens,
+		},
+		CompletionTokensDetails: openaiapi.CompletionTokensDetails{ReasoningTokens: 0},
 	}
-	if in.PromptTokensDetails != nil {
-		out.PromptTokensDetails.CachedTokens = in.PromptTokensDetails.CachedTokens
-		out.PromptTokensDetails.AudioTokens = in.PromptTokensDetails.AudioTokens
-	}
-	if in.CompletionTokensDetails != nil {
-		out.CompletionTokensDetails.ReasoningTokens = in.CompletionTokensDetails.ReasoningTokens
-		out.CompletionTokensDetails.AudioTokens = in.CompletionTokensDetails.AudioTokens
-		out.CompletionTokensDetails.AcceptedPredictionTokens = in.CompletionTokensDetails.AcceptedPredictionTokens
-		out.CompletionTokensDetails.RejectedPredictionTokens = in.CompletionTokensDetails.RejectedPredictionTokens
-	}
-	return out
 }
 
 func AdaptChatCompletionBody(body []byte) ([]byte, error) {
@@ -34,7 +27,7 @@ func AdaptChatCompletionBody(body []byte) ([]byte, error) {
 	if err := json.Unmarshal(body, &upstream); err != nil {
 		return body, err
 	}
-	return json.Marshal(openaiapi.ChatCompletion{Fields: upstream.Fields, Usage: OpenAICompletionUsageFromLlama(upstream.Usage)})
+	return json.Marshal(openaiapi.ChatCompletion{AdditionalProperties: upstream.AdditionalProperties, Usage: OpenAICompletionUsageFromLlama(upstream.Usage)})
 }
 
 func AdaptCompletionBody(body []byte) ([]byte, error) {
@@ -42,7 +35,7 @@ func AdaptCompletionBody(body []byte) ([]byte, error) {
 	if err := json.Unmarshal(body, &upstream); err != nil {
 		return body, err
 	}
-	return json.Marshal(openaiapi.Completion{Fields: upstream.Fields, Usage: OpenAICompletionUsageFromLlama(upstream.Usage)})
+	return json.Marshal(openaiapi.Completion{AdditionalProperties: upstream.AdditionalProperties, Usage: OpenAICompletionUsageFromLlama(upstream.Usage)})
 }
 
 func AdaptEmbeddingBody(body []byte) ([]byte, error) {
@@ -52,7 +45,15 @@ func AdaptEmbeddingBody(body []byte) ([]byte, error) {
 	}
 	var usage *openaiapi.EmbeddingUsage
 	if upstream.Usage != nil {
-		usage = &openaiapi.EmbeddingUsage{PromptTokens: upstream.Usage.PromptTokens, TotalTokens: upstream.Usage.TotalTokens}
+		promptTokens := 0
+		if upstream.Usage.PromptTokens != nil {
+			promptTokens = *upstream.Usage.PromptTokens
+		}
+		totalTokens := 0
+		if upstream.Usage.TotalTokens != nil {
+			totalTokens = *upstream.Usage.TotalTokens
+		}
+		usage = &openaiapi.EmbeddingUsage{PromptTokens: promptTokens, TotalTokens: totalTokens}
 	}
-	return json.Marshal(openaiapi.EmbeddingResponse{Fields: upstream.Fields, Usage: usage})
+	return json.Marshal(openaiapi.EmbeddingResponse{AdditionalProperties: upstream.AdditionalProperties, Usage: usage})
 }
