@@ -7,13 +7,10 @@ import (
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/openaiapi"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/proxy"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/routermanager"
 )
-
-type modelRequest struct {
-	Model string `json:"model"`
-}
 
 func (a *App) humaHealth(ctx huma.Context) {
 	status := "ok"
@@ -40,7 +37,7 @@ func (a *App) humaInference(ctx huma.Context) {
 		writeOpenAIErrorHuma(ctx, http.StatusBadRequest, "invalid_request_error", "invalid_body", err.Error())
 		return
 	}
-	var req modelRequest
+	var req openaiapi.ModelRequest
 	if err := json.Unmarshal(body, &req); err != nil {
 		writeOpenAIErrorHuma(ctx, http.StatusBadRequest, "invalid_request_error", "invalid_json", "request body must be JSON")
 		return
@@ -62,14 +59,7 @@ func (a *App) humaInference(ctx huma.Context) {
 		return
 	}
 	defer func() { _ = resp.Body.Close() }()
-	appendResponseHeaders(ctx, resp.Header)
-	if resp.Header.Get("Content-Type") == "" {
-		ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
-	}
-	ctx.SetStatus(resp.StatusCode)
-	if err := proxy.CopyFlush(ctx.BodyWriter(), resp.Body); err != nil {
-		a.log.Warn("proxy copy failed", "model", req.Model, "error", err)
-	}
+	a.writeUpstreamResponse(ctx, resp, req.Model)
 }
 
 func (a *App) writeEnsureError(ctx huma.Context, model string, err error) {

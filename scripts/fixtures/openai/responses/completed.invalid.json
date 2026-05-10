@@ -1,0 +1,17 @@
+{
+  "type": "response.completed",
+  "response": {
+    "id": "resp_static_invalid",
+    "object": "response",
+    "status": "completed",
+    "usage": {
+      "input_tokens": 17,
+      "input_tokens_details": {
+        "cached_tokens": 1
+      },
+      "output_tokens": 27,
+      "output_tokens_details": null,
+      "total_tokens": 44
+    }
+  }
+}

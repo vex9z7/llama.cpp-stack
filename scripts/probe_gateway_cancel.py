@@ -15,6 +15,10 @@ import time
 import urllib.request
 
 
+def assistant_text(message: dict) -> str:
+    return (message.get("content") or message.get("reasoning_content") or "").strip()
+
+
 def post_json(base: str, path: str, payload: dict, timeout: float):
     req = urllib.request.Request(
         base.rstrip("/") + path,
@@ -60,7 +64,8 @@ def main() -> int:
     short_payload = {
         "model": args.model,
         "messages": [{"role": "user", "content": "Reply with exactly OK."}],
-        "max_tokens": 8,
+        "max_tokens": 256,
+        "temperature": 0,
         "stream": False,
     }
     follow_started = time.monotonic()
@@ -68,7 +73,8 @@ def main() -> int:
         body = follow.read().decode("utf-8")
         data = json.loads(body)
     elapsed = time.monotonic() - follow_started
-    content = data["choices"][0]["message"].get("content", "")
+    message = data["choices"][0]["message"]
+    content = assistant_text(message)
     assert follow.status == 200, follow.status
     assert content, data
     print(

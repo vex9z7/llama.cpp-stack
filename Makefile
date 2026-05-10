@@ -19,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi update-openai-openapi probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi check-openai-response-contract update-openai-openapi probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
 
 fmt:
 	gofmt -w gateway
@@ -39,11 +39,14 @@ lint:
 
 check-go: fmt-check go-vet go-test lint
 
-schemas: check-openai-openapi
+schemas: check-openai-openapi check-openai-response-contract
 	@echo "openai schema snapshot ok"
 
 check-openai-openapi:
 	@python3 -c "from pathlib import Path; t=Path('openai-openapi/spec/openapi.documented.yml').read_text(); assert 'openapi: 3.1.0' in t and '/responses:' in t and 'output_tokens_details' in t; print('openai upstream openapi snapshot ok')"
+
+check-openai-response-contract:
+	python3 scripts/check_openai_response_contract.py
 
 update-openai-openapi:
 	./scripts/update_openai_openapi_snapshot.sh
