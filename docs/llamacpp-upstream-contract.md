@@ -47,7 +47,7 @@ contract inspection and drift checks.
 The gateway-maintained upstream schema lives at:
 
 ```text
-schemas/llamacpp/upstream.openapi.yaml
+llamacpp-api-schema/openapi.yaml
 ```
 
 It is not an official llama.cpp schema. It is a reviewed schema for the pinned

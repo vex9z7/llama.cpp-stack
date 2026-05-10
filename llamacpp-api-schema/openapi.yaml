@@ -43,6 +43,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ModelList'
+  /v1/models:
+    get:
+      operationId: llamaListModelsV1
+      parameters:
+        - name: reload
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Router model list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelList'
   /models/load:
     post:
       operationId: llamaLoadModel
@@ -216,6 +232,7 @@ components:
               type: boolean
     CompletionUsage:
       type: object
+      required: [completion_tokens, prompt_tokens, total_tokens, prompt_tokens_details]
       additionalProperties: true
       properties:
         prompt_tokens:
@@ -225,53 +242,28 @@ components:
         total_tokens:
           type: integer
         prompt_tokens_details:
-          anyOf:
-            - type: object
-              additionalProperties: true
-              properties:
-                cached_tokens:
-                  type: integer
-                audio_tokens:
-                  type: integer
-            - type: 'null'
-        completion_tokens_details:
-          anyOf:
-            - type: object
-              additionalProperties: true
-              properties:
-                reasoning_tokens:
-                  type: integer
-                audio_tokens:
-                  type: integer
-                accepted_prediction_tokens:
-                  type: integer
-                rejected_prediction_tokens:
-                  type: integer
-            - type: 'null'
+          type: object
+          required: [cached_tokens]
+          additionalProperties: true
+          properties:
+            cached_tokens:
+              type: integer
     ResponseUsage:
       type: object
+      required: [input_tokens, output_tokens, total_tokens, input_tokens_details]
       additionalProperties: true
       properties:
         input_tokens:
           type: integer
         input_tokens_details:
-          anyOf:
-            - type: object
-              additionalProperties: true
-              properties:
-                cached_tokens:
-                  type: integer
-            - type: 'null'
+          type: object
+          required: [cached_tokens]
+          additionalProperties: true
+          properties:
+            cached_tokens:
+              type: integer
         output_tokens:
           type: integer
-        output_tokens_details:
-          anyOf:
-            - type: object
-              additionalProperties: true
-              properties:
-                reasoning_tokens:
-                  type: integer
-            - type: 'null'
         total_tokens:
           type: integer
     ChatCompletion:

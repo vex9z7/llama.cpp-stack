@@ -102,9 +102,12 @@ def check_schema(schema_path: Path, snapshot: dict[str, str]) -> None:
         snapshot["image_tag_cuda"],
         "/models/load:",
         "/models/unload:",
+        "/v1/models:",
         "/v1/responses:",
         "ResponseUsage:",
         "CompletionUsage:",
+        "required: [input_tokens, output_tokens, total_tokens, input_tokens_details]",
+        "required: [completion_tokens, prompt_tokens, total_tokens, prompt_tokens_details]",
     ]:
         require(needle in text, f"schema missing {needle!r}")
 
@@ -112,7 +115,7 @@ def check_schema(schema_path: Path, snapshot: dict[str, str]) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default="llamacpp-upstream")
-    parser.add_argument("--schema", default="schemas/llamacpp/upstream.openapi.yaml")
+    parser.add_argument("--schema", default="llamacpp-api-schema/openapi.yaml")
     args = parser.parse_args()
     root = Path(args.root)
     snapshot = check_snapshot(root)
