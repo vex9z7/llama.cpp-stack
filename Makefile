@@ -19,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi check-openai-response-contract check-llamacpp-upstream update-openai-openapi probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema update-openai-openapi probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
 
 fmt:
 	gofmt -w gateway
@@ -39,7 +39,7 @@ lint:
 
 check-go: fmt-check go-vet go-test lint
 
-schemas: check-openai-openapi check-openai-response-contract check-llamacpp-upstream
+schemas: check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema
 	@echo "openai schema snapshot ok"
 
 check-openai-openapi:
@@ -50,6 +50,9 @@ check-openai-response-contract:
 
 check-llamacpp-upstream:
 	python3 scripts/check_llamacpp_upstream.py
+
+compare-llamacpp-schema:
+	python3 scripts/compare_llamacpp_schema_to_source.py
 
 update-openai-openapi:
 	./scripts/update_openai_openapi_snapshot.sh

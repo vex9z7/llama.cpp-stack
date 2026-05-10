@@ -59,6 +59,7 @@ Run:
 
 ```bash
 make check-llamacpp-upstream
+make compare-llamacpp-schema
 ```
 
 This verifies:
