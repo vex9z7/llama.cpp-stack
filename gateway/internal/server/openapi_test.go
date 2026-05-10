@@ -13,13 +13,35 @@ func TestOpenAPISurface(t *testing.T) {
 	api := humachi.New(r, huma.DefaultConfig("test", "0.0.0"))
 	a := &App{}
 	a.Register(api)
-	want := []string{"/health", "/v1/models", "/v1/chat/completions", "/v1/completions", "/v1/responses", "/v1/embeddings"}
-	for _, path := range want {
-		if api.OpenAPI().Paths[path] == nil {
+	want := map[string]string{
+		"/health":              "get",
+		"/v1/models":           "get",
+		"/v1/chat/completions": "post",
+		"/v1/completions":      "post",
+		"/v1/responses":        "post",
+		"/v1/embeddings":       "post",
+	}
+	for path, method := range want {
+		pathItem := api.OpenAPI().Paths[path]
+		if pathItem == nil {
 			t.Fatalf("missing OpenAPI path %s", path)
+		}
+		if operationForMethod(pathItem, method) == nil {
+			t.Fatalf("missing OpenAPI operation %s %s", method, path)
 		}
 	}
 	if api.OpenAPI().Paths["/slots"] != nil || api.OpenAPI().Paths["/models/load"] != nil {
 		t.Fatalf("router management endpoints must not be part of gateway OpenAPI")
+	}
+}
+
+func operationForMethod(pathItem *huma.PathItem, method string) *huma.Operation {
+	switch method {
+	case "get":
+		return pathItem.Get
+	case "post":
+		return pathItem.Post
+	default:
+		return nil
 	}
 }
