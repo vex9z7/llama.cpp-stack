@@ -15,13 +15,13 @@ mkdir -p \
   "${ROOT}/gateway/internal/openaiapi/generated"
 
 "${OAPI_CODEGEN}" \
-  -generate types \
+  -generate types,skip-prune \
   -package generated \
   -o "${ROOT}/gateway/internal/llamacppapi/generated/types.gen.go" \
   "${ROOT}/llamacpp-api-schema/openapi.yaml"
 
 "${OAPI_CODEGEN}" \
-  -generate types \
+  -generate types,skip-prune \
   -package generated \
   -o "${ROOT}/gateway/internal/openaiapi/generated/types.gen.go" \
   "${ROOT}/openai-api-schema.yaml"

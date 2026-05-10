@@ -90,8 +90,11 @@ all non-streaming inference responses exposed by the current public API:
 
 Streaming inference remains framed as SSE. The gateway types and adapts the
 Responses API `response.completed` event, because it contains the final OpenAI
-`ResponseUsage` contract. Other streaming events are passed through unchanged
-unless/until a concrete OpenAI contract mismatch is identified.
+`ResponseUsage` contract. The gateway also tracks Responses tool-call streaming
+lifecycle events and synthesizes a typed
+`response.function_call_arguments.done` event before `response.output_item.done`
+when the pinned llama.cpp stream omits it. Other streaming events are passed
+through unchanged unless/until a concrete OpenAI contract mismatch is identified.
 
 The Responses request side is also typed for the input item forms the gateway
 normalizes. OpenAI accepts compact conversation-history messages such as
@@ -170,6 +173,8 @@ Static/local checks should verify:
 7. Responses request shorthand assistant history is normalized to typed
    `output_text` message content before proxying upstream.
 8. Already-typed function-call history passes through unchanged.
+9. Responses tool-call SSE streams include `response.function_call_arguments.done`
+   before `response.output_item.done`, even when upstream omits the done event.
 
 ## Future phases
 
@@ -197,5 +202,6 @@ make check-gateway-typed-boundary
 `check-gateway-typed-boundary` statically verifies that gateway boundary packages
 alias generated types, that response adapters consume `llamacppapi` types and
 produce `openaiapi` types, that the Responses request adapter consumes generated
-OpenAI request/input types, and that gateway-owned model/error responses use
-typed OpenAI-compatible structs instead of handwritten maps.
+OpenAI request/input types, that the Responses SSE adapter emits generated typed
+function-call argument done events, and that gateway-owned model/error responses
+use typed OpenAI-compatible structs instead of handwritten maps.

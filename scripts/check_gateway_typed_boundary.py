@@ -39,8 +39,9 @@ def check_openai_aliases() -> None:
         "EasyInputMessageRole", "EasyInputMessageType", "EmbeddingResponse", "EmbeddingUsage",
         "ErrorBody", "ErrorObject", "InputMessageContent", "InputMessageContentType", "Model",
         "ModelList", "ModelMeta", "ModelRequest", "PromptTokensDetails", "Response",
-        "ResponseCreateRequest", "ResponseFunctionCall", "ResponseFunctionCallOutput",
-        "ResponseInput", "ResponseInputItem", "ResponseUsage",
+        "ResponseCreateRequest", "ResponseFunctionCall", "ResponseFunctionCallArgumentsDeltaEvent",
+        "ResponseFunctionCallArgumentsDoneEvent", "ResponseFunctionCallOutput",
+        "ResponseInput", "ResponseInputItem", "ResponseOutputItemDoneEvent", "ResponseUsage",
     ]:
         require(f"type {name} = gen.{name}" in text, f"openaiapi.{name} must alias generated type")
 
@@ -104,6 +105,9 @@ def check_server_boundary() -> None:
     require("apiadapter.AdaptResponsesRequestBody" in request_adapter, "request adapter must call apiadapter.AdaptResponsesRequestBody")
 
     response_adapter = read("gateway/internal/server/response_adapter.go")
+    require("openaiapi.ResponseFunctionCallArgumentsDoneEvent" in response_adapter, "Responses SSE adapter must emit typed function_call_arguments.done events")
+    require("response.function_call_arguments.delta" in response_adapter, "Responses SSE adapter must observe function call argument deltas")
+    require("response.output_item.done" in response_adapter, "Responses SSE adapter must inject arguments.done before output_item.done")
     for fn in ["apiadapter.AdaptChatCompletionBody", "apiadapter.AdaptCompletionBody", "apiadapter.AdaptResponsesBody", "apiadapter.AdaptEmbeddingBody", "apiadapter.AdaptResponsesSSEPayload"]:
         require(fn in response_adapter, f"response adapter must call {fn}")
 
@@ -111,7 +115,7 @@ def check_server_boundary() -> None:
 def check_openai_schema_request_contract() -> None:
     schema = read("openai-api-schema.yaml")
     require("$ref: '#/components/schemas/ResponseCreateRequest'" in schema, "/v1/responses request must use ResponseCreateRequest, not bare ModelRequest")
-    for name in ["EasyInputMessage", "ResponseInputItem", "ResponseFunctionCall", "ResponseFunctionCallOutput"]:
+    for name in ["EasyInputMessage", "ResponseInputItem", "ResponseFunctionCall", "ResponseFunctionCallOutput", "ResponseFunctionCallArgumentsDeltaEvent", "ResponseFunctionCallArgumentsDoneEvent", "ResponseOutputItemDoneEvent"]:
         require(f"    {name}:" in schema, f"OpenAI gateway schema must include {name}")
 
 
@@ -122,6 +126,7 @@ def check_tool_pin() -> None:
     require('VERSION="v2.7.0"' in script, "generate script must pin oapi-codegen v2.7.0")
     require("llamacpp-api-schema/openapi.yaml" in script, "generate script must use llama.cpp schema")
     require("openai-api-schema.yaml" in script, "generate script must use OpenAI gateway schema")
+    require("types,skip-prune" in script, "generate script must preserve typed event schemas used by streaming adapters")
 
 
 def main() -> int:

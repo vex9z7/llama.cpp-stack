@@ -301,6 +301,55 @@ components:
           $ref: '#/components/schemas/PromptTokensDetails'
         completion_tokens_details:
           $ref: '#/components/schemas/CompletionTokensDetails'
+    ResponseFunctionCallArgumentsDeltaEvent:
+      type: object
+      required: [type, item_id, output_index, delta]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [response.function_call_arguments.delta]
+        item_id:
+          type: string
+        output_index:
+          type: integer
+        sequence_number:
+          type: integer
+        delta:
+          type: string
+    ResponseFunctionCallArgumentsDoneEvent:
+      type: object
+      required: [type, item_id, name, output_index, arguments]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [response.function_call_arguments.done]
+        item_id:
+          type: string
+        name:
+          type: string
+        output_index:
+          type: integer
+        sequence_number:
+          type: integer
+        arguments:
+          type: string
+    ResponseOutputItemDoneEvent:
+      type: object
+      required: [type, output_index, item]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [response.output_item.done]
+        output_index:
+          type: integer
+        sequence_number:
+          type: integer
+        item:
+          type: object
+          additionalProperties: true
     ResponseInputTokensDetails:
       type: object
       required: [cached_tokens]
