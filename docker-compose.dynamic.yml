@@ -2,7 +2,7 @@ services:
   gateway:
     build:
       context: .
-      dockerfile: Dockerfile.gateway
+      dockerfile: gateway/Dockerfile
     container_name: llama-gateway
     restart: unless-stopped
     ports:

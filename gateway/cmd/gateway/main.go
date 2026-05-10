@@ -15,12 +15,12 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
-	"github.com/vex9z7/llama.cpp-stack/internal/catalog"
-	"github.com/vex9z7/llama.cpp-stack/internal/config"
-	"github.com/vex9z7/llama.cpp-stack/internal/hf"
-	"github.com/vex9z7/llama.cpp-stack/internal/proxy"
-	"github.com/vex9z7/llama.cpp-stack/internal/routerclient"
-	"github.com/vex9z7/llama.cpp-stack/internal/routermanager"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/config"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/hf"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/proxy"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/routerclient"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/routermanager"
 )
 
 type app struct {

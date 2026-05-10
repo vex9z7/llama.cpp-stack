@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vex9z7/llama.cpp-stack/internal/catalog"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
 )
 
 func TestRenderIncludesOnlyDownloadedModels(t *testing.T) {

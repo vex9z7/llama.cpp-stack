@@ -50,6 +50,8 @@ The gateway intentionally hides `/slots`, `/metrics`, and `/completion`.
 
 The public gateway also exposes `/health`. Llama.cpp-native `/slots`, `/metrics`, and `/completion` are internal backend endpoints and are not part of the public gateway surface.
 
+OpenAI compatibility adapter work is planned in `docs/openai-compat-adapter-plan.md`; Pipecat-specific findings are tracked in `docs/pipecat-responses-compat-notes.md`. Until that lands, known llama.cpp extensions such as `chat_template_kwargs.enable_thinking` may still be needed for some model-specific behavior.
+
 For Qwen3, thinking/reasoning is controlled per request with:
 
 ```json

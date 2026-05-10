@@ -10,10 +10,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vex9z7/llama.cpp-stack/internal/catalog"
-	"github.com/vex9z7/llama.cpp-stack/internal/hf"
-	"github.com/vex9z7/llama.cpp-stack/internal/preset"
-	"github.com/vex9z7/llama.cpp-stack/internal/routerclient"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/hf"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/preset"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/routerclient"
 )
 
 var (

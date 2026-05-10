@@ -3,7 +3,7 @@ package hf
 import (
 	"testing"
 
-	"github.com/vex9z7/llama.cpp-stack/internal/catalog"
+	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
 )
 
 func TestChooseFilePrefersMatchingGGUF(t *testing.T) {

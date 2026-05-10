@@ -22,10 +22,10 @@ COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 .PHONY: check fmt fmt-check go-test go-vet lint check-go schemas probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
 
 fmt:
-	gofmt -w cmd internal
+	gofmt -w gateway
 
 fmt-check:
-	@test -z "$$(gofmt -l cmd internal)" || (gofmt -l cmd internal; exit 1)
+	@test -z "$$(gofmt -l gateway)" || (gofmt -l gateway; exit 1)
 
 go-test:
 	go test ./...

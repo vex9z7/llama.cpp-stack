@@ -179,22 +179,22 @@ Runtime model residency is delegated to llama.cpp router mode:
 
 ```text
 .
-├── Dockerfile.gateway
+├── gateway/
+│   ├── Dockerfile                    # Go gateway container image
+│   ├── cmd/gateway/                  # gateway HTTP entrypoint
+│   └── internal/                     # gateway-only Go packages
+│       ├── catalog/
+│       ├── config/
+│       ├── hf/
+│       ├── openai/
+│       ├── preset/
+│       ├── proxy/
+│       ├── routerclient/
+│       └── routermanager/
 ├── docker-compose.dynamic.yml        # Go gateway + llama-server router mode
 ├── docker-compose.dynamic.vulkan.yml # Vulkan override for router
 ├── docker-compose.dynamic.cuda.yml   # CUDA override for router
 ├── Makefile                          # validated compose workflow
-├── cmd/
-│   └── gateway/
-├── internal/
-│   ├── catalog/
-│   ├── config/
-│   ├── hf/
-│   ├── openai/
-│   ├── preset/
-│   ├── proxy/
-│   ├── routerclient/
-│   └── routermanager/
 ├── docs/
 ├── models/
 └── scripts/
@@ -219,7 +219,7 @@ Runtime model residency is delegated to llama.cpp router mode:
 
 ## Gateway framework
 
-The gateway uses `chi` as the low-level `net/http` router and Huma on top of the chi adapter for API boundary/OpenAPI generation. Core catalog, downloader, preset, router-client, and streaming proxy logic stay in plain Go packages so they can be reused by CLI/probes/tests and keep cancellation behavior explicit.
+The gateway uses `chi` as the low-level `net/http` router and Huma on top of the chi adapter for API boundary/OpenAPI generation. Core catalog, downloader, preset, router-client, and streaming proxy logic stay in plain gateway-internal Go packages so they can be reused by CLI/probes/tests and keep cancellation behavior explicit.
 
 ## Commands
 

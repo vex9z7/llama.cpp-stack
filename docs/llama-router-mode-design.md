@@ -44,6 +44,8 @@ llama-server router mode
 
 The gateway is the default public service. The llama.cpp router should normally be reachable only on the Compose/internal network or localhost for operator probes. This lets us use router mode for lifecycle management while avoiding direct public exposure of experimental management endpoints.
 
+OpenAI compatibility adapter details are tracked in `docs/openai-compat-adapter-plan.md`. In particular, `/v1/responses` is treated as a first-class public API and should receive the same adapter/probe coverage as `/v1/chat/completions`.
+
 ## 3. Responsibility split
 
 The deployed stack has two network services in the default path:
@@ -74,6 +76,8 @@ Responsibilities:
 - call router `/models?reload=1` after catalog/download/preset changes;
 - leave model load/unload scheduling to llama.cpp router mode by default;
 - proxy allowed inference requests to llama.cpp router mode;
+- adapt known OpenAI-compatible request fields to llama.cpp/model-template
+  extensions when the mapping is deterministic and tested;
 - preserve request bodies and llama.cpp/OpenAI-compatible response shapes as much
   as possible;
 - propagate client disconnect/cancellation through the upstream HTTP request;
@@ -542,11 +546,11 @@ For our constraints, `chi + Huma` is a better balance than a larger web framewor
 ```text
 Huma defines and documents the public gateway surface.
 chi provides the actual HTTP routing substrate.
-Internal catalog/download/preset/router clients stay framework-independent.
+Gateway-internal catalog/download/preset/router clients stay framework-independent.
 Streaming proxy remains explicit and context-aware via net/http.
 ```
 
-Do not introduce Huma or chi dependencies into non-HTTP packages. Catalog parsing, downloader, preset generation, and router clients should remain plain packages so they can be reused by CLI/probes/tests.
+Do not introduce Huma or chi dependencies into non-HTTP packages. Catalog parsing, downloader, preset generation, and router clients should remain plain packages under `gateway/internal` so they can be reused by gateway tests and future gateway-local tools.
 
 ## 12. Implementation phases
 
