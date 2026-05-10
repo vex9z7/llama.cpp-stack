@@ -19,3 +19,6 @@ __pycache__/
 # Generated multi-instance compose/config
 configs/instances.toml
 docker-compose.instances.yml
+
+# Generated router preset
+models/models-preset.generated.ini

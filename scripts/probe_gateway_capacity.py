@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
-"""Probe gateway loaded-model capacity behavior.
+"""Probe router-mode gateway model switching behavior.
 
-This probe intentionally fills the worker pool with two models, then requests a
-third cold model and expects HTTP 429/no_idle_worker. It may trigger lazy model
-downloads on first run.
+The gateway now delegates load/unload capacity to llama.cpp router mode. This
+probe loads several catalog models in sequence and accepts either successful
+router-mode LRU switching or an explicit strict-capacity 429 if that policy is
+enabled later. It may trigger lazy model downloads on first run.
 """
 from __future__ import annotations
 
@@ -63,15 +64,19 @@ def main() -> int:
         if status != 200:
             print(json.dumps(data, indent=2), file=sys.stderr)
             raise AssertionError(f"expected {model} to load with 200, got {status}")
-        print(f"loaded {model}: 200")
+        print(f"requested {model}: 200")
 
-    status, data = post(args.base_url, models[2], 60)
-    if status != 429:
-        print(json.dumps(data, indent=2), file=sys.stderr)
-        raise AssertionError(f"expected third cold model to return 429, got {status}")
-    err = data.get("error", {})
-    assert err.get("code") == "no_idle_worker", data
-    print(f"gateway capacity probe ok: third_model={models[2]} status=429 code=no_idle_worker")
+    status, data = post(args.base_url, models[2], args.timeout)
+    if status == 200:
+        print(f"gateway router-mode switching probe ok: third_model={models[2]} status=200")
+        return 0
+    if status == 429:
+        err = data.get("error", {})
+        assert err.get("code") in {"no_idle_model_slot", "no_idle_worker"}, data
+        print(f"gateway strict capacity probe ok: third_model={models[2]} status=429 code={err.get('code')}")
+        return 0
+    print(json.dumps(data, indent=2), file=sys.stderr)
+    raise AssertionError(f"expected third model to either succeed or return strict-capacity 429, got {status}")
     return 0
 
 

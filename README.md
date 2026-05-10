@@ -1,6 +1,6 @@
 # llama.cpp Vulkan Inference Stack
 
-本仓库用于部署一个轻量、可控、可调试的本地 LLM 推理服务：基于 `llama.cpp` / `llama-server`、GGUF 模型、Docker Compose、Go gateway/worker-agent，以及 AMD GPU 的 Vulkan 后端。
+本仓库用于部署一个轻量、可控、可调试的本地 LLM 推理服务：基于 `llama.cpp` / `llama-server` router mode、GGUF 模型、Docker Compose、Go gateway，以及 AMD GPU 的 Vulkan 后端。
 
 ## 目标
 
@@ -16,8 +16,8 @@ Requirements: Linux, Docker with Compose plugin, Bash, `curl`.
 
 ```bash
 cp .env.example .env
-make up        # starts the Go gateway + worker-agent pool
-make logs      # follow gateway/worker logs
+make up        # starts the Go gateway + llama.cpp router mode
+make logs      # follow gateway/router logs
 make down      # stop the stack
 ```
 
@@ -66,13 +66,16 @@ Client / Pipecat / Agents
         v
 Go Gateway container
   - OpenAI-compatible public API
-  - catalog parsing
+  - catalog parsing / allowlist
   - lazy Hugging Face downloader
-  - worker allocation
+  - router preset generation + reload
   - streaming/cancellation-aware proxy
         |
-        +--> worker-agent-0 container -> llama-server subprocess
-        +--> worker-agent-1 container -> llama-server subprocess
+        v
+llama-server router mode container
+  - dynamic model load/unload
+  - child llama-server instances
+  - GGUF/Vulkan inference
 ```
 
 Public gateway endpoints:
@@ -86,7 +89,7 @@ POST /v1/responses
 POST /v1/embeddings
 ```
 
-The gateway does not expose `/control/*`, `/worker/*`, backend URLs, or llama.cpp `/slots` publicly.
+The gateway does not expose `/control/*`, `/worker/*`, backend URLs, or llama.cpp router management endpoints such as `/models/load`, `/models/unload`, `/slots`, `/props`, or `/metrics` publicly.
 
 ## Model catalog
 
@@ -110,27 +113,27 @@ Requesting a catalog model lazily downloads the selected GGUF into:
 models/hf/<repo>/<quant>.gguf
 ```
 
-Then the gateway loads that model into an idle worker-agent container and proxies the request to that worker's `llama-server`.
+Then the gateway regenerates the router preset, asks `llama-server` router mode to reload model metadata, and proxies the request to the router. Router mode owns actual model load/unload.
 
 ## Capacity semantics
 
-V1 capacity policy is simple and explicit:
+Runtime model residency is delegated to llama.cpp router mode:
 
-- one worker-agent container can load one model;
-- requests for an already-loaded model are forwarded to that same worker;
-- same-model concurrency is handled by that worker's `llama-server` slots/queue;
-- if a cold model is requested and all workers already hold other models, gateway returns HTTP 429;
-- no eviction/LRU policy in v1.
+- `LLAMA_MODELS_MAX` controls the maximum number of loaded model instances;
+- router mode autoloads requested models when enabled;
+- when capacity is reached, router mode may unload the least-recently-used model;
+- same-model concurrency is handled by llama.cpp slots/queue inside the child instance;
+- strict "reject instead of LRU" policy can be added in the gateway later if needed.
 
 ## Repository layout
 
 ```text
 .
 ├── Dockerfile.gateway
-├── Dockerfile.worker
-├── docker-compose.dynamic.yml        # Go gateway + worker-agent stack
-├── docker-compose.dynamic.vulkan.yml # Vulkan override
-├── docker-compose.dynamic.cuda.yml   # CUDA override
+├── Dockerfile.worker                 # historical fallback worker-agent image
+├── docker-compose.dynamic.yml        # Go gateway + llama-server router mode
+├── docker-compose.dynamic.vulkan.yml # Vulkan override for router
+├── docker-compose.dynamic.cuda.yml   # CUDA override for router
 ├── Makefile                          # validated compose workflow
 ├── cmd/
 │   ├── gateway/
@@ -138,10 +141,13 @@ V1 capacity policy is simple and explicit:
 ├── internal/
 │   ├── catalog/
 │   ├── hf/
-│   ├── manager/
+│   ├── preset/
 │   ├── proxy/
-│   ├── workerclient/
-│   └── llamaprocess/
+│   ├── routerclient/
+│   ├── routermanager/
+│   ├── manager/          # historical fallback worker-agent manager
+│   ├── workerclient/     # historical fallback worker-agent client
+│   └── llamaprocess/     # historical fallback worker process control
 ├── docs/
 ├── models/
 └── scripts/
@@ -154,13 +160,19 @@ V1 capacity policy is simple and explicit:
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`。
 - `LLAMA_HOST` / `LLAMA_PORT`：gateway 宿主机监听地址和端口。
 - `GATEWAY_HOST` / `GATEWAY_PORT`：可选覆盖；留空则继承 `LLAMA_HOST` / `LLAMA_PORT`。
-- `WORKER_BASE_URLS`：Compose 内部 worker-agent 地址列表。
-- `LLAMA_WORKER_POOL_SIZE`：文档/校验用的 worker 数量；实际数量由 Compose worker 服务决定。
-- `LLAMA_WORKER_CTX_SIZE` / `LLAMA_WORKER_PARALLEL`：每个 worker 启动 llama-server 时的上下文和并发。
-- `LLAMA_WORKER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
+- `LLAMA_ROUTER_URL`：gateway 访问内部 llama.cpp router mode 的地址。
+- `LLAMA_MODELS_MAX`：router mode 最多同时加载的模型实例数。
+- `LLAMA_MODELS_AUTOLOAD`：是否允许 router mode 按请求自动加载模型。
+- `LLAMA_SLEEP_IDLE_SECONDS`：空闲模型自动释放时间；`0` 表示关闭。
+- `LLAMA_ROUTER_CTX_SIZE` / `LLAMA_ROUTER_PARALLEL`：生成 router preset 时的上下文和并发默认值。
+- `LLAMA_ROUTER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
 - `HF_ENDPOINT` / `HF_TOKEN`：Hugging Face 下载配置。
 - `GATEWAY_SMOKE_MODEL`：`make smoke` / `make probe-api` 使用的模型。
-- catalog `kind`：默认 `chat`；embedding 模型设置 `kind = "embedding"`，gateway 会为该模型启动 `llama-server --embeddings`，并只允许走 `/v1/embeddings`。
+- catalog `kind`：默认 `chat`；embedding 模型设置 `kind = "embedding"`，gateway 会在 router preset 中标记 embeddings，并只允许该模型走 `/v1/embeddings`。
+
+## Gateway framework
+
+The gateway uses `chi` as the low-level `net/http` router and Huma on top of the chi adapter for API boundary/OpenAPI generation. Core catalog, downloader, preset, router-client, and streaming proxy logic stay in plain Go packages so they can be reused by CLI/probes/tests and keep cancellation behavior explicit.
 
 ## Commands
 
@@ -188,7 +200,7 @@ make up BACKEND=cuda
 
 ## API schemas
 
-Integration schemas live under `schemas/` and are documented in `docs/api-schemas.md`.
+Integration schemas live under `schemas/` and are documented in `docs/api-schemas.md`. Router-mode architecture is documented in `docs/llama-router-mode-design.md`.
 
 ```bash
 make schemas

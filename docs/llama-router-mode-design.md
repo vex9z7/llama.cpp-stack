@@ -1,0 +1,487 @@
+# llama.cpp Router Mode Architecture
+
+## 1. Status
+
+Decision: use an application gateway as the default public entrypoint, backed by `llama-server` router mode as the dynamic model lifecycle layer.
+
+This supersedes the earlier fixed worker-agent pool design. The old design is still useful as historical context, but new implementation work should prefer this document unless router mode proves insufficient in testing.
+
+The gateway is not a replacement for llama.cpp router mode. It is a thin product/control layer that fills the gaps router mode does not currently own for this project: catalog allowlisting, Hugging Face lazy download, preset generation/reload, public API shaping, and contract checks. If upstream router mode later implements some of these features well enough, the gateway should delegate to upstream rather than duplicate them.
+
+Rationale:
+
+- `llama-server` router mode is implemented inside upstream llama.cpp;
+- it already manages child model instances, dynamic load/unload, autoload, LRU, and idle sleep;
+- it preserves llama.cpp-native OpenAI-compatible API behavior, streaming, cancellation, Vulkan, and GGUF support;
+- maintaining our own worker-agent lifecycle would duplicate fast-moving upstream behavior.
+
+Router mode is currently marked experimental upstream, so the stack should keep probes and a fallback path. However, it is still a better maintenance boundary than reimplementing the process manager ourselves.
+
+## 2. Target architecture
+
+```text
+Client / Pipecat / Agents
+        |
+        v
+Gateway
+  - public OpenAI-compatible API
+  - catalog allowlist
+  - lazy Hugging Face download
+  - generated router preset management
+  - public endpoint shaping / hiding
+  - OpenAPI / schema contract checks
+  - cancellation-aware proxy
+        |
+        v
+llama-server router mode
+  - OpenAI-compatible llama.cpp API
+  - dynamic model load/unload
+  - model child process lifecycle
+  - streaming and cancellation behavior
+        |
+        +--> child llama-server: model A
+        +--> child llama-server: model B
+        +--> child llama-server: embedding model
+```
+
+The gateway is the default public service. The llama.cpp router should normally be reachable only on the Compose/internal network or localhost for operator probes. This lets us use router mode for lifecycle management while avoiding direct public exposure of experimental management endpoints.
+
+## 3. Responsibility split
+
+## 3.1 Upstream llama.cpp router mode owns
+
+- discovering local GGUF models from `--models-dir`;
+- reading model presets from `--models-preset`;
+- starting child `llama-server` instances;
+- unloading child instances;
+- `--models-max` capacity limit;
+- LRU unload when capacity is reached;
+- `--models-autoload` on first request;
+- `--sleep-idle-seconds` idle memory release;
+- proxying requests to model child instances;
+- llama.cpp-native OpenAI-compatible endpoints;
+- streaming response behavior;
+- request cancellation when the client disconnects.
+
+## 3.2 Gateway owns
+
+- public OpenAI-compatible endpoint surface;
+- catalog allowlist enforcement;
+- Hugging Face file resolution and lazy download;
+- stable local model path layout;
+- generated `models-preset.ini` management;
+- calling router `/models?reload=1` after catalog/download changes;
+- proxying allowed requests to llama.cpp router mode;
+- propagating client disconnect cancellation to upstream requests;
+- hiding or restricting experimental management routes;
+- optional strict capacity policy if upstream LRU behavior is not desired;
+- optional auth/rate-limit/metrics later.
+
+## 3.3 llama.cpp-stack tooling owns
+
+- curated `models/catalog.toml`;
+- Docker Compose profiles for Vulkan/CUDA/CPU;
+- contract tests against OpenAI-compatible and llama.cpp API schemas;
+- documentation and operational probes.
+
+## 4. Model identity and local paths
+
+The source catalog remains simple and Hugging Face friendly:
+
+```toml
+[[models]]
+repo = "Qwen/Qwen3-4B-GGUF"
+quant = "Q4_K_M"
+kind = "chat"
+
+[[models]]
+repo = "n24q02m/Qwen3-Embedding-0.6B-GGUF"
+quant = "Q4_K_M"
+kind = "embedding"
+```
+
+Derived identity:
+
+```text
+model_ref = <repo>/<quant>
+example   = Qwen/Qwen3-4B-GGUF/Q4_K_M
+```
+
+Stable local path:
+
+```text
+/models/hf/<repo>/<quant>.gguf
+example: /models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
+```
+
+This path layout intentionally allows `/` in model ids. The id naturally maps to a directory path and avoids lossy escaping.
+
+## 5. Runtime preset generation
+
+`llama-server` router mode supports `--models-preset` INI files. We should generate this file from catalog + runtime defaults instead of manually maintaining per-model command lines.
+
+Example generated file:
+
+```ini
+version = 1
+
+[*]
+ctx-size = 8192
+parallel = 1
+threads-http = -1
+n-gpu-layers = 999
+jinja = true
+
+[Qwen/Qwen3-4B-GGUF/Q4_K_M]
+model = /models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
+alias = Qwen/Qwen3-4B-GGUF/Q4_K_M
+
+[n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M]
+model = /models/hf/n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M.gguf
+alias = n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M
+embeddings = true
+pooling = mean
+```
+
+Open questions to verify per upstream behavior:
+
+- exact preset key for embedding enablement;
+- whether model aliases may contain `/` in every target client;
+- whether `kind = "embedding"` needs a separate router process if runtime flags conflict;
+- how `load-on-startup`, `stop-timeout`, and `sleep-idle-seconds` should be exposed in our config.
+
+## 6. Download and reload flow
+
+Router mode discovers models from cache, `--models-dir`, or `--models-preset`. It does not replace our need for a curated downloader.
+
+Default lazy flow with gateway:
+
+```text
+request model=X
+  |
+  v
+gateway validates X exists in catalog
+  |
+  +-- if stable file missing:
+  |      download GGUF from Hugging Face
+  |      publish /models/hf/<repo>/<quant>.gguf atomically
+  |      regenerate models-preset.ini if needed
+  |      call llama router GET /models?reload=1
+  |
+  v
+proxy original request to llama router
+  |
+  v
+llama router autoloads X and proxies to child instance
+```
+
+Optional deploy-time prefetch flow:
+
+```text
+operator runs prefetch command for selected models
+gateway/tool generates models-preset.ini
+llama-server --models-preset /models/models-preset.ini --models-max N ...
+```
+
+Deploy-time prefetch is only an optimization. Request-time lazy download should use the same catalog/downloader/preset code path.
+
+Important note: if a new model file appears after router startup, the gateway should call `GET /models?reload=1` before forwarding the first request for that model.
+
+## 7. Public API surface
+
+The gateway should initially expose only:
+
+```text
+GET  /health
+GET  /v1/models
+POST /v1/chat/completions
+POST /v1/completions
+POST /v1/responses
+POST /v1/embeddings
+```
+
+The gateway should deliberately hide experimental/router management routes from normal public clients:
+
+```text
+/models/load
+/models/unload
+/slots
+/metrics
+/props
+```
+
+Those can remain available only on the internal Compose network or localhost for operator probes. If a future admin API is needed, it should be explicit, authenticated, and disabled by default.
+
+## 8. Capacity and unload policy
+
+Use upstream llama.cpp router controls first:
+
+```text
+--models-max N             maximum loaded model instances
+--models-autoload          load requested model automatically
+--no-models-autoload       require explicit load
+--sleep-idle-seconds N     unload idle model memory after inactivity
+POST /models/unload        explicit unload
+```
+
+Default recommendation:
+
+```text
+models-max = configured instance limit
+models-autoload = enabled
+sleep-idle-seconds = disabled initially, then tune after testing
+```
+
+Capacity behavior should be validated with probes because upstream router mode may choose LRU unload instead of our earlier "reject cold model when full" behavior.
+
+Default v1 policy can simply accept upstream router behavior. If we want stricter semantics, implement it in the gateway before forwarding:
+
+```text
+request cold model X
+  -> gateway reads router /models status
+  -> if loaded count >= configured max and strict policy is enabled
+       return 429 no_idle_model_slot
+  -> otherwise forward and let router autoload/LRU
+```
+
+This keeps policy outside llama.cpp while still delegating actual load/unload to router mode.
+
+## 9. Cancellation and streaming
+
+Cancellation remains a hard requirement.
+
+Validated behavior in local spike:
+
+```text
+client starts long streaming request
+client disconnects / timeout occurs
+router proxy reports upstream cancellation
+child llama-server logs cancel task
+follow-up request succeeds
+```
+
+Required probe:
+
+1. start a long streaming request through the deployed endpoint;
+2. cancel after a short delay;
+3. send a follow-up request to the same model;
+4. optionally inspect internal `/slots` or logs when available;
+5. assert the server is not still consuming generation resources for the abandoned request.
+
+## 10. Gateway API behavior
+
+The gateway is intentionally thin. It should not implement inference and should not manage child model processes. Its request path is:
+
+```text
+public request
+  -> parse enough JSON to read model
+  -> validate model exists in catalog
+  -> ensure local GGUF exists, downloading if needed
+  -> ensure generated preset includes the model
+  -> call router /models?reload=1 when new files/presets appear
+  -> proxy the original request to llama.cpp router mode
+  -> stream response back to client
+```
+
+For endpoints without a model field, the gateway either serves them directly (`/health`, `/v1/models`) or rejects/hides them unless explicitly supported.
+
+### 10.1 Public endpoints
+
+```text
+GET  /health
+GET  /v1/models
+POST /v1/chat/completions
+POST /v1/completions
+POST /v1/responses
+POST /v1/embeddings
+```
+
+`/v1/models` should return catalog entries, enriched with local/router state when available:
+
+```json
+{
+  "object": "list",
+  "data": [
+    {
+      "id": "Qwen/Qwen3-4B-GGUF/Q4_K_M",
+      "object": "model",
+      "owned_by": "llama.cpp-stack",
+      "meta": {
+        "downloaded": true,
+        "router_status": "unloaded",
+        "kind": "chat"
+      }
+    }
+  ]
+}
+```
+
+### 10.2 Request preservation
+
+The gateway should preserve request bodies as much as possible. It may parse JSON to read `model` and optionally apply explicit policy, but it should not drop unknown llama.cpp/OpenAI extension fields.
+
+### 10.3 Error shaping
+
+Gateway-originated errors should use OpenAI-shaped errors:
+
+```json
+{
+  "error": {
+    "message": "requested model is not in catalog",
+    "type": "invalid_request_error",
+    "code": "model_not_found"
+  }
+}
+```
+
+Initial gateway error codes:
+
+```text
+invalid_json
+missing_model
+model_not_found
+model_capability_mismatch
+download_failed
+router_reload_failed
+router_unavailable
+no_idle_model_slot       # only if strict capacity policy is enabled
+```
+
+Upstream llama.cpp errors may be passed through unless they need normalization for a known integration.
+
+## 11. Framework choice for our code
+
+Even though llama.cpp owns model lifecycle, the gateway still has real API responsibilities: model allowlisting, lazy download, router reload, endpoint hiding, and contract documentation. This is enough structure to justify a small framework boundary.
+
+Selected stack:
+
+```text
+HTTP router           chi
+API boundary/OpenAPI  Huma on the chi adapter
+Core library code     plain Go packages
+CLI / generators      Go flag package first; Cobra only if CLI grows
+HTTP client/proxy     net/http, explicit context-aware streaming code
+Schema validation     generated OpenAPI diff + JSON Schema/fixture probes
+```
+
+### 11.1 Why chi
+
+`chi` is the right low-level router for this service:
+
+- it is small and idiomatic Go;
+- it keeps standard `net/http` request/response semantics;
+- it does not hide `http.Request.Context()`, which we need for client disconnect cancellation;
+- it composes naturally with middleware;
+- it avoids the heavier framework context abstractions used by Gin/Fiber;
+- it is easy to bypass for exact streaming/proxy behavior when needed.
+
+If we only needed routing, chi alone would be enough. The downside is that chi does not force typed API boundaries or generate OpenAPI. Over time, a pure-chi gateway can drift into manually parsed handlers with unclear request/response contracts.
+
+### 11.2 Why Huma on top of chi
+
+Huma is used for the public gateway boundary, not for model lifecycle.
+
+Benefits:
+
+- explicit operation registration for the public API surface;
+- generated OpenAPI document from the registered gateway routes;
+- a clearer place to document request/response/error shapes;
+- generated OpenAPI can be compared against fixed schemas/contracts in CI;
+- Huma can run on top of chi, so we still keep standard `net/http` semantics.
+
+We should not use Huma as a deep application framework. It should define the boundary; plain Go packages should implement the behavior.
+
+### 11.3 Why not Gin/Fiber/Echo
+
+- Gin is popular but introduces its own context style and does not solve our OpenAPI contract problem without annotation tooling.
+- Fiber is fast but uses fasthttp semantics, which is a poor fit for standard Go reverse proxy/cancellation behavior.
+- Echo is usable, but does not provide a better fit than chi for this gateway.
+
+For our constraints, `chi + Huma` is a better balance than a larger web framework.
+
+### 11.4 Practical boundary rule
+
+```text
+Huma defines and documents the public gateway surface.
+chi provides the actual HTTP routing substrate.
+Internal catalog/download/preset/router clients stay framework-independent.
+Streaming proxy remains explicit and context-aware via net/http.
+```
+
+Do not introduce Huma or chi dependencies into non-HTTP packages. Catalog parsing, downloader, preset generation, and router clients should remain plain packages so they can be reused by CLI/probes/tests.
+
+## 12. Implementation phases
+
+### Phase 1: Router-mode compose behind gateway
+
+- add a `llama-router` service using `llama-server` without `--model`;
+- add a `gateway` service as the only public HTTP service;
+- mount `/models` read-write into gateway and read-only or read-write as needed into router;
+- pass `--models-preset /models/models-preset.generated.ini` to router;
+- preserve Vulkan/CUDA profiles on router;
+- gateway proxies allowed `/v1/*` requests to router;
+- add smoke probes for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, streaming cancellation.
+
+### Phase 2: Catalog to preset generator
+
+- read `models/catalog.toml`;
+- derive `model_ref` and stable local paths;
+- emit `models/models-preset.generated.ini`;
+- fail clearly if required files are missing when running in deploy-time mode.
+
+### Phase 3: Downloader integration
+
+Status: implemented in the gateway request path.
+
+- implement catalog-aware Hugging Face download using the existing downloader logic;
+- publish stable paths atomically;
+- render `models-preset.generated.ini` after downloads;
+- call `/models?reload=1` after new files appear;
+- add per-model locking so concurrent requests do not download the same model twice.
+
+### Phase 4: Huma/chi gateway boundary
+
+Status: implemented as the default gateway boundary.
+
+- route registration uses Huma on the chi adapter;
+- gateway exposes OpenAI-compatible endpoints only;
+- gateway validates the catalog allowlist;
+- gateway triggers lazy download/reload;
+- gateway proxies to llama router with cancellation propagation;
+- gateway hides router management endpoints from public clients;
+- gateway exposes generated OpenAPI at `/openapi.json`;
+- CI should compare the generated OpenAPI surface against fixed contracts.
+
+### Phase 5: Policy layer
+
+Only after the router-mode baseline is stable:
+
+- strict reject instead of LRU when full;
+- auth;
+- metrics;
+- task-aware routing;
+- edge node routing;
+- Pipecat-specific defaults.
+
+## 12. Risks and mitigations
+
+| Risk | Mitigation |
+|---|---|
+| router mode is experimental | keep smoke/cancellation/schema probes; pin image/tag; keep old worker design docs as fallback |
+| upstream API changes | treat schemas/probes as contract tests; review llama.cpp release notes before bumping |
+| model id/path mismatch | derive ids and paths from catalog in one package; avoid duplicate naming logic |
+| public exposure of management endpoints | gateway is default public entrypoint; do not publish router service directly |
+| lazy download race | per-model file lock and atomic rename |
+| LRU behavior surprises users | document `--models-max`; add gateway policy later if strict reject is needed |
+
+## 13. Current recommendation
+
+Move implementation toward:
+
+```text
+Docker Compose + Huma-based thin gateway
++ llama-server router mode
++ catalog/preset/download tooling
+```
+
+Do not continue expanding the custom worker-agent pool unless router mode fails a must-have requirement. Implement the gateway as a thin policy/download/proxy layer, not as a second model process manager.

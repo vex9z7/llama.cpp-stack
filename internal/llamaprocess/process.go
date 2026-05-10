@@ -232,7 +232,7 @@ func (s *Supervisor) waitReady(ctx context.Context, exited <-chan error) error {
 			resp, err := http.DefaultClient.Do(req)
 			if err == nil {
 				_, _ = ioCopyDiscard(resp.Body)
-				resp.Body.Close()
+				_ = resp.Body.Close()
 				if resp.StatusCode < 500 {
 					return nil
 				}
@@ -247,7 +247,7 @@ func (s *Supervisor) busy(ctx context.Context) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode >= 300 {
 		return false, nil
 	}

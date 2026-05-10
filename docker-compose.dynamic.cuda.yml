@@ -1,19 +1,6 @@
 services:
-  worker-0:
-    build:
-      args:
-        LLAMA_WORKER_BASE_IMAGE: ${LLAMA_WORKER_BASE_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
-    deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all
-              capabilities: [gpu]
-  worker-1:
-    build:
-      args:
-        LLAMA_WORKER_BASE_IMAGE: ${LLAMA_WORKER_BASE_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
+  llama-router:
+    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
     deploy:
       resources:
         reservations:

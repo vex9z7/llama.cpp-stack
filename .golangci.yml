@@ -1,0 +1,46 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: standard
+  enable:
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errorlint
+    - gocritic
+    - gosec
+    - misspell
+    - nilerr
+    - prealloc
+    - revive
+    - staticcheck
+    - unconvert
+    - unparam
+    - wastedassign
+  settings:
+    gosec:
+      excludes:
+        - G204 # subprocess paths/args are controlled by deployment config in the worker fallback
+        - G301 # shared model directories are intentionally group/world-readable in local deployments
+        - G302 # downloaded model/preset files are intentionally readable by router containers
+        - G304 # file paths are intentionally configurable in this local deployment tool
+        - G306 # generated preset/model files are intentionally readable by router containers
+        - G704 # upstream router URL is deployment config, not user input
+    revive:
+      rules:
+        - name: exported
+          disabled: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

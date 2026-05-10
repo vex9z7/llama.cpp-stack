@@ -19,16 +19,16 @@ import (
 )
 
 const (
-	CodeRepoNotFound      = "hf_repo_not_found"
-	CodeUnauthorized      = "hf_unauthorized"
-	CodeForbidden         = "hf_forbidden"
-	CodeListFailed        = "hf_list_failed"
-	CodeNoMatchingFile    = "hf_no_matching_file"
-	CodeAmbiguousFiles    = "hf_ambiguous_files"
-	CodeSplitGGUF         = "hf_split_gguf"
-	CodeDownloadFailed    = "hf_download_failed"
-	CodeEmptyDownload     = "hf_empty_download"
-	CodeFileNotFound      = "hf_file_not_found"
+	CodeRepoNotFound   = "hf_repo_not_found"
+	CodeUnauthorized   = "hf_unauthorized"
+	CodeForbidden      = "hf_forbidden"
+	CodeListFailed     = "hf_list_failed"
+	CodeNoMatchingFile = "hf_no_matching_file"
+	CodeAmbiguousFiles = "hf_ambiguous_files"
+	CodeSplitGGUF      = "hf_split_gguf"
+	CodeDownloadFailed = "hf_download_failed"
+	CodeEmptyDownload  = "hf_empty_download"
+	CodeFileNotFound   = "hf_file_not_found"
 )
 
 type Error struct {
@@ -105,7 +105,7 @@ func (d *Downloader) listFiles(ctx context.Context, repo string) ([]string, erro
 	if err != nil {
 		return nil, hferr(CodeListFailed, "huggingface list files request failed", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, hferr(CodeRepoNotFound, fmt.Sprintf("huggingface repo not found: %s", repo), nil)
 	}
@@ -209,7 +209,7 @@ func (d *Downloader) download(ctx context.Context, repo, file, stable string) er
 	if err != nil {
 		return hferr(CodeDownloadFailed, "huggingface download request failed", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode == http.StatusUnauthorized {
 		return hferr(CodeUnauthorized, "huggingface download requires authentication or token is invalid", nil)
 	}

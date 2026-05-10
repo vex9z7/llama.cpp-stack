@@ -61,11 +61,11 @@ func main() {
 
 func (a *app) health(w http.ResponseWriter, r *http.Request) {
 	st := a.sup.Status()
-	writeJSON(w, http.StatusOK, map[string]any{"status": "ok", "state": st.State})
+	writeJSON(w, map[string]any{"status": "ok", "state": st.State})
 }
 
 func (a *app) status(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, a.sup.Status())
+	writeJSON(w, a.sup.Status())
 }
 
 func (a *app) load(w http.ResponseWriter, r *http.Request) {
@@ -84,7 +84,7 @@ func (a *app) load(w http.ResponseWriter, r *http.Request) {
 		openai.WriteError(w, http.StatusServiceUnavailable, "startup_error", "worker_load_failed", err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "loaded", "worker": st.ID, "inference_url": st.InferenceURL})
+	writeJSON(w, map[string]any{"status": "loaded", "worker": st.ID, "inference_url": st.InferenceURL})
 }
 
 func (a *app) unload(w http.ResponseWriter, r *http.Request) {
@@ -94,12 +94,12 @@ func (a *app) unload(w http.ResponseWriter, r *http.Request) {
 		openai.WriteError(w, http.StatusConflict, "worker_busy", "active_requests", err.Error())
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"status": "unloaded", "worker": a.sup.Status().ID})
+	writeJSON(w, map[string]any{"status": "unloaded", "worker": a.sup.Status().ID})
 }
 
-func writeJSON(w http.ResponseWriter, status int, v any) {
+func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(v)
 }
 

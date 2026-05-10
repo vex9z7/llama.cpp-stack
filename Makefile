@@ -19,10 +19,25 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check go-test schemas probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+
+fmt:
+	gofmt -w cmd internal
+
+fmt-check:
+	@test -z "$$(gofmt -l cmd internal)" || (gofmt -l cmd internal; exit 1)
 
 go-test:
 	go test ./...
+
+go-vet:
+	go vet ./...
+
+lint:
+	@command -v golangci-lint >/dev/null || (echo "golangci-lint not found. Install from https://golangci-lint.run/usage/install/" >&2; exit 127)
+	golangci-lint run
+
+check-go: fmt-check go-vet go-test lint
 
 schemas:
 	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"

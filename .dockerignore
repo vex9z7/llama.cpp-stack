@@ -9,3 +9,5 @@ models/hf
 hf-cache
 *.log
 docker-compose.instances.yml
+
+models/models-preset.generated.ini

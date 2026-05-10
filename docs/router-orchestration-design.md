@@ -1,5 +1,7 @@
 # Model Router / Orchestration Layer Design
 
+> Superseded: the preferred orchestration layer is now upstream `llama-server` router mode plus optional thin gateway/catalog tooling. See `docs/llama-router-mode-design.md`. This document remains as historical context for the earlier custom gateway + worker-agent router design.
+
 > Update: dynamic lifecycle should be implemented through one public gateway service plus a fixed worker-agent pool. The gateway contains separate router and manager modules, but does not expose a public control API and does not mount the Docker socket. See `docs/dynamic-model-manager-design.md`.
 
 

@@ -10,44 +10,42 @@ import (
 	"strings"
 )
 
-type Proxy struct {
-	Client *http.Client
-}
+type Proxy struct{ Client *http.Client }
 
 var hopHeaders = map[string]bool{
-	"connection":          true,
-	"keep-alive":          true,
-	"proxy-authenticate":  true,
-	"proxy-authorization": true,
-	"te":                  true,
-	"trailer":             true,
-	"transfer-encoding":   true,
-	"upgrade":             true,
+	"connection": true, "content-length": true, "keep-alive": true, "proxy-authenticate": true, "proxy-authorization": true,
+	"te": true, "trailer": true, "transfer-encoding": true, "upgrade": true,
+}
+
+func IsHopHeader(name string) bool { return hopHeaders[strings.ToLower(name)] }
+
+func (p Proxy) Do(ctx context.Context, method, reqPath, rawQuery string, headers http.Header, backendURL string, body []byte) (*http.Response, error) {
+	base, err := url.Parse(strings.TrimRight(backendURL, "/"))
+	if err != nil {
+		return nil, err
+	}
+	target := *base
+	target.Path = joinPath(base.Path, reqPath)
+	target.RawQuery = rawQuery
+	up, err := http.NewRequestWithContext(ctx, method, target.String(), bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	up.ContentLength = int64(len(body))
+	copyHeaders(up.Header, headers)
+	up.Host = base.Host
+	return p.http().Do(up)
 }
 
 func (p Proxy) ForwardBytes(ctx context.Context, w http.ResponseWriter, r *http.Request, backendURL string, body []byte) error {
-	base, err := url.Parse(strings.TrimRight(backendURL, "/"))
+	resp, err := p.Do(ctx, r.Method, r.URL.Path, r.URL.RawQuery, r.Header, backendURL, body)
 	if err != nil {
 		return err
 	}
-	target := *base
-	target.Path = joinPath(base.Path, r.URL.Path)
-	target.RawQuery = r.URL.RawQuery
-	up, err := http.NewRequestWithContext(ctx, r.Method, target.String(), bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	up.ContentLength = int64(len(body))
-	copyHeaders(up.Header, r.Header)
-	up.Host = base.Host
-	resp, err := p.http().Do(up)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	copyHeaders(w.Header(), resp.Header)
 	w.WriteHeader(resp.StatusCode)
-	return copyFlush(w, resp.Body)
+	return CopyFlush(w, resp.Body)
 }
 
 func (p Proxy) http() *http.Client {
@@ -57,9 +55,11 @@ func (p Proxy) http() *http.Client {
 	return &http.Client{Timeout: 0}
 }
 
+func CopyHeaders(dst, src http.Header) { copyHeaders(dst, src) }
+
 func copyHeaders(dst, src http.Header) {
 	for k, vals := range src {
-		if hopHeaders[strings.ToLower(k)] {
+		if IsHopHeader(k) {
 			continue
 		}
 		for _, v := range vals {
@@ -68,7 +68,7 @@ func copyHeaders(dst, src http.Header) {
 	}
 }
 
-func copyFlush(w http.ResponseWriter, src io.Reader) error {
+func CopyFlush(w io.Writer, src io.Reader) error {
 	buf := make([]byte, 32*1024)
 	flusher, _ := w.(http.Flusher)
 	for {

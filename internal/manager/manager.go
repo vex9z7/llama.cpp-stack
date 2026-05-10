@@ -143,7 +143,7 @@ func (m *Manager) EnsureRunning(ctx context.Context, ref, requiredKind string) (
 
 	modelPath, err := m.downloader.Ensure(ctx, cm)
 	if err != nil {
-		return RunningBackend{}, fmt.Errorf("%w: code=%s: %v", ErrDownloadFailed, hf.Code(err), err)
+		return RunningBackend{}, fmt.Errorf("%w: code=%s: %w", ErrDownloadFailed, hf.Code(err), err)
 	}
 	rel, err := filepath.Rel(m.cfg.ModelsDir, modelPath)
 	if err != nil {
@@ -158,7 +158,7 @@ func (m *Manager) EnsureRunning(ctx context.Context, ref, requiredKind string) (
 	}
 	resp, err := idle.Load(loadCtx, workerclient.LoadRequest{ModelRef: cm.Ref(), ModelPath: rel, ModelName: cm.Ref(), CtxSize: m.cfg.CtxSize, Parallel: m.cfg.Parallel, ThreadsHTTP: m.cfg.ThreadsHTTP, NGPULayers: m.cfg.NGPULayers, ExtraArgs: m.cfg.ExtraArgs, TimeoutSec: int(m.cfg.StartTimeout.Seconds()), Embeddings: kind == "embedding"})
 	if err != nil {
-		return RunningBackend{}, fmt.Errorf("%w: worker=%s: %v", ErrWorkerLoadFailed, idle.ID, err)
+		return RunningBackend{}, fmt.Errorf("%w: worker=%s: %w", ErrWorkerLoadFailed, idle.ID, err)
 	}
 	newSt := workerclient.Status{ID: resp.Worker, State: "running", ModelRef: cm.Ref(), ModelPath: rel, ModelName: cm.Ref(), InferenceURL: resp.InferenceURL, Embeddings: kind == "embedding"}
 	m.running[cm.Ref()] = newSt

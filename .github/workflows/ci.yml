@@ -67,10 +67,17 @@ jobs:
           make check BACKEND=cpu
           make models >/dev/null
           make schemas
+          make fmt-check
+          make go-vet
           make go-test
-          test -z "$(gofmt -l cmd internal)"
           python3 -m py_compile scripts/probe_api_schemas.py scripts/probe_gateway.py scripts/probe_gateway_cancel.py scripts/probe_gateway_capacity.py scripts/probe_gateway_errors.py
           make -n up BACKEND=cpu >/dev/null
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: latest
+          args: --timeout=5m
 
       - name: Validate Compose configs
         shell: bash

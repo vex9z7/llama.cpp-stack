@@ -1,13 +1,5 @@
 services:
-  worker-0:
-    build:
-      args:
-        LLAMA_WORKER_BASE_IMAGE: ${LLAMA_WORKER_BASE_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-vulkan}
-    devices:
-      - /dev/dri:/dev/dri
-  worker-1:
-    build:
-      args:
-        LLAMA_WORKER_BASE_IMAGE: ${LLAMA_WORKER_BASE_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-vulkan}
+  llama-router:
+    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-vulkan}
     devices:
       - /dev/dri:/dev/dri

@@ -1,5 +1,7 @@
 # Dynamic Model Management Design
 
+> Superseded: the preferred dynamic lifecycle design now uses upstream `llama-server` router mode. See `docs/llama-router-mode-design.md`. This document remains as historical fallback context for the earlier fixed worker-agent pool design.
+
 ## 1. Purpose
 
 This document defines the dynamic model management architecture for `llama.cpp-stack`.
