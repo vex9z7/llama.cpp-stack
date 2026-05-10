@@ -191,6 +191,7 @@ Runtime model residency is delegated to llama.cpp router mode:
 │       ├── proxy/
 │       ├── routerclient/
 │       └── routermanager/
+├── openai-openapi/                   # vendored OpenAI OpenAPI snapshot
 ├── docker-compose.dynamic.yml        # Go gateway + llama-server router mode
 ├── docker-compose.dynamic.vulkan.yml # Vulkan override for router
 ├── docker-compose.dynamic.cuda.yml   # CUDA override for router

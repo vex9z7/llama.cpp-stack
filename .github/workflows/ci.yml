@@ -67,6 +67,7 @@ jobs:
           make check BACKEND=cpu
           make models >/dev/null
           make schemas
+          make check-openai-openapi
           make fmt-check
           make go-vet
           make go-test

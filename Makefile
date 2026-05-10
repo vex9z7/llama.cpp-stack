@@ -19,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi update-openai-openapi probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
 
 fmt:
 	gofmt -w gateway
@@ -42,6 +42,12 @@ check-go: fmt-check go-vet go-test lint
 schemas:
 	@python3 -c "import json, pathlib; [json.loads(p.read_text()) for p in pathlib.Path('schemas/json').glob('*.json')]; print('json schemas ok')"
 	@python3 -c "from pathlib import Path; t=Path('schemas/openapi/llama-server.openapi.yaml').read_text(); assert 'openapi: 3.1.0' in t and '/v1/chat/completions:' in t; print('openapi schema smoke ok')"
+
+check-openai-openapi:
+	@python3 -c "from pathlib import Path; t=Path('openai-openapi/spec/openapi.documented.yml').read_text(); assert 'openapi: 3.1.0' in t and '/responses:' in t and 'output_tokens_details' in t; print('openai upstream openapi snapshot ok')"
+
+update-openai-openapi:
+	./scripts/update_openai_openapi_snapshot.sh
 
 probe-api:
 	python3 scripts/probe_api_schemas.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}}}" --model "$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)}"

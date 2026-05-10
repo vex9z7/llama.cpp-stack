@@ -4,16 +4,18 @@ This repo keeps a local schema snapshot for the llama.cpp API surface we intend 
 
 ## Source of truth
 
-There is no single OpenAPI document emitted by the deployed `llama-server` instance. The useful sources are:
+The gateway's public `/v1/*` contract should be aligned to OpenAI first, then adapted to llama.cpp backend reality. Source precedence:
 
-1. llama.cpp server docs and README:
+1. OpenAI API Reference and the vendored upstream OpenAPI snapshot:
+   - <https://platform.openai.com/docs/api-reference>
+   - `openai-openapi/spec/openapi.documented.yml`
+   - snapshot metadata: `openai-openapi/SNAPSHOT`
+2. OpenAI SDK generated types, when client compatibility differs from the raw OpenAPI text.
+3. llama.cpp server docs and README for backend-specific behavior:
    - <https://github.com/ggml-org/llama.cpp/blob/master/tools/server/README.md>
    - <https://www.mintlify.com/ggml-org/llama.cpp/api/rest/overview>
    - <https://www.mintlify.com/ggml-org/llama.cpp/inference/server>
-2. OpenAI API shape for the `/v1/*` compatibility layer:
-   - <https://github.com/openai/openai-openapi>
-   - <https://platform.openai.com/docs/api-reference>
-3. Black-box probes against the public gateway endpoint:
+4. Black-box probes against the public gateway endpoint:
    - `GET /health`
    - `GET /v1/models`
    - `POST /v1/chat/completions`
@@ -23,6 +25,13 @@ There is no single OpenAPI document emitted by the deployed `llama-server` insta
 
 Internal llama.cpp-native schemas are retained only for direct backend probes.
 The gateway intentionally hides `/slots`, `/metrics`, and `/completion`.
+
+Update the vendored OpenAI snapshot with:
+
+```bash
+make update-openai-openapi
+make check-openai-openapi
+```
 
 ## Files
 

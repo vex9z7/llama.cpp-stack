@@ -1,0 +1,6 @@
+source = https://github.com/openai/openai-openapi
+branch = master
+commit = e1cb7a86ad53bb818c106ac7875e2a78182bb120
+spec_url = https://app.stainless.com/api/spec/documented/openai/openapi.documented.yml
+fetched_at_utc = 2026-05-10T13:25:31Z
+update_command = scripts/update_openai_openapi_snapshot.sh
