@@ -169,78 +169,65 @@ stream
 error
 ```
 
-Gateway HTTP boundary keywords:
+Runtime log keywords are grouped into three roles:
+
+```text
+gateway.*  client-facing HTTP/API boundary
+model.*    model policy, catalog, lazy download, preset, scheduling
+backend.*  calls and proxy traffic to the internal inference backend
+```
+
+Gateway keywords:
 
 ```text
 gateway.start
 gateway.shutdown
-gateway.http.request
-gateway.http.error
-gateway.openapi.served
+gateway.request
+gateway.response
+gateway.error
 gateway.health
+gateway.openapi
 ```
 
-Gateway catalog/download/preset keywords:
+Model keywords:
 
 ```text
-catalog.load
-catalog.reload
-model.ensure.start
-model.ensure.done
-model.ensure.failed
-model.download.start
-model.download.done
-model.download.failed
-model.preset.render
-model.preset.reload_router
+model.catalog_load
+model.catalog_reload
+model.ensure
+model.download
+model.preset
+model.hit
+model.miss
+model.load
+model.unload
+model.capacity_full
+model.reject
+model.lru_select
+model.idle_select
 ```
 
-Gateway scheduler/manager keywords:
+Backend keywords:
 
 ```text
-scheduler.inspect
-scheduler.hit
-scheduler.miss
-scheduler.load
-scheduler.unload
-scheduler.capacity_full
-scheduler.reject
-scheduler.lru_select
-scheduler.idle_select
+backend.health
+backend.models
+backend.reload
+backend.load
+backend.unload
+backend.forward
+backend.response
+backend.stream
+backend.cancel
+backend.error
 ```
 
-Gateway proxy/cancellation keywords:
+`backend.*` means the gateway is talking to the internal inference backend. The
+current backend is llama.cpp router mode, but the keyword intentionally leaves
+room for future backends.
 
-```text
-proxy.forward
-proxy.response
-proxy.stream.start
-proxy.stream.done
-proxy.client_cancel
-proxy.upstream_error
-```
-
-Internal llama.cpp router observations should keep their native logs, but any
-gateway-side calls to router management APIs should use:
-
-```text
-router.health
-router.models
-router.models.reload
-router.models.load
-router.models.unload
-router.unavailable
-```
-
-Tooling/probe keywords:
-
-```text
-probe.schema
-probe.gateway
-probe.cancel
-probe.smoke
-probe.failed
-```
+Probe scripts may print their own `probe.*` messages in CI or operator output,
+but `probe.*` is not a runtime service role.
 
 ## 4. Model identity and local paths
 

@@ -128,19 +128,17 @@ Local debugging may use:
 LOG_FORMAT=text
 ```
 
-Stable log/event keywords are grouped by role:
+Stable log/event keywords are grouped by runtime role:
 
 ```text
-gateway.*     public HTTP lifecycle, health, OpenAPI, request errors
-catalog.*     catalog load/reload
-model.*       lazy download, model ensure, preset rendering
-scheduler.*   load/unload decisions, capacity, LRU/idle selection
-router.*      internal llama.cpp router calls and availability
-proxy.*       forwarding, streaming, cancellation, upstream errors
-probe.*       smoke/schema/cancel/gateway probes
+gateway.*  client-facing HTTP/API lifecycle
+model.*    model policy, catalog, lazy download, preset, scheduling
+backend.*  calls and proxy traffic to the internal inference backend
 ```
 
-See `docs/llama-router-mode-design.md` for the detailed keyword list.
+Probe scripts may print `probe.*` messages in CI/operator output, but `probe.*`
+is not a runtime service role. See `docs/llama-router-mode-design.md` for the
+detailed keyword list.
 
 ## Model catalog
 
