@@ -71,7 +71,7 @@ jobs:
           make fmt-check
           make go-vet
           make go-test
-          python3 -m py_compile scripts/probe_openai_compat.py scripts/probe_gateway.py scripts/probe_gateway_cancel.py scripts/probe_gateway_capacity.py scripts/probe_gateway_errors.py
+          python3 -m py_compile scripts/probe_openai_compat.py scripts/probe_gateway.py scripts/probe_gateway_cancel.py scripts/probe_gateway_capacity.py scripts/probe_gateway_errors.py scripts/check_openai_response_contract.py scripts/check_llamacpp_upstream.py
           make -n up BACKEND=cpu >/dev/null
 
       - name: golangci-lint

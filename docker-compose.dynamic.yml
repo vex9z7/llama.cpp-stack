@@ -40,7 +40,7 @@ services:
       start_period: 10s
 
   llama-router:
-    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server}
+    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-b8840}
     container_name: llama-router
     restart: unless-stopped
     volumes:

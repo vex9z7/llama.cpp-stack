@@ -1,0 +1,41 @@
+repo: https://github.com/ggml-org/llama.cpp
+git_tag: b8840
+git_commit: 9e5647affa54ea724196db15ec9b76c4abd16d4a
+
+image_tag_cpu: ghcr.io/ggml-org/llama.cpp:server-b8840
+image_manifest_digest_cpu: sha256:99d2554c4c8d5339649dde530056cf10771823d7cd983dbd0441da9c419976b1
+image_linux_amd64_digest_cpu: sha256:1a706b41321c3d3e570b9a63cc768039f7bfe0487070ff6cf790f892b8e74831
+image_linux_arm64_digest_cpu: sha256:e268cfbf4f3fdc2581775fc9b3378ae56054e26719955a5b486044f3b01c8a04
+image_linux_s390x_digest_cpu: sha256:addf30f8622c3fa5a349fd85c9039fc08503065b28db4b3762e7ecc7a1ec8ef0
+
+image_tag_vulkan: ghcr.io/ggml-org/llama.cpp:server-vulkan-b8840
+image_manifest_digest_vulkan: sha256:a7eaba8b79f68ea515d3c645b29fdf3a75aab7c17d68df3afee98f6ec4d73641
+image_linux_amd64_digest_vulkan: sha256:cf027420a6faa95750345622cefe24f9092500872652fe6211c7b4b770f44a75
+image_linux_arm64_digest_vulkan: sha256:054e9cc0cd88d1180f5b71bad27f75e334fd9ede1ca79ee575e46cea68b41e87
+
+image_tag_cuda: ghcr.io/ggml-org/llama.cpp:server-cuda-b8840
+image_manifest_digest_cuda: sha256:a92a756344dffd35e93a693f771113c0ec7753701d83bab5a65ec8aae325491c
+image_linux_amd64_digest_cuda: sha256:5196dcd745fd0f2ea6243dd488b5b6d69328aed925a2dc7267ced9266c86912e
+image_linux_arm64_digest_cuda: sha256:601a982b417d282f4cd506226b9cdd34b2955ccd9cf6ece4c72be19a960bc10d
+
+captured_at: 2026-05-10
+vendored_files:
+  - tools/server/CMakeLists.txt
+  - tools/server/README.md
+  - tools/server/README-dev.md
+  - tools/server/server.cpp
+  - tools/server/server-http.cpp
+  - tools/server/server-http.h
+  - tools/server/server-models.cpp
+  - tools/server/server-models.h
+  - tools/server/server-common.cpp
+  - tools/server/server-common.h
+  - tools/server/server-context.cpp
+  - tools/server/server-context.h
+  - tools/server/server-task.cpp
+  - tools/server/server-task.h
+  - tools/server/server-queue.cpp
+  - tools/server/server-queue.h
+  - tools/server/server-tools.cpp
+  - tools/server/server-tools.h
+  - tools/server/server-cors-proxy.h

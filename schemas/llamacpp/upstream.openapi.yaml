@@ -1,0 +1,308 @@
+openapi: 3.1.0
+info:
+  title: llama.cpp server upstream contract for llama.cpp-stack
+  version: b8840
+  description: >
+    Reviewed upstream contract for the pinned llama.cpp server snapshot used by
+    llama.cpp-stack. This is not an official llama.cpp OpenAPI document. It is
+    derived from the vendored llama.cpp b8840 server docs/source and covers the
+    upstream endpoints consumed by the gateway.
+x-llamacpp-stack:
+  source_repo: https://github.com/ggml-org/llama.cpp
+  git_tag: b8840
+  git_commit: 9e5647affa54ea724196db15ec9b76c4abd16d4a
+  images:
+    cpu: ghcr.io/ggml-org/llama.cpp:server-b8840
+    vulkan: ghcr.io/ggml-org/llama.cpp:server-vulkan-b8840
+    cuda: ghcr.io/ggml-org/llama.cpp:server-cuda-b8840
+paths:
+  /health:
+    get:
+      operationId: llamaHealth
+      responses:
+        '200':
+          description: Health response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+  /models:
+    get:
+      operationId: llamaListModels
+      parameters:
+        - name: reload
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Router model list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelList'
+  /models/load:
+    post:
+      operationId: llamaLoadModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: Load result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+  /models/unload:
+    post:
+      operationId: llamaUnloadModel
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: Unload result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+  /v1/chat/completions:
+    post:
+      operationId: llamaCreateChatCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: llama.cpp OpenAI-compatible chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatCompletion'
+            text/event-stream:
+              schema:
+                type: string
+  /v1/completions:
+    post:
+      operationId: llamaCreateCompletion
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: llama.cpp OpenAI-compatible completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Completion'
+            text/event-stream:
+              schema:
+                type: string
+  /v1/responses:
+    post:
+      operationId: llamaCreateResponse
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: llama.cpp OpenAI-compatible Responses response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+            text/event-stream:
+              schema:
+                type: string
+  /v1/embeddings:
+    post:
+      operationId: llamaCreateEmbedding
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ModelRequest'
+      responses:
+        '200':
+          description: llama.cpp OpenAI-compatible embeddings response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmbeddingResponse'
+components:
+  schemas:
+    ModelRequest:
+      type: object
+      required: [model]
+      additionalProperties: true
+      properties:
+        model:
+          type: string
+    Success:
+      type: object
+      required: [success]
+      additionalProperties: true
+      properties:
+        success:
+          type: boolean
+    ModelList:
+      type: object
+      required: [object, data]
+      additionalProperties: true
+      properties:
+        object:
+          type: string
+          const: list
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ModelRecord'
+    ModelRecord:
+      type: object
+      required: [id, object, owned_by, status]
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        object:
+          type: string
+        owned_by:
+          type: string
+        aliases:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created:
+          type: integer
+        status:
+          type: object
+          additionalProperties: true
+          required: [value, args]
+          properties:
+            value:
+              type: string
+            args:
+              type: array
+              items:
+                type: string
+            preset:
+              type: string
+            exit_code:
+              type: integer
+            failed:
+              type: boolean
+    CompletionUsage:
+      type: object
+      additionalProperties: true
+      properties:
+        prompt_tokens:
+          type: integer
+        completion_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+        prompt_tokens_details:
+          anyOf:
+            - type: object
+              additionalProperties: true
+              properties:
+                cached_tokens:
+                  type: integer
+                audio_tokens:
+                  type: integer
+            - type: 'null'
+        completion_tokens_details:
+          anyOf:
+            - type: object
+              additionalProperties: true
+              properties:
+                reasoning_tokens:
+                  type: integer
+                audio_tokens:
+                  type: integer
+                accepted_prediction_tokens:
+                  type: integer
+                rejected_prediction_tokens:
+                  type: integer
+            - type: 'null'
+    ResponseUsage:
+      type: object
+      additionalProperties: true
+      properties:
+        input_tokens:
+          type: integer
+        input_tokens_details:
+          anyOf:
+            - type: object
+              additionalProperties: true
+              properties:
+                cached_tokens:
+                  type: integer
+            - type: 'null'
+        output_tokens:
+          type: integer
+        output_tokens_details:
+          anyOf:
+            - type: object
+              additionalProperties: true
+              properties:
+                reasoning_tokens:
+                  type: integer
+            - type: 'null'
+        total_tokens:
+          type: integer
+    ChatCompletion:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/CompletionUsage'
+    Completion:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/CompletionUsage'
+    Response:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/ResponseUsage'
+    EmbeddingUsage:
+      type: object
+      additionalProperties: true
+      properties:
+        prompt_tokens:
+          type: integer
+        total_tokens:
+          type: integer
+    EmbeddingResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        usage:
+          $ref: '#/components/schemas/EmbeddingUsage'

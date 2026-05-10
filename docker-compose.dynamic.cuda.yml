@@ -1,6 +1,6 @@
 services:
   llama-router:
-    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda}
+    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-cuda-b8840}
     deploy:
       resources:
         reservations:
