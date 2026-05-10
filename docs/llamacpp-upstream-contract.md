@@ -71,3 +71,10 @@ This verifies:
 - the reviewed schema references the same pinned tag/commit/images.
 
 `make schemas` also runs this check.
+
+For a network-backed verification that the pinned git tag and GHCR image digest
+still match the recorded metadata, run:
+
+```bash
+python3 scripts/check_llamacpp_upstream.py --check-remote
+```

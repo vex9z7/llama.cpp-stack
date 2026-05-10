@@ -151,3 +151,25 @@ Static/local checks should verify:
 Future work should deepen typing for streaming event variants and request-body
 validation. Each phase must keep llama.cpp router mode untouched and introduce
 typed adapters at the gateway boundary rather than changing router internals.
+
+## Generated type enforcement
+
+Gateway API structs are generated from schema files:
+
+```text
+openai-api-schema.yaml -> gateway/internal/openaiapi/generated/types.gen.go
+llamacpp-api-schema/openapi.yaml -> gateway/internal/llamacppapi/generated/types.gen.go
+```
+
+Run:
+
+```bash
+make generate-api-types
+make check-api-types-generated
+make check-gateway-typed-boundary
+```
+
+`check-gateway-typed-boundary` statically verifies that gateway boundary packages
+alias generated types, that adapters consume `llamacppapi` types and produce
+`openaiapi` types, and that gateway-owned model/error responses use typed
+OpenAI-compatible structs instead of handwritten maps.

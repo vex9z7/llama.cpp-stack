@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
+import urllib.request
 from pathlib import Path
 
 
@@ -21,6 +23,33 @@ def parse_snapshot(path: Path) -> dict[str, str]:
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise AssertionError(message)
+
+
+def check_remote_ref(snapshot: dict[str, str]) -> None:
+    url = f"https://api.github.com/repos/ggml-org/llama.cpp/git/ref/tags/{snapshot['git_tag']}"
+    with urllib.request.urlopen(url, timeout=30) as resp:
+        data = json.load(resp)
+    sha = data.get("object", {}).get("sha")
+    require(sha == snapshot["git_commit"], f"remote llama.cpp tag {snapshot['git_tag']} points to {sha}, want {snapshot['git_commit']}")
+
+
+def check_remote_image_digests(snapshot: dict[str, str]) -> None:
+    with urllib.request.urlopen("https://ghcr.io/token?service=ghcr.io&scope=repository:ggml-org/llama.cpp:pull", timeout=30) as resp:
+        token = json.load(resp)["token"]
+    for backend in ["cpu", "vulkan", "cuda"]:
+        image = snapshot[f"image_tag_{backend}"]
+        tag = image.rsplit(":", 1)[1]
+        req = urllib.request.Request(
+            f"https://ghcr.io/v2/ggml-org/llama.cpp/manifests/{tag}",
+            headers={
+                "Authorization": "Bearer " + token,
+                "Accept": "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            digest = resp.headers.get("Docker-Content-Digest")
+        want = snapshot[f"image_manifest_digest_{backend}"]
+        require(digest == want, f"remote image digest for {image} is {digest}, want {want}")
 
 
 def check_snapshot(root: Path) -> dict[str, str]:
@@ -116,9 +145,13 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--root", default="llamacpp-upstream")
     parser.add_argument("--schema", default="llamacpp-api-schema/openapi.yaml")
+    parser.add_argument("--check-remote", action="store_true", help="verify pinned git tag and image digests against GitHub/GHCR")
     args = parser.parse_args()
     root = Path(args.root)
     snapshot = check_snapshot(root)
+    if args.check_remote:
+        check_remote_ref(snapshot)
+        check_remote_image_digests(snapshot)
     check_vendored_files(root, snapshot)
     check_routes(root)
     check_compose(snapshot)
