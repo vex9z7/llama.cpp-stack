@@ -1,5 +1,6 @@
 {
   "type": "response.completed",
+  "sequence_number": 1,
   "response": {
     "id": "resp_static_invalid",
     "object": "response",

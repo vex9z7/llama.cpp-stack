@@ -24,6 +24,8 @@ type PromptTokensDetails = gen.PromptTokensDetails
 type Response = gen.Response
 type ResponseObject = gen.ResponseObject
 type ResponseStatus = gen.ResponseStatus
+type ResponseCompletedEvent = gen.ResponseCompletedEvent
+type ResponseCompletedEventType = gen.ResponseCompletedEventType
 type ResponseCreateRequest = gen.ResponseCreateRequest
 type ResponseFunctionCall = gen.ResponseFunctionCall
 type ResponseFunctionCallArgumentsDeltaEvent = gen.ResponseFunctionCallArgumentsDeltaEvent
@@ -68,6 +70,7 @@ const (
 	InputMessageContentTypeInputText  InputMessageContentType = gen.InputMessageContentTypeInputText
 	InputMessageContentTypeOutputText InputMessageContentType = gen.InputMessageContentTypeOutputText
 
+	ResponseCompletedEventTypeCompleted            ResponseCompletedEventType                 = gen.ResponseCompleted
 	ResponseFunctionCallArgumentsDoneEventTypeDone ResponseFunctionCallArgumentsDoneEventType = gen.ResponseFunctionCallArgumentsDone
 	ResponseOutputFunctionCallItemTypeFunctionCall ResponseOutputFunctionCallItemType         = gen.ResponseOutputFunctionCallItemTypeFunctionCall
 )

@@ -108,6 +108,12 @@ def check_official_snapshot(source: str) -> None:
             "- refusal",
             "refusal:",
         ],
+        "ResponseCompletedEvent": [
+            "response.completed",
+            "$ref: '#/components/schemas/Response'",
+            "sequence_number:",
+            "- type\n        - response\n        - sequence_number",
+        ],
         "ResponseFunctionCallArgumentsDeltaEvent": [
             "response.function_call_arguments.delta",
             "item_id:",
@@ -454,6 +460,19 @@ components:
           $ref: '#/components/schemas/PromptTokensDetails'
         completion_tokens_details:
           $ref: '#/components/schemas/CompletionTokensDetails'
+    ResponseCompletedEvent:
+      x-oai-source: ResponseCompletedEvent
+      type: object
+      required: [type, response, sequence_number]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [response.completed]
+        response:
+          $ref: '#/components/schemas/Response'
+        sequence_number:
+          type: integer
     ResponseFunctionCallArgumentsDeltaEvent:
       x-oai-source: ResponseFunctionCallArgumentsDeltaEvent
       type: object

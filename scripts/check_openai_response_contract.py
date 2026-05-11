@@ -23,6 +23,9 @@ def assert_openai_snapshot_contract(spec_path: Path) -> None:
     text = spec_path.read_text(encoding="utf-8")
     required_needles = [
         "ResponseUsage:",
+        "ResponseCompletedEvent:",
+        "response.completed",
+        "sequence_number:",
         "output_tokens_details:",
         "completion_tokens_details:",
         "prompt_tokens_details:",
@@ -67,7 +70,17 @@ def assert_generation_usage_contract(payload: dict[str, Any]) -> None:
         raise ContractError("usage.completion_tokens_details.reasoning_tokens must be an integer")
 
 
+def assert_response_event_contract(payload: dict[str, Any]) -> None:
+    if payload.get("type") == "response.completed":
+        if not isinstance(payload.get("sequence_number"), int):
+            raise ContractError("response.completed sequence_number must be an integer")
+        response = payload.get("response")
+        if not isinstance(response, dict):
+            raise ContractError("response.completed response must be an object")
+
+
 def assert_response_usage_contract(payload: dict[str, Any]) -> None:
+    assert_response_event_contract(payload)
     usage = usage_from_payload(payload)
     for field in ["input_tokens", "input_tokens_details", "output_tokens", "output_tokens_details", "total_tokens"]:
         if field not in usage:

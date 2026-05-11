@@ -89,8 +89,9 @@ all non-streaming inference responses exposed by the current public API:
 - `POST /v1/embeddings`: typed llama.cpp embedding usage -> typed OpenAI embedding usage.
 
 Streaming inference remains framed as SSE. The gateway types and adapts the
-Responses API `response.completed` event, because it contains the final OpenAI
-`ResponseUsage` contract. The gateway also tracks Responses tool-call streaming
+Responses API `response.completed` event with generated OpenAI and llama.cpp
+schema types, because it contains the final OpenAI `ResponseUsage` contract and
+OpenAI requires `sequence_number` on the completed event. The gateway also tracks Responses tool-call streaming
 lifecycle events and synthesizes a typed
 `response.function_call_arguments.done` event before `response.output_item.done`
 when the pinned llama.cpp stream omits it. Other streaming events are passed
@@ -181,6 +182,9 @@ Static/local checks should verify:
 8. Already-typed function-call history passes through unchanged.
 9. Responses tool-call SSE streams include `response.function_call_arguments.done`
    before `response.output_item.done`, even when upstream omits the done event.
+10. `response.completed` event payloads are schema-generated, require
+    `sequence_number` on the public OpenAI side, and are no longer hand-written
+    structs.
 
 ## Future phases
 
@@ -218,7 +222,8 @@ alias generated types, that response adapters consume `llamacppapi` types and
 produce `openaiapi` types, that the Responses request adapter consumes generated
 OpenAI request/input types, that the Responses SSE adapter emits generated typed
 function-call argument done events, that `response.output_item.done.item` is a
-typed `ResponseOutputItem` union, that output message/reasoning/refusal content
+typed `ResponseOutputItem` union, that `ResponseCompletedEvent` is generated and
+requires OpenAI `sequence_number`, that output message/reasoning/refusal content
 components are present, that generated schema/type output has no drift, and that
 gateway-owned model/error responses use typed OpenAI-compatible structs instead
 of handwritten maps.

@@ -84,7 +84,9 @@ def check_source_facts(schema_text: str, source_root: Path) -> None:
     for needle in ['{"type",      "function_call"}', '{"arguments", tool_call.arguments}',
                    '{"call_id",   "fc_" + tool_call.id}', '{"name",      tool_call.name}',
                    '{"event", "response.output_item.done"}',
-                   '{"event", "response.function_call_arguments.delta"}']:
+                   '{"event", "response.function_call_arguments.delta"}',
+                   '{"event", "response.completed"}',
+                   '{"type", "response.completed"}']:
         require(needle in task_cpp, f"source missing responses output/tool-call fact: {needle}")
     require("ResponseOutputFunctionCallItem:" in schema_text, "schema missing typed response function call output item")
     require("required: [type, call_id, name, arguments]" in schema_text,
@@ -93,6 +95,10 @@ def check_source_facts(schema_text: str, source_root: Path) -> None:
             "schema ResponseOutputItemDoneEvent.item must not be an untyped object")
     require("ResponseOutputMessageItem:" in schema_text and "ResponseOutputReasoningItem:" in schema_text,
             "schema missing typed message/reasoning response output items")
+    require("ResponseCompletedEvent:" in schema_text and "$ref: '#/components/schemas/Response'" in schema_text,
+            "schema missing typed response.completed event")
+    require("required: [type, response]" in schema_text,
+            "llama.cpp response.completed schema should require source-backed type/response")
 
     # Embeddings response source emits model/object/usage/data with prompt/total tokens.
     for needle in ['{"model", json_value(request, "model", model_name)}', '{"object", "list"}',

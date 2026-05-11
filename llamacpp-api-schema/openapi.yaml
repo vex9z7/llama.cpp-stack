@@ -297,6 +297,18 @@ components:
             $ref: '#/components/schemas/ResponseOutputItem'
         usage:
           $ref: '#/components/schemas/ResponseUsage'
+    ResponseCompletedEvent:
+      type: object
+      required: [type, response]
+      additionalProperties: true
+      properties:
+        type:
+          type: string
+          enum: [response.completed]
+        response:
+          $ref: '#/components/schemas/Response'
+        sequence_number:
+          type: integer
     ResponseFunctionCallArgumentsDeltaEvent:
       type: object
       required: [type, item_id, delta]

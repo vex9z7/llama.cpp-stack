@@ -44,7 +44,16 @@ func OpenAIResponseOutputFromLlama(in []llamacppapi.ResponseOutputItem) ([]opena
 }
 
 func OpenAIResponseCompletedEventFromLlama(in llamacppapi.ResponseCompletedEvent) openaiapi.ResponseCompletedEvent {
-	return openaiapi.ResponseCompletedEvent{AdditionalProperties: in.AdditionalProperties, Type: in.Type, Response: OpenAIResponseFromLlama(in.Response)}
+	sequenceNumber := 0
+	if in.SequenceNumber != nil {
+		sequenceNumber = *in.SequenceNumber
+	}
+	return openaiapi.ResponseCompletedEvent{
+		AdditionalProperties: in.AdditionalProperties,
+		Type:                 openaiapi.ResponseCompletedEventTypeCompleted,
+		Response:             OpenAIResponseFromLlama(in.Response),
+		SequenceNumber:       sequenceNumber,
+	}
 }
 
 func OpenAIUsageFromLlama(in *llamacppapi.ResponseUsage) *openaiapi.ResponseUsage {

@@ -121,6 +121,21 @@ func (e ResponseStatus) Valid() bool {
 	}
 }
 
+// Defines values for ResponseCompletedEventType.
+const (
+	ResponseCompleted ResponseCompletedEventType = "response.completed"
+)
+
+// Valid indicates whether the value is a known member of the ResponseCompletedEventType enum.
+func (e ResponseCompletedEventType) Valid() bool {
+	switch e {
+	case ResponseCompleted:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ResponseFunctionCallType.
 const (
 	ResponseFunctionCallTypeFunctionCall ResponseFunctionCallType = "function_call"
@@ -520,6 +535,17 @@ type ResponseObject string
 
 // ResponseStatus defines model for Response.Status.
 type ResponseStatus string
+
+// ResponseCompletedEvent defines model for ResponseCompletedEvent.
+type ResponseCompletedEvent struct {
+	Response             Response                   `json:"response"`
+	SequenceNumber       int                        `json:"sequence_number"`
+	Type                 ResponseCompletedEventType `json:"type"`
+	AdditionalProperties map[string]interface{}     `json:"-"`
+}
+
+// ResponseCompletedEventType defines model for ResponseCompletedEvent.Type.
+type ResponseCompletedEventType string
 
 // ResponseCreateRequest defines model for ResponseCreateRequest.
 type ResponseCreateRequest struct {
@@ -1318,6 +1344,98 @@ func (a Response) MarshalJSON() ([]byte, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'usage': %w", err)
 		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseCompletedEvent. Returns the specified
+// element and whether it was found
+func (a ResponseCompletedEvent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseCompletedEvent
+func (a *ResponseCompletedEvent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseCompletedEvent to handle AdditionalProperties
+func (a *ResponseCompletedEvent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["response"]; found {
+		err = json.Unmarshal(raw, &a.Response)
+		if err != nil {
+			return fmt.Errorf("error reading 'response': %w", err)
+		}
+		delete(object, "response")
+	}
+
+	if raw, found := object["sequence_number"]; found {
+		err = json.Unmarshal(raw, &a.SequenceNumber)
+		if err != nil {
+			return fmt.Errorf("error reading 'sequence_number': %w", err)
+		}
+		delete(object, "sequence_number")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseCompletedEvent to handle AdditionalProperties
+func (a ResponseCompletedEvent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["response"], err = json.Marshal(a.Response)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'response': %w", err)
+	}
+
+	object["sequence_number"], err = json.Marshal(a.SequenceNumber)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'sequence_number': %w", err)
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
