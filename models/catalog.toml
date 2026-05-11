@@ -6,8 +6,8 @@
 # --- Smoke-test model ---
 
 [[models]]
-repo = "Open4bits/Qwen3-0.6b-gguf"
-quant = "Q4_K_M"
+repo = "ggml-org/Qwen3-0.6B-GGUF"
+quant = "Q8_0"
 
 # --- Small chat models ---
 
@@ -49,11 +49,6 @@ repo = "LiquidAI/LFM2-700M-GGUF"
 quant = "Q4_K_M"
 file = "LFM2-700M-Q4_K_M.gguf"
 
-# Gemma license terms apply; validate pinned llama.cpp support before production use.
-[[models]]
-repo = "dahus/gemma-4-e2b-it-Q4_K_M-GGUF"
-quant = "Q4_K_M"
-
 [[models]]
 repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
@@ -61,6 +56,6 @@ quant = "Q4_K_M"
 # --- Embedding model ---
 
 [[models]]
-repo = "n24q02m/Qwen3-Embedding-0.6B-GGUF"
-quant = "Q4_K_M"
+repo = "Qwen/Qwen3-Embedding-0.6B-GGUF"
+quant = "Q8_0"
 kind = "embedding"

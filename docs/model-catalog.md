@@ -85,7 +85,7 @@ The starter catalog is intentionally curated rather than exhaustive: it keeps on
 Examples:
 
 ```text
-Open4bits/Qwen3-0.6b-gguf/Q4_K_M
+ggml-org/Qwen3-0.6B-GGUF/Q8_0
 ggml-org/Qwen3-1.7B-GGUF/Q4_K_M
 unsloth/Qwen3.5-2B-GGUF/Q4_K_M
 Qwen/Qwen3-4B-GGUF/Q4_K_M
@@ -93,9 +93,8 @@ Qwen/Qwen3-8B-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/Q4_K_M
 LiquidAI/LFM2-700M-GGUF/Q4_K_M
-dahus/gemma-4-e2b-it-Q4_K_M-GGUF/Q4_K_M
 unsloth/Qwen3.5-9B-GGUF/Q4_K_M
-n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M
+Qwen/Qwen3-Embedding-0.6B-GGUF/Q8_0
 ```
 
-Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Gemma models and other gated/community models may have their own license terms.
+Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Official GGUF sources are preferred; community-only experimental entries should be added only when there is no suitable official source and the model is needed for a specific test.
