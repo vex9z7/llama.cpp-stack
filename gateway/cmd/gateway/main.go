@@ -63,6 +63,9 @@ func run(log *slog.Logger) error {
 	if err := mgr.RenderPreset(); err != nil {
 		return fmt.Errorf("render initial preset: %w", err)
 	}
+	if err := mgr.ReloadRouter(context.Background()); err != nil {
+		return fmt.Errorf("reload initial router registry: %w", err)
+	}
 
 	addr := config.String("GATEWAY_ADDR", ":8090")
 	srv := server.NewHTTPServer(addr, server.New(log, mgr, proxy.Proxy{}).Handler())

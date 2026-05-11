@@ -21,10 +21,11 @@ type ModelsResponse struct {
 }
 
 type ModelRecord struct {
-	ID     string          `json:"id"`
-	Object string          `json:"object"`
-	Status json.RawMessage `json:"status,omitempty"`
-	Meta   json.RawMessage `json:"meta,omitempty"`
+	ID      string          `json:"id"`
+	Aliases []string        `json:"aliases,omitempty"`
+	Object  string          `json:"object"`
+	Status  json.RawMessage `json:"status,omitempty"`
+	Meta    json.RawMessage `json:"meta,omitempty"`
 }
 
 func New(base string) Client { return Client{BaseURL: strings.TrimRight(base, "/")} }

@@ -86,6 +86,21 @@ func (m *Manager) RenderPreset() error {
 	return nil
 }
 
+func (m *Manager) ReloadRouter(ctx context.Context) error {
+	reloadCtx := ctx
+	if m.cfg.ReloadTimeout > 0 {
+		var cancel context.CancelFunc
+		reloadCtx, cancel = context.WithTimeout(ctx, m.cfg.ReloadTimeout)
+		defer cancel()
+	}
+	resp, err := m.router.Models(reloadCtx, true)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrRouterReloadFailed, err)
+	}
+	m.log.Info("reloaded router model registry", "models", len(resp.Data))
+	return nil
+}
+
 func (m *Manager) Health(ctx context.Context) error {
 	if err := m.router.Health(ctx); err != nil {
 		return fmt.Errorf("%w: %w", ErrRouterUnavailable, err)
@@ -98,6 +113,9 @@ func (m *Manager) ListModels(ctx context.Context) []ModelStatus {
 	if resp, err := m.router.Models(ctx, false); err == nil {
 		for _, rec := range resp.Data {
 			routerStatuses[rec.ID] = rec
+			for _, alias := range rec.Aliases {
+				routerStatuses[alias] = rec
+			}
 		}
 	} else {
 		m.log.Debug("router models unavailable", "error", err)
@@ -135,21 +153,31 @@ func (m *Manager) EnsureAvailable(ctx context.Context, ref, requiredKind string)
 	if _, err := m.downloader.Ensure(ctx, cm); err != nil {
 		return fmt.Errorf("%w: code=%s: %w", ErrDownloadFailed, hf.Code(err), err)
 	}
-	if alreadyDownloaded && alreadyRendered {
-		m.log.Debug("model already available", "model", cm.Ref(), "path", stablePath)
+	if !alreadyDownloaded || !alreadyRendered {
+		if err := m.RenderPreset(); err != nil {
+			return fmt.Errorf("%w: render preset: %w", ErrRouterReloadFailed, err)
+		}
+	}
+
+	if ok, err := m.routerHasModel(ctx, cm.Ref()); err == nil && ok {
+		m.log.Debug("model already available in router", "model", cm.Ref(), "path", stablePath)
 		return nil
+	} else if err != nil {
+		m.log.Debug("router model registry check failed; trying reload", "model", cm.Ref(), "error", err)
 	}
-	if err := m.RenderPreset(); err != nil {
-		return fmt.Errorf("%w: render preset: %w", ErrRouterReloadFailed, err)
-	}
+
 	reloadCtx := ctx
 	if m.cfg.ReloadTimeout > 0 {
 		var cancel context.CancelFunc
 		reloadCtx, cancel = context.WithTimeout(ctx, m.cfg.ReloadTimeout)
 		defer cancel()
 	}
-	if _, err := m.router.Models(reloadCtx, true); err != nil {
+	resp, err := m.router.Models(reloadCtx, true)
+	if err != nil {
 		return fmt.Errorf("%w: %w", ErrRouterReloadFailed, err)
+	}
+	if !modelsResponseHas(resp, cm.Ref()) {
+		return fmt.Errorf("%w: model %s missing from router registry after reload", ErrRouterReloadFailed, cm.Ref())
 	}
 	return nil
 }
@@ -174,6 +202,28 @@ func (m *Manager) lockFor(ref string) *sync.Mutex {
 		m.modelLocks[ref] = l
 	}
 	return l
+}
+
+func (m *Manager) routerHasModel(ctx context.Context, ref string) (bool, error) {
+	resp, err := m.router.Models(ctx, false)
+	if err != nil {
+		return false, err
+	}
+	return modelsResponseHas(resp, ref), nil
+}
+
+func modelsResponseHas(resp routerclient.ModelsResponse, ref string) bool {
+	for _, rec := range resp.Data {
+		if rec.ID == ref {
+			return true
+		}
+		for _, alias := range rec.Aliases {
+			if alias == ref {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func parseStatusValue(raw json.RawMessage) string {
