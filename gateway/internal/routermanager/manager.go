@@ -128,8 +128,16 @@ func (m *Manager) EnsureAvailable(ctx context.Context, ref, requiredKind string)
 	lock := m.lockFor(cm.Ref())
 	lock.Lock()
 	defer lock.Unlock()
+
+	stablePath := cm.StablePath(m.cfg.ModelsDir)
+	alreadyDownloaded := fileExists(stablePath)
+	alreadyRendered := m.hasRenderedModel(cm.Ref())
 	if _, err := m.downloader.Ensure(ctx, cm); err != nil {
 		return fmt.Errorf("%w: code=%s: %w", ErrDownloadFailed, hf.Code(err), err)
+	}
+	if alreadyDownloaded && alreadyRendered {
+		m.log.Debug("model already available", "model", cm.Ref(), "path", stablePath)
+		return nil
 	}
 	if err := m.RenderPreset(); err != nil {
 		return fmt.Errorf("%w: render preset: %w", ErrRouterReloadFailed, err)
@@ -144,6 +152,17 @@ func (m *Manager) EnsureAvailable(ctx context.Context, ref, requiredKind string)
 		return fmt.Errorf("%w: %w", ErrRouterReloadFailed, err)
 	}
 	return nil
+}
+
+func (m *Manager) hasRenderedModel(ref string) bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, included := range m.lastRender.IncludedRefs {
+		if included == ref {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *Manager) lockFor(ref string) *sync.Mutex {

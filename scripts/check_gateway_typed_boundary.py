@@ -116,14 +116,16 @@ def check_server_boundary() -> None:
     require("apiadapter.AdaptResponsesRequestBody" in request_adapter, "request adapter must call apiadapter.AdaptResponsesRequestBody")
 
     response_adapter = read("gateway/internal/server/response_adapter.go")
-    require("openaiapi.ResponseFunctionCallArgumentsDoneEvent" in response_adapter, "Responses SSE adapter must emit typed function_call_arguments.done events")
-    require("response.function_call_arguments.delta" in response_adapter, "Responses SSE adapter must observe function call argument deltas")
-    require("response.output_item.done" in response_adapter, "Responses SSE adapter must inject arguments.done before output_item.done")
-    require("openaiapi.ResponseOutputItemDoneEvent" in response_adapter, "Responses SSE adapter must parse output_item.done through generated event type")
-    require("openaiapi.ResponseOutputFunctionCallItem" in response_adapter, "Responses SSE adapter must parse typed function_call output items")
-    require("CallId" in response_adapter, "Responses SSE adapter must use typed function_call call_id")
-    for fn in ["apiadapter.AdaptChatCompletionBody", "apiadapter.AdaptCompletionBody", "apiadapter.AdaptResponsesBody", "apiadapter.AdaptEmbeddingBody", "apiadapter.AdaptResponsesSSEPayload"]:
+    responses_sse_adapter = read("gateway/internal/server/responses_sse_adapter.go")
+    require("openaiapi.ResponseFunctionCallArgumentsDoneEvent" in responses_sse_adapter, "Responses SSE adapter must emit typed function_call_arguments.done events")
+    require("response.function_call_arguments.delta" in responses_sse_adapter, "Responses SSE adapter must observe function call argument deltas")
+    require("response.output_item.done" in responses_sse_adapter, "Responses SSE adapter must inject arguments.done before output_item.done")
+    require("openaiapi.ResponseOutputItemDoneEvent" in responses_sse_adapter, "Responses SSE adapter must parse output_item.done through generated event type")
+    require("openaiapi.ResponseOutputFunctionCallItem" in responses_sse_adapter, "Responses SSE adapter must parse typed function_call output items")
+    require("CallId" in responses_sse_adapter, "Responses SSE adapter must use typed function_call call_id")
+    for fn in ["apiadapter.AdaptChatCompletionBody", "apiadapter.AdaptCompletionBody", "apiadapter.AdaptResponsesBody", "apiadapter.AdaptEmbeddingBody"]:
         require(fn in response_adapter, f"response adapter must call {fn}")
+    require("apiadapter.AdaptResponsesSSEPayload" in responses_sse_adapter, "Responses SSE adapter must call apiadapter.AdaptResponsesSSEPayload")
 
 
 def check_openai_schema_request_contract() -> None:

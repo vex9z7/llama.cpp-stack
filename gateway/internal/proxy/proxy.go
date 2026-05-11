@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 )
 
 type Proxy struct{ Client *http.Client }
@@ -37,25 +38,22 @@ func (p Proxy) Do(ctx context.Context, method, reqPath, rawQuery string, headers
 	return p.http().Do(up)
 }
 
-func (p Proxy) ForwardBytes(ctx context.Context, w http.ResponseWriter, r *http.Request, backendURL string, body []byte) error {
-	resp, err := p.Do(ctx, r.Method, r.URL.Path, r.URL.RawQuery, r.Header, backendURL, body)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	copyHeaders(w.Header(), resp.Header)
-	w.WriteHeader(resp.StatusCode)
-	return CopyFlush(w, resp.Body)
+var defaultHTTPClient = &http.Client{
+	Transport: &http.Transport{
+		Proxy:                 http.ProxyFromEnvironment,
+		ResponseHeaderTimeout: 30 * time.Second,
+		IdleConnTimeout:       90 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+	},
 }
 
 func (p Proxy) http() *http.Client {
 	if p.Client != nil {
 		return p.Client
 	}
-	return &http.Client{Timeout: 0}
+	return defaultHTTPClient
 }
-
-func CopyHeaders(dst, src http.Header) { copyHeaders(dst, src) }
 
 func copyHeaders(dst, src http.Header) {
 	for k, vals := range src {

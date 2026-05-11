@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -23,12 +24,18 @@ func main() {
 	log := config.Logger()
 	slog.SetDefault(log)
 
+	if err := run(log); err != nil {
+		log.Error("gateway exited", "error", err)
+		os.Exit(1)
+	}
+}
+
+func run(log *slog.Logger) error {
 	modelsDir := config.String("MODELS_DIR", "/models")
 	catalogPath := config.String("CATALOG_PATH", modelsDir+"/catalog.toml")
 	cat, err := catalog.Load(catalogPath)
 	if err != nil {
-		log.Error("load catalog", "path", catalogPath, "error", err)
-		os.Exit(1)
+		return fmt.Errorf("load catalog %q: %w", catalogPath, err)
 	}
 
 	routerURL := config.String("LLAMA_ROUTER_URL", "http://llama-router:8080")
@@ -49,25 +56,39 @@ func main() {
 	}
 	mgr := routermanager.New(log, cat, dl, routerclient.New(routerURL), routerCfg)
 	if err := mgr.RenderPreset(); err != nil {
-		log.Error("render initial preset", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("render initial preset: %w", err)
 	}
 
 	addr := config.String("GATEWAY_ADDR", ":8090")
 	srv := server.NewHTTPServer(addr, server.New(log, mgr, proxy.Proxy{}).Handler())
+	serverErr := make(chan error, 1)
 	go func() {
 		log.Info("gateway listening", "addr", addr, "router_url", routerURL)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Error("gateway failed", "error", err)
-			os.Exit(1)
+			serverErr <- err
+			return
 		}
+		serverErr <- nil
 	}()
 
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
-	<-stop
+	defer signal.Stop(stop)
+
+	select {
+	case sig := <-stop:
+		log.Info("gateway shutting down", "signal", sig.String())
+	case err := <-serverErr:
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	_ = srv.Shutdown(ctx)
+	if err := srv.Shutdown(ctx); err != nil {
+		return err
+	}
+	return <-serverErr
 }
