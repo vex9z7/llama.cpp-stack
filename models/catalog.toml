@@ -70,6 +70,35 @@ quant = "Q4_K_M"
 # but validate before relying on them in production.
 
 [[models]]
+repo = "ggml-org/gemma-3-1b-it-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "ibm-granite/granite-3.3-2b-instruct-GGUF"
+quant = "Q4_K_M"
+
+# Liquid LFM2 is a newer hybrid architecture; validate pinned llama.cpp support.
+[[models]]
+repo = "LiquidAI/LFM2-350M-GGUF"
+quant = "Q4_K_M"
+file = "LFM2-350M-Q4_K_M.gguf"
+
+[[models]]
+repo = "LiquidAI/LFM2-700M-GGUF"
+quant = "Q4_K_M"
+file = "LFM2-700M-Q4_K_M.gguf"
+
+[[models]]
+repo = "LiquidAI/LFM2-1.2B-GGUF"
+quant = "Q4_K_M"
+file = "LFM2-1.2B-Q4_K_M.gguf"
+
+[[models]]
+repo = "LiquidAI/LFM2-2.6B-GGUF"
+quant = "Q4_K_M"
+file = "LFM2-2.6B-Q4_K_M.gguf"
+
+[[models]]
 repo = "AaryanK/Qwen3.5-0.8B-GGUF"
 quant = "Q4_K_M"
 file = "Qwen3.5-0.8B.q4_k_m.gguf"
@@ -85,6 +114,15 @@ quant = "Q4_K_M"
 # Gemma license terms apply; validate pinned llama.cpp support before production use.
 [[models]]
 repo = "dahus/gemma-4-e2b-it-Q4_K_M-GGUF"
+quant = "Q4_K_M"
+
+# MiniCPM 8B family, Apache-2.0; useful for non-Qwen/non-Llama compatibility tests.
+[[models]]
+repo = "openbmb/MiniCPM4-8B-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "QuantFactory/MiniCPM4.1-8B-GGUF"
 quant = "Q4_K_M"
 
 # --- Embedding models ---

@@ -89,8 +89,12 @@ Open4bits/Qwen3-0.6b-gguf/Q4_K_M
 ggml-org/Qwen3-1.7B-GGUF/Q4_K_M
 Qwen/Qwen3-4B-GGUF/Q4_K_M
 AaryanK/Qwen3.5-0.8B-GGUF/Q4_K_M
+ggml-org/gemma-3-1b-it-GGUF/Q4_K_M
+ibm-granite/granite-3.3-2b-instruct-GGUF/Q4_K_M
+LiquidAI/LFM2-700M-GGUF/Q4_K_M
 jc-builds/Qwen3.5-4B-Q4_K_M-GGUF/Q4_K_M
 worthdoing/Phi-4-mini-GGUF/Q4_K_M
+openbmb/MiniCPM4-8B-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
 n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M
 ```
