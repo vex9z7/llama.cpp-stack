@@ -64,6 +64,29 @@ quant = "Q4_K_M"
 repo = "bartowski/Qwen2.5-Coder-7B-Instruct-GGUF"
 quant = "Q4_K_M"
 
+# --- Recent <=10B small-model candidates ---
+# These are useful for compatibility testing across newer model families.
+# Some may require a newer llama.cpp than the pinned image; keep them cataloged
+# but validate before relying on them in production.
+
+[[models]]
+repo = "AaryanK/Qwen3.5-0.8B-GGUF"
+quant = "Q4_K_M"
+file = "Qwen3.5-0.8B.q4_k_m.gguf"
+
+[[models]]
+repo = "jc-builds/Qwen3.5-4B-Q4_K_M-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "worthdoing/Phi-4-mini-GGUF"
+quant = "Q4_K_M"
+
+# Gemma license terms apply; validate pinned llama.cpp support before production use.
+[[models]]
+repo = "dahus/gemma-4-e2b-it-Q4_K_M-GGUF"
+quant = "Q4_K_M"
+
 # --- Embedding models ---
 # These require a separate llama-server instance started with --embeddings.
 

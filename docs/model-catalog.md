@@ -88,8 +88,11 @@ Examples:
 Open4bits/Qwen3-0.6b-gguf/Q4_K_M
 ggml-org/Qwen3-1.7B-GGUF/Q4_K_M
 Qwen/Qwen3-4B-GGUF/Q4_K_M
+AaryanK/Qwen3.5-0.8B-GGUF/Q4_K_M
+jc-builds/Qwen3.5-4B-Q4_K_M-GGUF/Q4_K_M
+worthdoing/Phi-4-mini-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
 n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M
 ```
 
-Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Gemma models and other gated/community models may have their own license terms.
+Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Gemma models and other gated/community models may have their own license terms.
