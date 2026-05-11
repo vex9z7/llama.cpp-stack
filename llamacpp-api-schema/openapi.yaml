@@ -29,12 +29,6 @@ paths:
   /models:
     get:
       operationId: llamaListModels
-      parameters:
-        - name: reload
-          in: query
-          required: false
-          schema:
-            type: string
       responses:
         '200':
           description: Router model list
@@ -45,12 +39,6 @@ paths:
   /v1/models:
     get:
       operationId: llamaListModelsV1
-      parameters:
-        - name: reload
-          in: query
-          required: false
-          schema:
-            type: string
       responses:
         '200':
           description: Router model list

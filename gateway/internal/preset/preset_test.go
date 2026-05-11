@@ -9,7 +9,7 @@ import (
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
 )
 
-func TestRenderIncludesOnlyDownloadedModels(t *testing.T) {
+func TestRenderIncludesAllCatalogModels(t *testing.T) {
 	dir := t.TempDir()
 	if err := os.MkdirAll(filepath.Join(dir, "hf", "owner", "chat"), 0o755); err != nil {
 		t.Fatal(err)
@@ -22,7 +22,7 @@ func TestRenderIncludesOnlyDownloadedModels(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out.IncludedCount != 1 {
+	if out.IncludedCount != 3 {
 		t.Fatalf("included count = %d", out.IncludedCount)
 	}
 	data, err := os.ReadFile(out.Path)
@@ -33,7 +33,7 @@ func TestRenderIncludesOnlyDownloadedModels(t *testing.T) {
 	if !strings.Contains(s, "[owner/chat/Q4]") {
 		t.Fatalf("missing chat section:\n%s", s)
 	}
-	if strings.Contains(s, "owner/missing") {
-		t.Fatalf("missing model should not be rendered:\n%s", s)
+	if !strings.Contains(s, "[owner/missing/Q4]") {
+		t.Fatalf("missing model should still be registered in preset:\n%s", s)
 	}
 }

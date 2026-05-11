@@ -94,9 +94,9 @@ func (a *App) writeEnsureError(ctx huma.Context, model string, err error) {
 	case errors.Is(err, routermanager.ErrDownloadFailed):
 		a.log.Error("download failed", "model", model, "error", err)
 		a.writeOpenAIError(ctx, http.StatusServiceUnavailable, "download_error", "download_failed", err.Error())
-	case errors.Is(err, routermanager.ErrRouterReloadFailed):
-		a.log.Error("router reload failed", "model", model, "error", err)
-		a.writeOpenAIError(ctx, http.StatusServiceUnavailable, "upstream_error", "router_reload_failed", err.Error())
+	case errors.Is(err, routermanager.ErrRouterRegistryStale):
+		a.log.Error("router registry stale", "model", model, "error", err)
+		a.writeOpenAIError(ctx, http.StatusServiceUnavailable, "upstream_error", "router_registry_stale", err.Error())
 	default:
 		a.log.Error("ensure available failed", "model", model, "error", err)
 		a.writeOpenAIError(ctx, http.StatusServiceUnavailable, "upstream_error", "ensure_available_failed", err.Error())

@@ -71,7 +71,7 @@ Go Gateway container
   - OpenAI-compatible public API
   - catalog parsing / allowlist
   - lazy Hugging Face downloader
-  - router preset generation + reload
+  - router preset generation
   - typed OpenAI compatibility adapters where needed
   - streaming/cancellation-aware proxy
         |
@@ -99,7 +99,7 @@ The gateway does not expose backend URLs or llama.cpp router management endpoint
 
 ```text
 Gateway
-  owns: public API, OpenAPI, catalog allowlist, lazy download, preset reload,
+  owns: public API, OpenAPI, catalog allowlist, lazy download, startup preset generation,
         capability checks, cancellation-aware proxy, public error shape
   does not own: inference execution, child llama-server processes, public slots
 
@@ -188,7 +188,7 @@ Requesting a catalog model lazily downloads the selected GGUF into:
 models/hf/<repo>/<quant>.gguf
 ```
 
-Then the gateway regenerates the router preset, asks `llama-server` router mode to reload model metadata, and proxies the request to the router. Router mode owns actual model load/unload.
+The stack generates a full-catalog router preset before `llama-router` starts. At request time the gateway downloads the GGUF if missing, verifies the router registry contains the model, and proxies the request. Router mode owns actual model load/unload.
 
 ## Capacity semantics
 

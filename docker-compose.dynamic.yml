@@ -17,6 +17,36 @@ services:
         chown -R "$${APP_UID}:$${APP_GID}" /models
         chmod -R u+rwX,g+rwX /models
 
+  gateway-init:
+    build:
+      context: .
+      dockerfile: gateway/Dockerfile
+    restart: "no"
+    command:
+      - render-preset
+    volumes:
+      - ./models:/models:rw,z
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    user: "${APP_UID:-10001}:${APP_GID:-10001}"
+    environment:
+      MODELS_DIR: /models
+      CATALOG_PATH: /models/catalog.toml
+      LLAMA_MODELS_PRESET: /models/models-preset.generated.ini
+      LLAMA_ROUTER_CTX_SIZE: ${LLAMA_ROUTER_CTX_SIZE:-8192}
+      LLAMA_ROUTER_PARALLEL: ${LLAMA_ROUTER_PARALLEL:--1}
+      LLAMA_ROUTER_THREADS_HTTP: ${LLAMA_ROUTER_THREADS_HTTP:--1}
+      LLAMA_ROUTER_N_GPU_LAYERS: ${LLAMA_ROUTER_N_GPU_LAYERS:-999}
+      LLAMA_ROUTER_EXTRA_ARGS: ${LLAMA_ROUTER_EXTRA_ARGS:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      LOG_FORMAT: ${LOG_FORMAT:-json}
+    depends_on:
+      model-permissions:
+        condition: service_completed_successfully
+
   gateway:
     build:
       context: .
@@ -43,14 +73,13 @@ services:
       LLAMA_ROUTER_THREADS_HTTP: ${LLAMA_ROUTER_THREADS_HTTP:--1}
       LLAMA_ROUTER_N_GPU_LAYERS: ${LLAMA_ROUTER_N_GPU_LAYERS:-999}
       LLAMA_ROUTER_EXTRA_ARGS: ${LLAMA_ROUTER_EXTRA_ARGS:-}
-      LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS: ${LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS:-30}
       HF_ENDPOINT: ${HF_ENDPOINT:-https://huggingface.co}
       HF_TOKEN: ${HF_TOKEN:-}
       HF_TOKEN_FILE: ${HF_TOKEN_FILE:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-json}
     depends_on:
-      model-permissions:
+      gateway-init:
         condition: service_completed_successfully
       llama-router:
         condition: service_healthy
@@ -103,7 +132,7 @@ services:
         fi
         exec "$${args[@]}"
     depends_on:
-      model-permissions:
+      gateway-init:
         condition: service_completed_successfully
     healthcheck:
       test:

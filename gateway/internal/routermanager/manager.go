@@ -8,7 +8,6 @@ import (
 	"log/slog"
 	"os"
 	"sync"
-	"time"
 
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/hf"
@@ -17,22 +16,21 @@ import (
 )
 
 var (
-	ErrModelNotFound      = errors.New("model not found in catalog")
-	ErrCapabilityMismatch = errors.New("model capability mismatch")
-	ErrDownloadFailed     = errors.New("model download failed")
-	ErrRouterReloadFailed = errors.New("router reload failed")
-	ErrRouterUnavailable  = errors.New("router unavailable")
+	ErrModelNotFound       = errors.New("model not found in catalog")
+	ErrCapabilityMismatch  = errors.New("model capability mismatch")
+	ErrDownloadFailed      = errors.New("model download failed")
+	ErrRouterRegistryStale = errors.New("router registry stale")
+	ErrRouterUnavailable   = errors.New("router unavailable")
 )
 
 type Config struct {
-	ModelsDir     string
-	PresetPath    string
-	CtxSize       int
-	Parallel      int
-	ThreadsHTTP   int
-	NGPULayers    int
-	ExtraArgs     string
-	ReloadTimeout time.Duration
+	ModelsDir   string
+	PresetPath  string
+	CtxSize     int
+	Parallel    int
+	ThreadsHTTP int
+	NGPULayers  int
+	ExtraArgs   string
 }
 
 type ModelStatus struct {
@@ -86,21 +84,6 @@ func (m *Manager) RenderPreset() error {
 	return nil
 }
 
-func (m *Manager) ReloadRouter(ctx context.Context) error {
-	reloadCtx := ctx
-	if m.cfg.ReloadTimeout > 0 {
-		var cancel context.CancelFunc
-		reloadCtx, cancel = context.WithTimeout(ctx, m.cfg.ReloadTimeout)
-		defer cancel()
-	}
-	resp, err := m.router.Models(reloadCtx, true)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrRouterReloadFailed, err)
-	}
-	m.log.Info("reloaded router model registry", "models", len(resp.Data))
-	return nil
-}
-
 func (m *Manager) Health(ctx context.Context) error {
 	if err := m.router.Health(ctx); err != nil {
 		return fmt.Errorf("%w: %w", ErrRouterUnavailable, err)
@@ -110,7 +93,7 @@ func (m *Manager) Health(ctx context.Context) error {
 
 func (m *Manager) ListModels(ctx context.Context) []ModelStatus {
 	routerStatuses := map[string]routerclient.ModelRecord{}
-	if resp, err := m.router.Models(ctx, false); err == nil {
+	if resp, err := m.router.Models(ctx); err == nil {
 		for _, rec := range resp.Data {
 			routerStatuses[rec.ID] = rec
 			for _, alias := range rec.Aliases {
@@ -148,49 +131,18 @@ func (m *Manager) EnsureAvailable(ctx context.Context, ref, requiredKind string)
 	defer lock.Unlock()
 
 	stablePath := cm.StablePath(m.cfg.ModelsDir)
-	alreadyDownloaded := fileExists(stablePath)
-	alreadyRendered := m.hasRenderedModel(cm.Ref())
 	if _, err := m.downloader.Ensure(ctx, cm); err != nil {
 		return fmt.Errorf("%w: code=%s: %w", ErrDownloadFailed, hf.Code(err), err)
 	}
-	if !alreadyDownloaded || !alreadyRendered {
-		if err := m.RenderPreset(); err != nil {
-			return fmt.Errorf("%w: render preset: %w", ErrRouterReloadFailed, err)
-		}
+
+	if ok, err := m.routerHasModel(ctx, cm.Ref()); err != nil {
+		return fmt.Errorf("%w: check router registry: %w", ErrRouterRegistryStale, err)
+	} else if !ok {
+		return fmt.Errorf("%w: model %s missing from router registry; restart router after preset generation", ErrRouterRegistryStale, cm.Ref())
 	}
 
-	if ok, err := m.routerHasModel(ctx, cm.Ref()); err == nil && ok {
-		m.log.Debug("model already available in router", "model", cm.Ref(), "path", stablePath)
-		return nil
-	} else if err != nil {
-		m.log.Debug("router model registry check failed; trying reload", "model", cm.Ref(), "error", err)
-	}
-
-	reloadCtx := ctx
-	if m.cfg.ReloadTimeout > 0 {
-		var cancel context.CancelFunc
-		reloadCtx, cancel = context.WithTimeout(ctx, m.cfg.ReloadTimeout)
-		defer cancel()
-	}
-	resp, err := m.router.Models(reloadCtx, true)
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrRouterReloadFailed, err)
-	}
-	if !modelsResponseHas(resp, cm.Ref()) {
-		return fmt.Errorf("%w: model %s missing from router registry after reload", ErrRouterReloadFailed, cm.Ref())
-	}
+	m.log.Debug("model available in router", "model", cm.Ref(), "path", stablePath)
 	return nil
-}
-
-func (m *Manager) hasRenderedModel(ref string) bool {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for _, included := range m.lastRender.IncludedRefs {
-		if included == ref {
-			return true
-		}
-	}
-	return false
 }
 
 func (m *Manager) lockFor(ref string) *sync.Mutex {
@@ -205,7 +157,7 @@ func (m *Manager) lockFor(ref string) *sync.Mutex {
 }
 
 func (m *Manager) routerHasModel(ctx context.Context, ref string) (bool, error) {
-	resp, err := m.router.Models(ctx, false)
+	resp, err := m.router.Models(ctx)
 	if err != nil {
 		return false, err
 	}

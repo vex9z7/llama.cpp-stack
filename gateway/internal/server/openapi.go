@@ -32,7 +32,7 @@ func withProxyDocs(op *huma.Operation) *huma.Operation {
 		"200": jsonResponse("Successful upstream response. Shape depends on the proxied llama.cpp/OpenAI-compatible endpoint.", openObjectSchema()),
 		"400": jsonResponse("Gateway validation error", errorSchema()),
 		"404": jsonResponse("Catalog model not found", errorSchema()),
-		"503": jsonResponse("Download, router reload, or upstream availability error", errorSchema()),
+		"503": jsonResponse("Download, router registry, or upstream availability error", errorSchema()),
 	}
 	return op
 }

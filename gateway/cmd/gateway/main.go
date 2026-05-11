@@ -32,6 +32,10 @@ func main() {
 }
 
 func run(log *slog.Logger) error {
+	if len(os.Args) > 1 && os.Args[1] == "render-preset" {
+		return renderPresetOnly(log)
+	}
+
 	modelsDir := config.String("MODELS_DIR", "/models")
 	catalogPath := config.String("CATALOG_PATH", modelsDir+"/catalog.toml")
 	cat, err := catalog.Load(catalogPath)
@@ -50,23 +54,18 @@ func run(log *slog.Logger) error {
 		ModelsDir: modelsDir,
 	}
 	routerCfg := routermanager.Config{
-		ModelsDir:     modelsDir,
-		PresetPath:    config.String("LLAMA_MODELS_PRESET", modelsDir+"/models-preset.generated.ini"),
-		CtxSize:       config.Int("LLAMA_ROUTER_CTX_SIZE", 8192),
-		Parallel:      config.Int("LLAMA_ROUTER_PARALLEL", -1),
-		ThreadsHTTP:   config.Int("LLAMA_ROUTER_THREADS_HTTP", -1),
-		NGPULayers:    config.Int("LLAMA_ROUTER_N_GPU_LAYERS", 999),
-		ExtraArgs:     config.String("LLAMA_ROUTER_EXTRA_ARGS", ""),
-		ReloadTimeout: config.DurationSeconds("LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS", 30*time.Second),
+		ModelsDir:   modelsDir,
+		PresetPath:  config.String("LLAMA_MODELS_PRESET", modelsDir+"/models-preset.generated.ini"),
+		CtxSize:     config.Int("LLAMA_ROUTER_CTX_SIZE", 8192),
+		Parallel:    config.Int("LLAMA_ROUTER_PARALLEL", -1),
+		ThreadsHTTP: config.Int("LLAMA_ROUTER_THREADS_HTTP", -1),
+		NGPULayers:  config.Int("LLAMA_ROUTER_N_GPU_LAYERS", 999),
+		ExtraArgs:   config.String("LLAMA_ROUTER_EXTRA_ARGS", ""),
 	}
 	mgr := routermanager.New(log, cat, dl, routerclient.New(routerURL), routerCfg)
 	if err := mgr.RenderPreset(); err != nil {
 		return fmt.Errorf("render initial preset: %w", err)
 	}
-	if err := mgr.ReloadRouter(context.Background()); err != nil {
-		return fmt.Errorf("reload initial router registry: %w", err)
-	}
-
 	addr := config.String("GATEWAY_ADDR", ":8090")
 	srv := server.NewHTTPServer(addr, server.New(log, mgr, proxy.Proxy{}).Handler())
 	serverErr := make(chan error, 1)
@@ -99,6 +98,26 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	return <-serverErr
+}
+
+func renderPresetOnly(log *slog.Logger) error {
+	modelsDir := config.String("MODELS_DIR", "/models")
+	catalogPath := config.String("CATALOG_PATH", modelsDir+"/catalog.toml")
+	cat, err := catalog.Load(catalogPath)
+	if err != nil {
+		return fmt.Errorf("load catalog %q: %w", catalogPath, err)
+	}
+	cfg := routermanager.Config{
+		ModelsDir:   modelsDir,
+		PresetPath:  config.String("LLAMA_MODELS_PRESET", modelsDir+"/models-preset.generated.ini"),
+		CtxSize:     config.Int("LLAMA_ROUTER_CTX_SIZE", 8192),
+		Parallel:    config.Int("LLAMA_ROUTER_PARALLEL", -1),
+		ThreadsHTTP: config.Int("LLAMA_ROUTER_THREADS_HTTP", -1),
+		NGPULayers:  config.Int("LLAMA_ROUTER_N_GPU_LAYERS", 999),
+		ExtraArgs:   config.String("LLAMA_ROUTER_EXTRA_ARGS", ""),
+	}
+	mgr := routermanager.New(log, cat, &hf.Downloader{ModelsDir: modelsDir}, routerclient.Client{}, cfg)
+	return mgr.RenderPreset()
 }
 
 func hfToken() (string, error) {

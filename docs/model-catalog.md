@@ -73,7 +73,7 @@ The original Hugging Face filename is used only while selecting which remote fil
 There is intentionally no `make download` path. The gateway owns lazy download:
 
 ```text
-gateway request -> ensure model available -> download if missing -> render preset -> router reload -> proxy to backend
+gateway request -> ensure model available -> download if missing -> verify router registry -> proxy to backend
 ```
 
 Manual prefetch can be reintroduced later as an operator command, not as a host-side deployment prerequisite.

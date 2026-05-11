@@ -4,7 +4,7 @@
 
 Decision: use an application gateway as the default public entrypoint, backed by `llama-server` router mode as the dynamic model lifecycle layer.
 
-The gateway is not a replacement for llama.cpp router mode. It is a thin product/control layer that fills the gaps router mode does not currently own for this project: catalog allowlisting, Hugging Face lazy download, preset generation/reload, public API shaping, and contract checks. If upstream router mode later implements some of these features well enough, the gateway should delegate to upstream rather than duplicate them.
+The gateway is not a replacement for llama.cpp router mode. It is a thin product/control layer that fills the gaps router mode does not currently own for this project: catalog allowlisting, Hugging Face lazy download, preset generation, public API shaping, and contract checks. If upstream router mode later implements some of these features well enough, the gateway should delegate to upstream rather than duplicate them.
 
 Rationale:
 
@@ -73,7 +73,7 @@ Responsibilities:
 - lazily download missing model files;
 - maintain the stable local model path layout;
 - generate `models-preset.generated.ini` from downloaded catalog models;
-- call router `/models?reload=1` after catalog/download/preset changes;
+- generate the full catalog preset before router startup;
 - leave model load/unload scheduling to llama.cpp router mode by default;
 - proxy allowed inference requests to llama.cpp router mode;
 - adapt known OpenAI-compatible request fields to llama.cpp/model-template
@@ -102,9 +102,9 @@ API. It prepares models for the backend but does not schedule loaded instances.
 Responsibilities:
 
 - track catalog/download/router metadata needed by request handling;
-- serialize same-model lazy downloads and preset reloads;
+- serialize same-model lazy downloads and startup preset generations;
 - ensure a requested catalog model exists locally before proxying;
-- render presets and call `/models?reload=1` when the downloaded model set changes.
+- render the full catalog preset before router startup; runtime reload is not supported by the pinned router.
 
 Non-responsibilities:
 
@@ -173,7 +173,7 @@ gateway listening
 gateway shutting down
 rendered router preset
 download failed
-router reload failed
+router registry stale
 ensure available failed
 proxy failed
 responses SSE copy failed
@@ -259,7 +259,7 @@ Current implementation notes:
 - model aliases intentionally use the same slash-containing model ref returned by `/v1/models`.
 - `sleep-idle-seconds` is exposed as `LLAMA_SLEEP_IDLE_SECONDS`; `load-on-startup` and explicit per-model stop timeout are not exposed yet.
 
-## 6. Download and reload flow
+## 6. Download and router registry flow
 
 Router mode discovers models from cache, `--models-dir`, or `--models-preset`. It does not replace our need for a curated downloader.
 
@@ -275,7 +275,7 @@ gateway validates X exists in catalog
   |      download GGUF from Hugging Face
   |      publish /models/hf/<repo>/<quant>.gguf atomically
   |      regenerate models-preset.ini if needed
-  |      call llama router GET /models?reload=1
+  |      verify the model exists in llama router /models
   |
   v
 proxy original request to llama router
@@ -286,7 +286,7 @@ llama router autoloads X and proxies to child instance
 
 There is no deploy-time prefetch command in the current implementation. Request-time lazy download is the supported path.
 
-Important note: if a new model file appears after router startup, the gateway calls `GET /models?reload=1` before forwarding the first request for that model.
+Important note: the pinned llama.cpp router does not runtime-reload `--models-preset`; the full catalog preset must be generated before router startup. Lazy download only fills model files for already-registered preset entries.
 
 ## 7. Public API surface
 
@@ -343,7 +343,7 @@ as pinned models, priority, or VRAM-aware placement.
 Slot count is not dynamically adjusted by the gateway. `LLAMA_ROUTER_PARALLEL`
 controls the preset `parallel` value passed to child model instances; `-1` means
 llama.cpp chooses automatically. Changing slot count for a loaded model requires
-changing the preset and reloading that model instance, not a hot slot resize.
+changing the preset and restarting the router, not a hot slot resize.
 
 ## 9. Cancellation and streaming
 
@@ -377,7 +377,7 @@ public request
   -> validate model exists in catalog
   -> ensure local GGUF exists, downloading if needed
   -> ensure generated preset includes the model
-  -> call router /models?reload=1 when new files/presets appear
+  -> verify router /models contains the catalog model
   -> proxy the original request to llama.cpp router mode
   -> stream response back to client
 ```
@@ -441,7 +441,7 @@ missing_model
 model_not_found
 model_capability_mismatch
 download_failed
-router_reload_failed
+router_registry_stale
 router_unavailable
 ```
 
@@ -449,7 +449,7 @@ Upstream llama.cpp errors may be passed through unless they need normalization f
 
 ## 11. Framework choice for our code
 
-Even though llama.cpp owns model lifecycle, the gateway still has real API responsibilities: model allowlisting, lazy download, router reload, endpoint hiding, and contract documentation. This is enough structure to justify a small framework boundary.
+Even though llama.cpp owns model lifecycle, the gateway still has real API responsibilities: model allowlisting, lazy download, router registry verification, endpoint hiding, and contract documentation. This is enough structure to justify a small framework boundary.
 
 Selected stack:
 
@@ -539,7 +539,7 @@ Status: implemented in the gateway request path.
 - implement catalog-aware Hugging Face download using the existing downloader logic;
 - publish stable paths atomically;
 - render `models-preset.generated.ini` after downloads;
-- call `/models?reload=1` after new files appear;
+- generate the full catalog preset before router startup;
 - add per-model locking so concurrent requests do not download the same model twice.
 
 ### Phase 4: Huma/chi gateway boundary
@@ -549,7 +549,7 @@ Status: implemented as the default gateway boundary.
 - route registration uses Huma on the chi adapter;
 - gateway exposes OpenAI-compatible endpoints only;
 - gateway validates the catalog allowlist;
-- gateway triggers lazy download/reload;
+- gateway triggers lazy download and verifies router registry;
 - gateway proxies to llama router with cancellation propagation;
 - gateway hides router management endpoints from public clients;
 - gateway exposes generated OpenAPI at `/openapi.json`;

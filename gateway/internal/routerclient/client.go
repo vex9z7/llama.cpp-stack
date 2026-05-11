@@ -46,11 +46,8 @@ func (c Client) Health(ctx context.Context) error {
 	return nil
 }
 
-func (c Client) Models(ctx context.Context, reload bool) (ModelsResponse, error) {
+func (c Client) Models(ctx context.Context) (ModelsResponse, error) {
 	u := c.BaseURL + "/models"
-	if reload {
-		u += "?reload=1"
-	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
 	if err != nil {
 		return ModelsResponse{}, err

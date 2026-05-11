@@ -52,10 +52,6 @@ func Render(cat *catalog.Catalog, cfg Config) (Rendered, error) {
 	included := make([]string, 0, len(models))
 	for _, m := range models {
 		stable := m.StablePath(cfg.ModelsDir)
-		st, err := os.Stat(stable)
-		if err != nil || st.IsDir() || st.Size() == 0 {
-			continue
-		}
 		ref := m.Ref()
 		included = append(included, ref)
 		b.WriteString("[")

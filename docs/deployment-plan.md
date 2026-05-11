@@ -107,7 +107,7 @@ GGUF Models on Vulkan/CPU/CUDA backend
 当前部署包含一个 init 容器和两个主容器：
 
 - `model-permissions`：one-shot root init service，只负责初始化 `/models` 目录、generated preset 文件和 gateway 所需所有权。
-- `gateway`：非 root 运行，暴露公开 API、执行 catalog allowlist、lazy download、preset render/reload、请求转发与取消传播。
+- `gateway`：非 root 运行，暴露公开 API、执行 catalog allowlist、lazy download、preset render、请求转发与取消传播。
 - `llama-router`：root 运行 `llama-server` router mode，负责 child model instance lifecycle、autoload、LRU unload、slot/parallel、Vulkan/CPU/CUDA 推理；保留 root 是为了避免 Fedora Atomic/Bazzite 等系统上的 `/dev/dri` group/ACL 复杂性。
 
 ### Persistent storage

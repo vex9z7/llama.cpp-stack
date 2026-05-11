@@ -467,16 +467,6 @@ type Success struct {
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
-// LlamaListModelsParams defines parameters for LlamaListModels.
-type LlamaListModelsParams struct {
-	Reload *string `form:"reload,omitempty" json:"reload,omitempty"`
-}
-
-// LlamaListModelsV1Params defines parameters for LlamaListModelsV1.
-type LlamaListModelsV1Params struct {
-	Reload *string `form:"reload,omitempty" json:"reload,omitempty"`
-}
-
 // LlamaLoadModelJSONRequestBody defines body for LlamaLoadModel for application/json ContentType.
 type LlamaLoadModelJSONRequestBody = ModelRequest
 
