@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -39,9 +40,13 @@ func run(log *slog.Logger) error {
 	}
 
 	routerURL := config.String("LLAMA_ROUTER_URL", "http://llama-router:8080")
+	token, err := hfToken()
+	if err != nil {
+		return err
+	}
 	dl := &hf.Downloader{
 		Endpoint:  config.String("HF_ENDPOINT", "https://huggingface.co"),
-		Token:     config.String("HF_TOKEN", ""),
+		Token:     token,
 		ModelsDir: modelsDir,
 	}
 	routerCfg := routermanager.Config{
@@ -91,4 +96,16 @@ func run(log *slog.Logger) error {
 		return err
 	}
 	return <-serverErr
+}
+
+func hfToken() (string, error) {
+	tokenFile := config.String("HF_TOKEN_FILE", "")
+	if tokenFile == "" {
+		return config.String("HF_TOKEN", ""), nil
+	}
+	b, err := os.ReadFile(tokenFile)
+	if err != nil {
+		return "", fmt.Errorf("read HF_TOKEN_FILE %q: %w", tokenFile, err)
+	}
+	return strings.TrimSpace(string(b)), nil
 }

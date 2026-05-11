@@ -112,6 +112,8 @@ GGUF Models on Vulkan/CPU/CUDA backend
 ### Persistent storage
 
 - `./models:/models:rw,z`：保存 catalog、lazy-downloaded GGUF、generated router preset；gateway 需要写入模型文件和 preset，router 需要读取 preset/模型。
+- gateway rootfs 使用 read-only；只有 `/models` bind mount 和 `/tmp` tmpfs 可写。
+- Compose 不固定 `container_name`，避免同一台机器上多个 stack/project 相互冲突。
 
 ### GPU access
 

@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: gateway/Dockerfile
-    container_name: llama-gateway
     restart: unless-stopped
     ports:
       - "${GATEWAY_HOST:-${LLAMA_HOST:-127.0.0.1}}:${GATEWAY_PORT:-${LLAMA_PORT:-8090}}:8090"
@@ -11,6 +10,10 @@ services:
       - ./models:/models:rw,z
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    user: "${GATEWAY_USER:-0:0}"
     environment:
       GATEWAY_ADDR: :8090
       MODELS_DIR: /models
@@ -25,11 +28,12 @@ services:
       LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS: ${LLAMA_ROUTER_RELOAD_TIMEOUT_SECONDS:-30}
       HF_ENDPOINT: ${HF_ENDPOINT:-https://huggingface.co}
       HF_TOKEN: ${HF_TOKEN:-}
+      HF_TOKEN_FILE: ${HF_TOKEN_FILE:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       LOG_FORMAT: ${LOG_FORMAT:-json}
     depends_on:
       llama-router:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test:
         - CMD-SHELL
@@ -41,7 +45,6 @@ services:
 
   llama-router:
     image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-b8840}
-    container_name: llama-router
     restart: unless-stopped
     volumes:
       - ./models:/models:rw,z
@@ -49,7 +52,6 @@ services:
       - no-new-privileges:true
     tmpfs:
       - /tmp:size=512m,mode=1777
-    ipc: host
     expose:
       - "8080"
     environment:

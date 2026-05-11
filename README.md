@@ -112,6 +112,18 @@ Tooling
   owns: catalog files, Docker Compose profiles, probes, schema checks, docs
 ```
 
+
+## Docker deployment notes
+
+The Compose stack uses service names instead of fixed `container_name` values so multiple checkouts can coexist when `COMPOSE_PROJECT_NAME` differs. The gateway image build copies only `go.mod`, `go.sum`, and `gateway/` into the build stage; vendored schema/upstream snapshots and GGUF files stay outside the image build context.
+
+Runtime hardening defaults:
+
+- gateway root filesystem is read-only; `/models` and `/tmp` remain writable;
+- gateway and router use `no-new-privileges`;
+- gateway defaults to `GATEWAY_USER=0:0` so lazy downloads can write `./models` on fresh hosts; after fixing host permissions, set `GATEWAY_USER` to a non-root `UID:GID`;
+- `HF_TOKEN_FILE` can point at a mounted secret file and takes precedence over `HF_TOKEN`.
+
 ## Logging
 
 The stack logs to stdout/stderr only. It does not write or rotate log files.
