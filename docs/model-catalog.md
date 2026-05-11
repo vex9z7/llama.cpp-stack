@@ -80,7 +80,7 @@ Manual prefetch can be reintroduced later as an operator command, not as a host-
 
 ## Included starter catalog
 
-The starter catalog is intentionally curated rather than exhaustive: it keeps one smoke-test model, a few recommended chat/coding models, a small set of new-architecture compatibility candidates, and one embedding model.
+The starter catalog is intentionally curated rather than exhaustive: it keeps one smoke-test model, a few recommended chat/coding models, a small set of new-architecture compatibility candidates, a clearly marked experimental low-refusal/abliterated set, and one embedding model.
 
 Examples:
 
@@ -94,7 +94,10 @@ Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/Q4_K_M
 LiquidAI/LFM2-700M-GGUF/Q4_K_M
 unsloth/Qwen3.5-9B-GGUF/Q4_K_M
+lukey03/Qwen3.5-9B-abliterated-GGUF/Q4_K_M
+mradermacher/DeepSeek-R1-Distill-Qwen-7B-abliterated-v2-GGUF/Q4_K_M
+QuantFactory/Mistral-Nemo-Instruct-2407-abliterated-GGUF/Q4_K_M
 Qwen/Qwen3-Embedding-0.6B-GGUF/Q8_0
 ```
 
-Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Official GGUF sources are preferred; community-only experimental entries should be added only when there is no suitable official source and the model is needed for a specific test.
+Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Official GGUF sources are preferred. Community-only experimental entries must be clearly grouped and should be added only when there is no suitable official source and the model is needed for a specific test. Low-refusal/abliterated models are for behavior testing, not trusted default baselines.

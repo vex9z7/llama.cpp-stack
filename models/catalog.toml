@@ -53,6 +53,26 @@ file = "LFM2-700M-Q4_K_M.gguf"
 repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
 
+# --- Experimental low-refusal / abliterated models ---
+# Community-derived models for behavior and compatibility testing.
+# Do not treat these as trusted/recommended baseline models.
+
+[[models]]
+repo = "lukey03/Qwen3.5-9B-abliterated-GGUF"
+quant = "Q4_K_M"
+file = "Qwen3.5-9B-abliterated-Q4_K_M.gguf"
+
+[[models]]
+repo = "mradermacher/DeepSeek-R1-Distill-Qwen-7B-abliterated-v2-GGUF"
+quant = "Q4_K_M"
+file = "DeepSeek-R1-Distill-Qwen-7B-abliterated-v2.Q4_K_M.gguf"
+
+# 12B exception: useful low-refusal Mistral NeMo baseline, but needs more VRAM.
+[[models]]
+repo = "QuantFactory/Mistral-Nemo-Instruct-2407-abliterated-GGUF"
+quant = "Q4_K_M"
+file = "Mistral-Nemo-Instruct-2407-abliterated.Q4_K_M.gguf"
+
 # --- Embedding model ---
 
 [[models]]
