@@ -87,3 +87,9 @@ jobs:
           docker compose -f docker-compose.dynamic.yml config >/tmp/compose.dynamic.cpu.yml
           docker compose -f docker-compose.dynamic.yml -f docker-compose.dynamic.vulkan.yml config >/tmp/compose.dynamic.vulkan.yml
           docker compose -f docker-compose.dynamic.yml -f docker-compose.dynamic.cuda.yml config >/tmp/compose.dynamic.cuda.yml
+
+      - name: Build gateway image
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker build -f gateway/Dockerfile -t llamacpp-stack-gateway:ci .

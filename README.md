@@ -124,6 +124,16 @@ Runtime hardening defaults:
 - gateway defaults to `GATEWAY_USER=0:0` so lazy downloads can write `./models` on fresh hosts; after fixing host permissions, set `GATEWAY_USER` to a non-root `UID:GID`;
 - `HF_TOKEN_FILE` can point at a mounted secret file and takes precedence over `HF_TOKEN`.
 
+Recommended non-root gateway setup after the first deployment:
+
+```bash
+sudo chown -R 10001:10001 models
+echo 'GATEWAY_USER=10001:10001' >> .env
+make restart
+```
+
+Keep `GATEWAY_USER=0:0` if the host model directory is managed by root or by an atomic OS workflow that does not preserve the chosen UID/GID.
+
 ## Logging
 
 The stack logs to stdout/stderr only. It does not write or rotate log files.
