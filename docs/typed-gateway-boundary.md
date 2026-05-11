@@ -165,6 +165,23 @@ For OpenAI Responses usage:
 This makes the public response satisfy the OpenAI Responses usage contract while
 not changing llama.cpp router behavior.
 
+## Schema strictness policy
+
+The generated OpenAI gateway schema deliberately distinguishes between two
+classes of objects:
+
+- forward-compatible proxy envelopes, such as top-level `Response`,
+  `ChatCompletion`, `Completion`, `EmbeddingResponse`, and request envelopes,
+  may keep `additionalProperties: true` so upstream-compatible fields are not
+  discarded at the gateway boundary.
+- gateway-normalized event and output-item contracts must be strict. Responses
+  streaming events such as `ResponseCompletedEvent`,
+  `ResponseOutputItemDoneEvent`, function-call argument events, and concrete
+  output item/content components do not allow extra fields in the local schema.
+
+`check-gateway-typed-boundary` enforces this split so strictness does not drift
+back into a broad `additionalProperties: true` shape.
+
 ## Static checks
 
 Static/local checks should verify:

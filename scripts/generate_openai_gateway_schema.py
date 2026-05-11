@@ -464,7 +464,6 @@ components:
       x-oai-source: ResponseCompletedEvent
       type: object
       required: [type, response, sequence_number]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -477,7 +476,6 @@ components:
       x-oai-source: ResponseFunctionCallArgumentsDeltaEvent
       type: object
       required: [type, item_id, output_index, delta]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -494,7 +492,6 @@ components:
       x-oai-source: ResponseFunctionCallArgumentsDoneEvent
       type: object
       required: [type, item_id, name, output_index, arguments]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -513,7 +510,6 @@ components:
       x-oai-source: ResponseOutputItemDoneEvent
       type: object
       required: [type, item]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -534,7 +530,6 @@ components:
       x-oai-source: FunctionToolCall
       type: object
       required: [type, call_id, name, arguments]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -554,7 +549,6 @@ components:
       x-oai-source: OutputMessage
       type: object
       required: [type, id, role, content]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -580,7 +574,6 @@ components:
       x-oai-source: OutputTextContent
       type: object
       required: [type, text]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -591,7 +584,6 @@ components:
       x-oai-source: RefusalContent
       type: object
       required: [type, refusal]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -602,7 +594,6 @@ components:
       x-oai-source: ReasoningItem
       type: object
       required: [type, id, summary]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -626,7 +617,6 @@ components:
       x-oai-source: ReasoningTextContent
       type: object
       required: [type, text]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -637,7 +627,6 @@ components:
       x-oai-source: SummaryTextContent
       type: object
       required: [type, text]
-      additionalProperties: true
       properties:
         type:
           type: string

@@ -49,10 +49,9 @@ func OpenAIResponseCompletedEventFromLlama(in llamacppapi.ResponseCompletedEvent
 		sequenceNumber = *in.SequenceNumber
 	}
 	return openaiapi.ResponseCompletedEvent{
-		AdditionalProperties: in.AdditionalProperties,
-		Type:                 openaiapi.ResponseCompletedEventTypeCompleted,
-		Response:             OpenAIResponseFromLlama(in.Response),
-		SequenceNumber:       sequenceNumber,
+		Type:           openaiapi.ResponseCompletedEventTypeCompleted,
+		Response:       OpenAIResponseFromLlama(in.Response),
+		SequenceNumber: sequenceNumber,
 	}
 }
 

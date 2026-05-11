@@ -26,7 +26,6 @@ paths:
             application/json:
               schema:
                 type: object
-                additionalProperties: true
   /models:
     get:
       operationId: llamaListModels
@@ -300,7 +299,6 @@ components:
     ResponseCompletedEvent:
       type: object
       required: [type, response]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -312,7 +310,6 @@ components:
     ResponseFunctionCallArgumentsDeltaEvent:
       type: object
       required: [type, item_id, delta]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -328,7 +325,6 @@ components:
     ResponseOutputItemDoneEvent:
       type: object
       required: [type, item]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -347,7 +343,6 @@ components:
     ResponseOutputFunctionCallItem:
       type: object
       required: [type, call_id, name, arguments]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -366,7 +361,6 @@ components:
     ResponseOutputMessageItem:
       type: object
       required: [type, id, role, content]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -386,7 +380,6 @@ components:
     ResponseOutputMessageContent:
       type: object
       required: [type]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -398,7 +391,6 @@ components:
     ResponseOutputReasoningItem:
       type: object
       required: [type, id, summary]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -421,7 +413,6 @@ components:
     ResponseOutputReasoningContent:
       type: object
       required: [type, text]
-      additionalProperties: true
       properties:
         type:
           type: string
@@ -431,7 +422,6 @@ components:
     ResponseOutputSummaryTextContent:
       type: object
       required: [type, text]
-      additionalProperties: true
       properties:
         type:
           type: string

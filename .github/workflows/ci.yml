@@ -31,7 +31,7 @@ jobs:
 
           allowed_suffixes = {".env", ".example", ".gitignore", ".md", ".yml", ".yaml"}
           allowed_names = {"Makefile"}
-          skip_dirs = {".git", "models", "cmd", "internal"}
+          skip_dirs = {".git", "models", "cmd", "internal", "openai-openapi", "llamacpp-upstream"}
           failures = []
 
           for path in sorted(Path(".").rglob("*")):

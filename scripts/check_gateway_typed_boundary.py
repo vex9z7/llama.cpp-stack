@@ -133,6 +133,50 @@ def check_server_boundary() -> None:
     require("apiadapter.AdaptResponsesSSEPayload" in responses_sse_adapter, "Responses SSE adapter must call apiadapter.AdaptResponsesSSEPayload")
 
 
+def schema_component_block(schema: str, name: str) -> str:
+    marker = f"    {name}:\n"
+    start = schema.find(marker)
+    require(start >= 0, f"schema missing component {name}")
+    next_start = schema.find("\n    ", start + len(marker))
+    if next_start < 0:
+        return schema[start:]
+    return schema[start:next_start]
+
+
+def check_strict_schema_components() -> None:
+    openai_schema = read("openai-api-schema.yaml")
+    llamacpp_schema = read("llamacpp-api-schema/openapi.yaml")
+    strict_components = [
+        "ResponseCompletedEvent",
+        "ResponseFunctionCallArgumentsDeltaEvent",
+        "ResponseFunctionCallArgumentsDoneEvent",
+        "ResponseOutputItemDoneEvent",
+        "ResponseOutputFunctionCallItem",
+        "ResponseOutputMessageItem",
+        "ResponseOutputTextContent",
+        "ResponseRefusalContent",
+        "ResponseOutputReasoningItem",
+        "ResponseOutputReasoningContent",
+        "ResponseOutputSummaryTextContent",
+    ]
+    for name in strict_components:
+        block = schema_component_block(openai_schema, name)
+        require("additionalProperties: true" not in block, f"OpenAI {name} should be strict; do not allow extra fields")
+    for name in [
+        "ResponseCompletedEvent",
+        "ResponseFunctionCallArgumentsDeltaEvent",
+        "ResponseOutputItemDoneEvent",
+        "ResponseOutputFunctionCallItem",
+        "ResponseOutputMessageItem",
+        "ResponseOutputMessageContent",
+        "ResponseOutputReasoningItem",
+        "ResponseOutputReasoningContent",
+        "ResponseOutputSummaryTextContent",
+    ]:
+        block = schema_component_block(llamacpp_schema, name)
+        require("additionalProperties: true" not in block, f"llama.cpp {name} should be strict; do not allow extra fields")
+
+
 def check_openai_schema_request_contract() -> None:
     schema = read("openai-api-schema.yaml")
     require("generated_by: scripts/generate_openai_gateway_schema.py" in schema, "OpenAI gateway schema must be generated from the vendored OpenAI snapshot")
@@ -166,6 +210,7 @@ def main() -> int:
     check_no_handwritten_shadow_types()
     check_adapter_imports_and_normalization()
     check_server_boundary()
+    check_strict_schema_components()
     check_openai_schema_request_contract()
     check_tool_pin()
     print("gateway typed boundary checks passed.")
