@@ -27,4 +27,6 @@ fetched_at_utc = $(date -u +%Y-%m-%dT%H:%M:%SZ)
 update_command = scripts/update_openai_openapi_snapshot.sh
 SNAPSHOT
 
+python3 "$ROOT/scripts/check_vendored_integrity.py" --write
+
 echo "Updated OpenAI OpenAPI snapshot: $commit"

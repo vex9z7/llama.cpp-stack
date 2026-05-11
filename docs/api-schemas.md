@@ -67,3 +67,20 @@ make probe-cancel
 ```
 
 `make probe-api` runs `scripts/probe_openai_compat.py` and checks basic OpenAI-compatible HTTP behavior without local hand-written schemas.
+
+## Vendored integrity
+
+The upstream snapshots under `openai-openapi/` and `llamacpp-upstream/` are
+external source snapshots. They should not be edited in-place. Each directory
+contains a `SHA256SUMS` manifest, and CI runs:
+
+```bash
+make check-vendored-integrity
+```
+
+To intentionally refresh a snapshot, use the documented update command, review
+the upstream diff, then regenerate the manifests with:
+
+```bash
+make update-vendored-integrity
+```

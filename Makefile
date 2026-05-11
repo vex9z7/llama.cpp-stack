@@ -19,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema check-gateway-typed-boundary check-api-types-generated update-openai-openapi generate-openai-gateway-schema generate-api-types probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-vendored-integrity check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema check-gateway-typed-boundary check-api-types-generated update-openai-openapi update-llamacpp-upstream update-vendored-integrity generate-openai-gateway-schema generate-api-types probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
 
 fmt:
 	gofmt -w gateway
@@ -39,8 +39,11 @@ lint:
 
 check-go: fmt-check go-vet go-test lint
 
-schemas: check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema check-gateway-typed-boundary check-api-types-generated
+schemas: check-vendored-integrity check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema check-gateway-typed-boundary check-api-types-generated
 	@echo "openai schema snapshot ok"
+
+check-vendored-integrity:
+	python3 scripts/check_vendored_integrity.py
 
 check-openai-openapi:
 	@python3 -c "from pathlib import Path; t=Path('openai-openapi/spec/openapi.documented.yml').read_text(); assert 'openapi: 3.1.0' in t and '/responses:' in t and 'output_tokens_details' in t; print('openai upstream openapi snapshot ok')"
@@ -68,6 +71,13 @@ check-api-types-generated:
 
 update-openai-openapi:
 	./scripts/update_openai_openapi_snapshot.sh
+
+update-llamacpp-upstream:
+	./scripts/update_llamacpp_upstream_snapshot.sh
+
+update-vendored-integrity:
+	python3 scripts/check_vendored_integrity.py --write
+
 
 probe-api:
 	python3 scripts/probe_openai_compat.py --base-url "$${BASE_URL:-http://127.0.0.1:$${GATEWAY_PORT:-$${LLAMA_PORT:-8090}}}" --model "$${GATEWAY_SMOKE_MODEL:-$(GATEWAY_SMOKE_MODEL)}"
