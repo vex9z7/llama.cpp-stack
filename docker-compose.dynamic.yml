@@ -14,7 +14,9 @@ services:
         set -eu
         mkdir -p /models/hf
         test -f /models/models-preset.generated.ini || printf 'version = 1\n\n' > /models/models-preset.generated.ini
-        chown -R "$${APP_UID}:$${APP_GID}" /models/hf /models/models-preset.generated.ini
+        chown "$${APP_UID}:$${APP_GID}" /models /models/models-preset.generated.ini
+        chown -R "$${APP_UID}:$${APP_GID}" /models/hf
+        chmod u+rwx,g+rwx /models
         chmod -R u+rwX,g+rwX /models/hf
         chmod u+rw,g+rw /models/models-preset.generated.ini
 
