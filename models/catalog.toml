@@ -3,21 +3,24 @@
 # Model id is derived as: <repo>/<quant>
 # Stable local path is: models/hf/<repo>/<quant>.gguf
 
-# --- Tiny smoke-test models ---
+# --- Smoke-test model ---
 
 [[models]]
 repo = "Open4bits/Qwen3-0.6b-gguf"
 quant = "Q4_K_M"
 
+# --- Small chat models ---
+
 [[models]]
 repo = "ggml-org/Qwen3-1.7B-GGUF"
 quant = "Q4_K_M"
 
+# Qwen3.5 may require a newer llama.cpp than the pinned image; validate before production use.
 [[models]]
-repo = "ggml-org/SmolLM3-3B-GGUF"
+repo = "unsloth/Qwen3.5-2B-GGUF"
 quant = "Q4_K_M"
 
-# --- General chat models ---
+# --- Main general chat models ---
 
 [[models]]
 repo = "Qwen/Qwen3-4B-GGUF"
@@ -27,114 +30,35 @@ quant = "Q4_K_M"
 repo = "Qwen/Qwen3-8B-GGUF"
 quant = "Q4_K_M"
 
-[[models]]
-repo = "Qwen/Qwen2.5-3B-Instruct-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "Qwen/Qwen2.5-7B-Instruct-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "bartowski/Llama-3.2-3B-Instruct-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "bartowski/Mistral-7B-Instruct-v0.3-GGUF"
-quant = "Q4_K_M"
-
-# Gemma license terms apply; useful for cross-family compatibility tests.
-[[models]]
-repo = "ggml-org/gemma-3-4b-it-GGUF"
-quant = "Q4_K_M"
-
 # --- Coding-focused models ---
 
 [[models]]
 repo = "Qwen/Qwen2.5-Coder-3B-Instruct-GGUF"
 quant = "Q4_K_M"
 
-# Official Qwen coder repo uses split GGUFs for some larger quants. If this pattern
-# matches multiple files in the future, prefer a community single-file repo below.
 [[models]]
 repo = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
 quant = "Q4_K_M"
 
-[[models]]
-repo = "bartowski/Qwen2.5-Coder-7B-Instruct-GGUF"
-quant = "Q4_K_M"
-
-# --- Recent <=10B small-model candidates ---
-# These are useful for compatibility testing across newer model families.
-# Some may require a newer llama.cpp than the pinned image; keep them cataloged
-# but validate before relying on them in production.
-
-[[models]]
-repo = "ggml-org/gemma-3-1b-it-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "ibm-granite/granite-3.3-2b-instruct-GGUF"
-quant = "Q4_K_M"
+# --- New-architecture compatibility candidates ---
+# Keep a small representative set for backend compatibility testing.
 
 # Liquid LFM2 is a newer hybrid architecture; validate pinned llama.cpp support.
-[[models]]
-repo = "LiquidAI/LFM2-350M-GGUF"
-quant = "Q4_K_M"
-file = "LFM2-350M-Q4_K_M.gguf"
-
 [[models]]
 repo = "LiquidAI/LFM2-700M-GGUF"
 quant = "Q4_K_M"
 file = "LFM2-700M-Q4_K_M.gguf"
-
-[[models]]
-repo = "LiquidAI/LFM2-1.2B-GGUF"
-quant = "Q4_K_M"
-file = "LFM2-1.2B-Q4_K_M.gguf"
-
-[[models]]
-repo = "LiquidAI/LFM2-2.6B-GGUF"
-quant = "Q4_K_M"
-file = "LFM2-2.6B-Q4_K_M.gguf"
-
-[[models]]
-repo = "AaryanK/Qwen3.5-0.8B-GGUF"
-quant = "Q4_K_M"
-file = "Qwen3.5-0.8B.q4_k_m.gguf"
-
-[[models]]
-repo = "unsloth/Qwen3.5-2B-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "jc-builds/Qwen3.5-4B-Q4_K_M-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "unsloth/Qwen3.5-9B-GGUF"
-quant = "Q4_K_M"
-
-[[models]]
-repo = "worthdoing/Phi-4-mini-GGUF"
-quant = "Q4_K_M"
 
 # Gemma license terms apply; validate pinned llama.cpp support before production use.
 [[models]]
 repo = "dahus/gemma-4-e2b-it-Q4_K_M-GGUF"
 quant = "Q4_K_M"
 
-# MiniCPM 8B family, Apache-2.0; useful for non-Qwen/non-Llama compatibility tests.
 [[models]]
-repo = "openbmb/MiniCPM4-8B-GGUF"
+repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
 
-[[models]]
-repo = "QuantFactory/MiniCPM4.1-8B-GGUF"
-quant = "Q4_K_M"
-
-# --- Embedding models ---
-# These require a separate llama-server instance started with --embeddings.
+# --- Embedding model ---
 
 [[models]]
 repo = "n24q02m/Qwen3-Embedding-0.6B-GGUF"
