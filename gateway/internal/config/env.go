@@ -22,6 +22,7 @@ func Int(key string, def int) int {
 	}
 	i, err := strconv.Atoi(v)
 	if err != nil {
+		slog.Warn("invalid integer env var, using default", "key", key, "value", v, "default", def, "error", err)
 		return def
 	}
 	return i
@@ -34,6 +35,7 @@ func DurationSeconds(key string, def time.Duration) time.Duration {
 	}
 	i, err := strconv.Atoi(v)
 	if err != nil {
+		slog.Warn("invalid duration env var, using default", "key", key, "value", v, "default_seconds", int64(def/time.Second), "error", err)
 		return def
 	}
 	return time.Duration(i) * time.Second

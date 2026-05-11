@@ -39,7 +39,9 @@ func (a *App) writeUpstreamResponse(ctx huma.Context, resp *http.Response, model
 		if err != nil {
 			a.log.Warn("typed adaptation failed", "model", model, "path", ctx.URL().Path, "error", err)
 		}
-		_, _ = ctx.BodyWriter().Write(body)
+		if _, err := ctx.BodyWriter().Write(body); err != nil {
+			a.log.Debug("response body write failed", "model", model, "path", ctx.URL().Path, "error", err)
+		}
 		return
 	}
 
