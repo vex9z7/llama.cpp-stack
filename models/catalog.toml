@@ -104,7 +104,15 @@ quant = "Q4_K_M"
 file = "Qwen3.5-0.8B.q4_k_m.gguf"
 
 [[models]]
+repo = "unsloth/Qwen3.5-2B-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
 repo = "jc-builds/Qwen3.5-4B-Q4_K_M-GGUF"
+quant = "Q4_K_M"
+
+[[models]]
+repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
 
 [[models]]
