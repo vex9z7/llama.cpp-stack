@@ -92,4 +92,4 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          docker build -f gateway/Dockerfile -t llamacpp-stack-gateway:ci .
+          docker compose -f docker-compose.dynamic.yml build gateway

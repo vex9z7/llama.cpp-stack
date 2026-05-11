@@ -104,17 +104,20 @@ GGUF Models on Vulkan/CPU/CUDA backend
 
 ### Container responsibilities
 
-当前部署包含两个主容器：
+当前部署包含一个 init 容器和两个主容器：
 
-- `gateway`：暴露公开 API、执行 catalog allowlist、lazy download、preset render/reload、请求转发与取消传播。
-- `llama-router`：运行 `llama-server` router mode，负责 child model instance lifecycle、autoload、LRU unload、slot/parallel、Vulkan/CPU/CUDA 推理。
+- `model-permissions`：one-shot root init service，只负责初始化 `/models` 目录、generated preset 文件和 gateway 所需所有权。
+- `gateway`：非 root 运行，暴露公开 API、执行 catalog allowlist、lazy download、preset render/reload、请求转发与取消传播。
+- `llama-router`：root 运行 `llama-server` router mode，负责 child model instance lifecycle、autoload、LRU unload、slot/parallel、Vulkan/CPU/CUDA 推理；保留 root 是为了避免 Fedora Atomic/Bazzite 等系统上的 `/dev/dri` group/ACL 复杂性。
 
 ### Persistent storage
 
 - `./models:/models:rw,z`：保存 catalog、lazy-downloaded GGUF、generated router preset；gateway 需要写入模型文件和 preset，router 需要读取 preset/模型。
+- `model-permissions` 启动时创建/修正 `/models` 和 `/models/models-preset.generated.ini` 权限。
 - gateway rootfs 使用 read-only；只有 `/models` bind mount 和 `/tmp` tmpfs 可写。
+- gateway 使用 `APP_UID:APP_GID` 非 root 运行；默认 `10001:10001`。
+- llama-router 保持 root 运行，以降低 Vulkan `/dev/dri` 权限问题。
 - Compose 不固定 `container_name`，避免同一台机器上多个 stack/project 相互冲突。
-- gateway 默认 `GATEWAY_USER=0:0` 兼容 fresh host lazy download；调整 `./models` 权限后建议改为非 root，例如 `GATEWAY_USER=10001:10001`。
 
 ### GPU access
 

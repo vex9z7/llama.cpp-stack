@@ -119,20 +119,20 @@ The Compose stack uses service names instead of fixed `container_name` values so
 
 Runtime hardening defaults:
 
-- gateway root filesystem is read-only; `/models` and `/tmp` remain writable;
+- `model-permissions` is a one-shot root init service that prepares `/models` ownership before runtime services start;
+- gateway runs as non-root `${APP_UID}:${APP_GID}` and has a read-only root filesystem; `/models` and `/tmp` remain writable;
+- llama-router intentionally remains root for simpler Vulkan `/dev/dri` access on Fedora Atomic/Bazzite-style hosts;
 - gateway and router use `no-new-privileges`;
-- gateway defaults to `GATEWAY_USER=0:0` so lazy downloads can write `./models` on fresh hosts; after fixing host permissions, set `GATEWAY_USER` to a non-root `UID:GID`;
 - `HF_TOKEN_FILE` can point at a mounted secret file and takes precedence over `HF_TOKEN`.
 
-Recommended non-root gateway setup after the first deployment:
+The default application identity is:
 
-```bash
-sudo chown -R 10001:10001 models
-echo 'GATEWAY_USER=10001:10001' >> .env
-make restart
+```env
+APP_UID=10001
+APP_GID=10001
 ```
 
-Keep `GATEWAY_USER=0:0` if the host model directory is managed by root or by an atomic OS workflow that does not preserve the chosen UID/GID.
+Change it only if those IDs conflict with host ownership policy.
 
 ## Logging
 
@@ -235,8 +235,9 @@ Runtime model residency is delegated to llama.cpp router mode:
 - `LLAMA_SLEEP_IDLE_SECONDS`：空闲模型自动释放时间；`0` 表示关闭。
 - `LLAMA_ROUTER_CTX_SIZE` / `LLAMA_ROUTER_PARALLEL`：生成 router preset 时的上下文和 slot 默认值；`LLAMA_ROUTER_PARALLEL=-1` 表示使用 llama.cpp 自动选择。
 - `LLAMA_ROUTER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
-- `HF_ENDPOINT` / `HF_TOKEN`：Hugging Face 下载配置。
+- `HF_ENDPOINT` / `HF_TOKEN` / `HF_TOKEN_FILE`：Hugging Face 下载配置；`HF_TOKEN_FILE` 指向挂载的 secret 文件时优先于 `HF_TOKEN`。
 - `GATEWAY_SMOKE_MODEL`：`make smoke` / `make probe-api` 使用的模型。
+- `APP_UID` / `APP_GID`：gateway 非 root 运行身份和 `/models` 所有权；默认 `10001:10001`。
 - catalog `kind`：默认 `chat`；embedding 模型设置 `kind = "embedding"`，gateway 会在 router preset 中标记 embeddings，并只允许该模型走 `/v1/embeddings`。
 
 ## Gateway framework
