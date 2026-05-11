@@ -37,7 +37,7 @@ func run(log *slog.Logger) error {
 	}
 
 	modelsDir := config.String("MODELS_DIR", "/models")
-	catalogPath := config.String("CATALOG_PATH", modelsDir+"/catalog.toml")
+	catalogPath := config.String("CATALOG_PATH", "/configs/models.catalog.toml")
 	cat, err := catalog.Load(catalogPath)
 	if err != nil {
 		return fmt.Errorf("load catalog %q: %w", catalogPath, err)
@@ -102,7 +102,7 @@ func run(log *slog.Logger) error {
 
 func renderPresetOnly(log *slog.Logger) error {
 	modelsDir := config.String("MODELS_DIR", "/models")
-	catalogPath := config.String("CATALOG_PATH", modelsDir+"/catalog.toml")
+	catalogPath := config.String("CATALOG_PATH", "/configs/models.catalog.toml")
 	cat, err := catalog.Load(catalogPath)
 	if err != nil {
 		return fmt.Errorf("load catalog %q: %w", catalogPath, err)

@@ -168,7 +168,7 @@ detailed keyword list.
 
 ## Model catalog
 
-`models/catalog.toml` lists Hugging Face GGUF sources. It is source-only and does not contain ports.
+`configs/models.catalog.toml` lists Hugging Face GGUF sources. It is source-only and does not contain ports.
 
 ```toml
 [[models]]

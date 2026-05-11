@@ -69,7 +69,7 @@ Responsibilities:
 - publish `/openapi.json` for the public gateway contract;
 - enforce the catalog allowlist before any request reaches llama.cpp;
 - enforce endpoint/model capability checks, for example chat vs embedding;
-- resolve Hugging Face GGUF files from `models/catalog.toml`;
+- resolve Hugging Face GGUF files from `configs/models.catalog.toml`;
 - lazily download missing model files;
 - maintain the stable local model path layout;
 - generate `models-preset.generated.ini` from downloaded catalog models;
@@ -138,7 +138,7 @@ Non-responsibilities:
 
 ## 3.4 llama.cpp-stack tooling owns
 
-- curated `models/catalog.toml`;
+- curated `configs/models.catalog.toml`;
 - Docker Compose profiles for Vulkan/CUDA/CPU;
 - vendored OpenAI OpenAPI snapshot checks plus public gateway behavior probes;
 - documentation and operational probes.
@@ -527,7 +527,7 @@ Status: implemented.
 
 Status: implemented in gateway request/startup path.
 
-- read `models/catalog.toml`;
+- read `configs/models.catalog.toml`;
 - derive `model_ref` and stable local paths;
 - emit `models/models-preset.generated.ini`;
 - include only downloaded models in the generated preset.

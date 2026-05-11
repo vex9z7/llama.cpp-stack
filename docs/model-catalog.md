@@ -1,6 +1,6 @@
 # Model catalog
 
-`models/catalog.toml` is intentionally small and Hugging Face CLI friendly.
+`configs/models.catalog.toml` is intentionally small and Hugging Face CLI friendly.
 
 It answers only one question:
 

@@ -14,8 +14,9 @@ services:
         set -eu
         mkdir -p /models/hf
         test -f /models/models-preset.generated.ini || printf 'version = 1\n\n' > /models/models-preset.generated.ini
-        chown -R "$${APP_UID}:$${APP_GID}" /models
-        chmod -R u+rwX,g+rwX /models
+        chown -R "$${APP_UID}:$${APP_GID}" /models/hf /models/models-preset.generated.ini
+        chmod -R u+rwX,g+rwX /models/hf
+        chmod u+rw,g+rw /models/models-preset.generated.ini
 
   gateway-init:
     build:
@@ -26,6 +27,7 @@ services:
       - render-preset
     volumes:
       - ./models:/models:rw,z
+      - ./configs/models.catalog.toml:/configs/models.catalog.toml:ro,z
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -34,7 +36,7 @@ services:
     user: "${APP_UID:-10001}:${APP_GID:-10001}"
     environment:
       MODELS_DIR: /models
-      CATALOG_PATH: /models/catalog.toml
+      CATALOG_PATH: /configs/models.catalog.toml
       LLAMA_MODELS_PRESET: /models/models-preset.generated.ini
       LLAMA_ROUTER_CTX_SIZE: ${LLAMA_ROUTER_CTX_SIZE:-8192}
       LLAMA_ROUTER_PARALLEL: ${LLAMA_ROUTER_PARALLEL:--1}
@@ -56,6 +58,7 @@ services:
       - "${GATEWAY_HOST:-${LLAMA_HOST:-127.0.0.1}}:${GATEWAY_PORT:-${LLAMA_PORT:-8090}}:8090"
     volumes:
       - ./models:/models:rw,z
+      - ./configs/models.catalog.toml:/configs/models.catalog.toml:ro,z
     security_opt:
       - no-new-privileges:true
     read_only: true
@@ -65,7 +68,7 @@ services:
     environment:
       GATEWAY_ADDR: :8090
       MODELS_DIR: /models
-      CATALOG_PATH: /models/catalog.toml
+      CATALOG_PATH: /configs/models.catalog.toml
       LLAMA_ROUTER_URL: http://llama-router:8080
       LLAMA_MODELS_PRESET: /models/models-preset.generated.ini
       LLAMA_ROUTER_CTX_SIZE: ${LLAMA_ROUTER_CTX_SIZE:-8192}

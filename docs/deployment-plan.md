@@ -144,7 +144,7 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`
 - `LLAMA_HOST` / `LLAMA_PORT`：gateway 在宿主机上的监听地址和端口
 - `GATEWAY_HOST` / `GATEWAY_PORT`：可选 gateway host bind override
-- `models/catalog.toml`：允许按需下载/加载的 GGUF 模型列表
+- `configs/models.catalog.toml`：允许按需下载/加载的 GGUF 模型列表
 - `LLAMA_MODELS_MAX`：router mode 最多同时 loaded model instances；默认 `4`，跟随 llama.cpp
 - `LLAMA_MODELS_AUTOLOAD`：是否允许 router mode 根据请求自动加载模型；默认开启
 - `LLAMA_ROUTER_CTX_SIZE`：child model instance 默认上下文窗口
@@ -207,7 +207,7 @@ make stream-cancel
 1. 安装 Docker / Compose
 2. 确认 AMD Vulkan 驱动与 `/dev/dri`
 3. 复制仓库
-4. 复制 `models/catalog.toml` 和需要保留的 `models/hf/` 下载缓存
+4. 复制 `configs/models.catalog.toml` 和需要保留的 `models/hf/` 下载缓存
 5. 复制或重建 `.env`
 6. `make up`
 
