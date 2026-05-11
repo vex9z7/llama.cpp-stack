@@ -8,7 +8,39 @@ import (
 )
 
 func OpenAIResponseFromLlama(in llamacppapi.Response) openaiapi.Response {
-	return openaiapi.Response{AdditionalProperties: in.AdditionalProperties, Usage: OpenAIUsageFromLlama(in.Usage)}
+	out := openaiapi.Response{
+		Id:                   in.Id,
+		Model:                in.Model,
+		AdditionalProperties: in.AdditionalProperties,
+		Usage:                OpenAIUsageFromLlama(in.Usage),
+	}
+	if in.Object != nil {
+		object := openaiapi.ResponseObject(*in.Object)
+		out.Object = &object
+	}
+	if in.Status != nil {
+		status := openaiapi.ResponseStatus(*in.Status)
+		out.Status = &status
+	}
+	if in.Output != nil {
+		output, err := OpenAIResponseOutputFromLlama(*in.Output)
+		if err == nil {
+			out.Output = &output
+		}
+	}
+	return out
+}
+
+func OpenAIResponseOutputFromLlama(in []llamacppapi.ResponseOutputItem) ([]openaiapi.ResponseOutputItem, error) {
+	body, err := json.Marshal(in)
+	if err != nil {
+		return nil, err
+	}
+	var out []openaiapi.ResponseOutputItem
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func OpenAIResponseCompletedEventFromLlama(in llamacppapi.ResponseCompletedEvent) openaiapi.ResponseCompletedEvent {

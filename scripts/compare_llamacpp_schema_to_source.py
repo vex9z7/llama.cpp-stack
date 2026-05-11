@@ -78,6 +78,22 @@ def check_source_facts(schema_text: str, source_root: Path) -> None:
     require("output_tokens_details:" not in schema_text,
             "schema should not claim llama.cpp b8840 emits output_tokens_details")
 
+    # Responses output items in b8840 include message, reasoning, and function_call
+    # items. Function calls use call_id/name/arguments; they do not provide an id
+    # in the output item done payload.
+    for needle in ['{"type",      "function_call"}', '{"arguments", tool_call.arguments}',
+                   '{"call_id",   "fc_" + tool_call.id}', '{"name",      tool_call.name}',
+                   '{"event", "response.output_item.done"}',
+                   '{"event", "response.function_call_arguments.delta"}']:
+        require(needle in task_cpp, f"source missing responses output/tool-call fact: {needle}")
+    require("ResponseOutputFunctionCallItem:" in schema_text, "schema missing typed response function call output item")
+    require("required: [type, call_id, name, arguments]" in schema_text,
+            "schema must require source-backed function_call call_id/name/arguments")
+    require("item:\n          $ref: '#/components/schemas/ResponseOutputItem'" in schema_text,
+            "schema ResponseOutputItemDoneEvent.item must not be an untyped object")
+    require("ResponseOutputMessageItem:" in schema_text and "ResponseOutputReasoningItem:" in schema_text,
+            "schema missing typed message/reasoning response output items")
+
     # Embeddings response source emits model/object/usage/data with prompt/total tokens.
     for needle in ['{"model", json_value(request, "model", model_name)}', '{"object", "list"}',
                    '{"prompt_tokens", n_tokens}', '{"total_tokens", n_tokens}', '{"data", data}']:

@@ -6,7 +6,225 @@ package generated
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/oapi-codegen/runtime"
 )
+
+// Defines values for ResponseObject.
+const (
+	ResponseObjectResponse ResponseObject = "response"
+)
+
+// Valid indicates whether the value is a known member of the ResponseObject enum.
+func (e ResponseObject) Valid() bool {
+	switch e {
+	case ResponseObjectResponse:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseFunctionCallArgumentsDeltaEventType.
+const (
+	ResponseFunctionCallArgumentsDelta ResponseFunctionCallArgumentsDeltaEventType = "response.function_call_arguments.delta"
+)
+
+// Valid indicates whether the value is a known member of the ResponseFunctionCallArgumentsDeltaEventType enum.
+func (e ResponseFunctionCallArgumentsDeltaEventType) Valid() bool {
+	switch e {
+	case ResponseFunctionCallArgumentsDelta:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputFunctionCallItemStatus.
+const (
+	ResponseOutputFunctionCallItemStatusCompleted  ResponseOutputFunctionCallItemStatus = "completed"
+	ResponseOutputFunctionCallItemStatusInProgress ResponseOutputFunctionCallItemStatus = "in_progress"
+	ResponseOutputFunctionCallItemStatusIncomplete ResponseOutputFunctionCallItemStatus = "incomplete"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputFunctionCallItemStatus enum.
+func (e ResponseOutputFunctionCallItemStatus) Valid() bool {
+	switch e {
+	case ResponseOutputFunctionCallItemStatusCompleted:
+		return true
+	case ResponseOutputFunctionCallItemStatusInProgress:
+		return true
+	case ResponseOutputFunctionCallItemStatusIncomplete:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputFunctionCallItemType.
+const (
+	FunctionCall ResponseOutputFunctionCallItemType = "function_call"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputFunctionCallItemType enum.
+func (e ResponseOutputFunctionCallItemType) Valid() bool {
+	switch e {
+	case FunctionCall:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputItemDoneEventType.
+const (
+	ResponseOutputItemDone ResponseOutputItemDoneEventType = "response.output_item.done"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputItemDoneEventType enum.
+func (e ResponseOutputItemDoneEventType) Valid() bool {
+	switch e {
+	case ResponseOutputItemDone:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputMessageContentType.
+const (
+	OutputText ResponseOutputMessageContentType = "output_text"
+	Refusal    ResponseOutputMessageContentType = "refusal"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputMessageContentType enum.
+func (e ResponseOutputMessageContentType) Valid() bool {
+	switch e {
+	case OutputText:
+		return true
+	case Refusal:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputMessageItemRole.
+const (
+	Assistant ResponseOutputMessageItemRole = "assistant"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputMessageItemRole enum.
+func (e ResponseOutputMessageItemRole) Valid() bool {
+	switch e {
+	case Assistant:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputMessageItemStatus.
+const (
+	ResponseOutputMessageItemStatusCompleted  ResponseOutputMessageItemStatus = "completed"
+	ResponseOutputMessageItemStatusInProgress ResponseOutputMessageItemStatus = "in_progress"
+	ResponseOutputMessageItemStatusIncomplete ResponseOutputMessageItemStatus = "incomplete"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputMessageItemStatus enum.
+func (e ResponseOutputMessageItemStatus) Valid() bool {
+	switch e {
+	case ResponseOutputMessageItemStatusCompleted:
+		return true
+	case ResponseOutputMessageItemStatusInProgress:
+		return true
+	case ResponseOutputMessageItemStatusIncomplete:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputMessageItemType.
+const (
+	Message ResponseOutputMessageItemType = "message"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputMessageItemType enum.
+func (e ResponseOutputMessageItemType) Valid() bool {
+	switch e {
+	case Message:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputReasoningContentType.
+const (
+	ReasoningText ResponseOutputReasoningContentType = "reasoning_text"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputReasoningContentType enum.
+func (e ResponseOutputReasoningContentType) Valid() bool {
+	switch e {
+	case ReasoningText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputReasoningItemStatus.
+const (
+	Completed  ResponseOutputReasoningItemStatus = "completed"
+	InProgress ResponseOutputReasoningItemStatus = "in_progress"
+	Incomplete ResponseOutputReasoningItemStatus = "incomplete"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputReasoningItemStatus enum.
+func (e ResponseOutputReasoningItemStatus) Valid() bool {
+	switch e {
+	case Completed:
+		return true
+	case InProgress:
+		return true
+	case Incomplete:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputReasoningItemType.
+const (
+	Reasoning ResponseOutputReasoningItemType = "reasoning"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputReasoningItemType enum.
+func (e ResponseOutputReasoningItemType) Valid() bool {
+	switch e {
+	case Reasoning:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ResponseOutputSummaryTextContentType.
+const (
+	SummaryText ResponseOutputSummaryTextContentType = "summary_text"
+)
+
+// Valid indicates whether the value is a known member of the ResponseOutputSummaryTextContentType enum.
+func (e ResponseOutputSummaryTextContentType) Valid() bool {
+	switch e {
+	case SummaryText:
+		return true
+	default:
+		return false
+	}
+}
 
 // ChatCompletion defines model for ChatCompletion.
 type ChatCompletion struct {
@@ -85,9 +303,131 @@ type ModelRequest struct {
 
 // Response defines model for Response.
 type Response struct {
+	Id                   *string                `json:"id,omitempty"`
+	Model                *string                `json:"model,omitempty"`
+	Object               *ResponseObject        `json:"object,omitempty"`
+	Output               *[]ResponseOutputItem  `json:"output,omitempty"`
+	Status               *string                `json:"status,omitempty"`
 	Usage                *ResponseUsage         `json:"usage,omitempty"`
 	AdditionalProperties map[string]interface{} `json:"-"`
 }
+
+// ResponseObject defines model for Response.Object.
+type ResponseObject string
+
+// ResponseFunctionCallArgumentsDeltaEvent defines model for ResponseFunctionCallArgumentsDeltaEvent.
+type ResponseFunctionCallArgumentsDeltaEvent struct {
+	Delta                string                                      `json:"delta"`
+	ItemId               string                                      `json:"item_id"`
+	OutputIndex          *int                                        `json:"output_index,omitempty"`
+	SequenceNumber       *int                                        `json:"sequence_number,omitempty"`
+	Type                 ResponseFunctionCallArgumentsDeltaEventType `json:"type"`
+	AdditionalProperties map[string]interface{}                      `json:"-"`
+}
+
+// ResponseFunctionCallArgumentsDeltaEventType defines model for ResponseFunctionCallArgumentsDeltaEvent.Type.
+type ResponseFunctionCallArgumentsDeltaEventType string
+
+// ResponseOutputFunctionCallItem defines model for ResponseOutputFunctionCallItem.
+type ResponseOutputFunctionCallItem struct {
+	Arguments            string                                `json:"arguments"`
+	CallId               string                                `json:"call_id"`
+	Id                   *string                               `json:"id,omitempty"`
+	Name                 string                                `json:"name"`
+	Status               *ResponseOutputFunctionCallItemStatus `json:"status,omitempty"`
+	Type                 ResponseOutputFunctionCallItemType    `json:"type"`
+	AdditionalProperties map[string]interface{}                `json:"-"`
+}
+
+// ResponseOutputFunctionCallItemStatus defines model for ResponseOutputFunctionCallItem.Status.
+type ResponseOutputFunctionCallItemStatus string
+
+// ResponseOutputFunctionCallItemType defines model for ResponseOutputFunctionCallItem.Type.
+type ResponseOutputFunctionCallItemType string
+
+// ResponseOutputItem defines model for ResponseOutputItem.
+type ResponseOutputItem struct {
+	union json.RawMessage
+}
+
+// ResponseOutputItemDoneEvent defines model for ResponseOutputItemDoneEvent.
+type ResponseOutputItemDoneEvent struct {
+	Item                 ResponseOutputItem              `json:"item"`
+	OutputIndex          *int                            `json:"output_index,omitempty"`
+	SequenceNumber       *int                            `json:"sequence_number,omitempty"`
+	Type                 ResponseOutputItemDoneEventType `json:"type"`
+	AdditionalProperties map[string]interface{}          `json:"-"`
+}
+
+// ResponseOutputItemDoneEventType defines model for ResponseOutputItemDoneEvent.Type.
+type ResponseOutputItemDoneEventType string
+
+// ResponseOutputMessageContent defines model for ResponseOutputMessageContent.
+type ResponseOutputMessageContent struct {
+	Refusal              *string                          `json:"refusal,omitempty"`
+	Text                 *string                          `json:"text,omitempty"`
+	Type                 ResponseOutputMessageContentType `json:"type"`
+	AdditionalProperties map[string]interface{}           `json:"-"`
+}
+
+// ResponseOutputMessageContentType defines model for ResponseOutputMessageContent.Type.
+type ResponseOutputMessageContentType string
+
+// ResponseOutputMessageItem defines model for ResponseOutputMessageItem.
+type ResponseOutputMessageItem struct {
+	Content              []ResponseOutputMessageContent   `json:"content"`
+	Id                   string                           `json:"id"`
+	Role                 ResponseOutputMessageItemRole    `json:"role"`
+	Status               *ResponseOutputMessageItemStatus `json:"status,omitempty"`
+	Type                 ResponseOutputMessageItemType    `json:"type"`
+	AdditionalProperties map[string]interface{}           `json:"-"`
+}
+
+// ResponseOutputMessageItemRole defines model for ResponseOutputMessageItem.Role.
+type ResponseOutputMessageItemRole string
+
+// ResponseOutputMessageItemStatus defines model for ResponseOutputMessageItem.Status.
+type ResponseOutputMessageItemStatus string
+
+// ResponseOutputMessageItemType defines model for ResponseOutputMessageItem.Type.
+type ResponseOutputMessageItemType string
+
+// ResponseOutputReasoningContent defines model for ResponseOutputReasoningContent.
+type ResponseOutputReasoningContent struct {
+	Text                 string                             `json:"text"`
+	Type                 ResponseOutputReasoningContentType `json:"type"`
+	AdditionalProperties map[string]interface{}             `json:"-"`
+}
+
+// ResponseOutputReasoningContentType defines model for ResponseOutputReasoningContent.Type.
+type ResponseOutputReasoningContentType string
+
+// ResponseOutputReasoningItem defines model for ResponseOutputReasoningItem.
+type ResponseOutputReasoningItem struct {
+	Content              *[]ResponseOutputReasoningContent  `json:"content,omitempty"`
+	EncryptedContent     *string                            `json:"encrypted_content,omitempty"`
+	Id                   string                             `json:"id"`
+	Status               *ResponseOutputReasoningItemStatus `json:"status,omitempty"`
+	Summary              []ResponseOutputSummaryTextContent `json:"summary"`
+	Type                 ResponseOutputReasoningItemType    `json:"type"`
+	AdditionalProperties map[string]interface{}             `json:"-"`
+}
+
+// ResponseOutputReasoningItemStatus defines model for ResponseOutputReasoningItem.Status.
+type ResponseOutputReasoningItemStatus string
+
+// ResponseOutputReasoningItemType defines model for ResponseOutputReasoningItem.Type.
+type ResponseOutputReasoningItemType string
+
+// ResponseOutputSummaryTextContent defines model for ResponseOutputSummaryTextContent.
+type ResponseOutputSummaryTextContent struct {
+	Text                 string                               `json:"text"`
+	Type                 ResponseOutputSummaryTextContentType `json:"type"`
+	AdditionalProperties map[string]interface{}               `json:"-"`
+}
+
+// ResponseOutputSummaryTextContentType defines model for ResponseOutputSummaryTextContent.Type.
+type ResponseOutputSummaryTextContentType string
 
 // ResponseUsage defines model for ResponseUsage.
 type ResponseUsage struct {
@@ -1044,6 +1384,46 @@ func (a *Response) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["model"]; found {
+		err = json.Unmarshal(raw, &a.Model)
+		if err != nil {
+			return fmt.Errorf("error reading 'model': %w", err)
+		}
+		delete(object, "model")
+	}
+
+	if raw, found := object["object"]; found {
+		err = json.Unmarshal(raw, &a.Object)
+		if err != nil {
+			return fmt.Errorf("error reading 'object': %w", err)
+		}
+		delete(object, "object")
+	}
+
+	if raw, found := object["output"]; found {
+		err = json.Unmarshal(raw, &a.Output)
+		if err != nil {
+			return fmt.Errorf("error reading 'output': %w", err)
+		}
+		delete(object, "output")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
 	if raw, found := object["usage"]; found {
 		err = json.Unmarshal(raw, &a.Usage)
 		if err != nil {
@@ -1071,11 +1451,927 @@ func (a Response) MarshalJSON() ([]byte, error) {
 	var err error
 	object := make(map[string]json.RawMessage)
 
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	if a.Model != nil {
+		object["model"], err = json.Marshal(a.Model)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'model': %w", err)
+		}
+	}
+
+	if a.Object != nil {
+		object["object"], err = json.Marshal(a.Object)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'object': %w", err)
+		}
+	}
+
+	if a.Output != nil {
+		object["output"], err = json.Marshal(a.Output)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'output': %w", err)
+		}
+	}
+
+	if a.Status != nil {
+		object["status"], err = json.Marshal(a.Status)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'status': %w", err)
+		}
+	}
+
 	if a.Usage != nil {
 		object["usage"], err = json.Marshal(a.Usage)
 		if err != nil {
 			return nil, fmt.Errorf("error marshaling 'usage': %w", err)
 		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseFunctionCallArgumentsDeltaEvent. Returns the specified
+// element and whether it was found
+func (a ResponseFunctionCallArgumentsDeltaEvent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseFunctionCallArgumentsDeltaEvent
+func (a *ResponseFunctionCallArgumentsDeltaEvent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseFunctionCallArgumentsDeltaEvent to handle AdditionalProperties
+func (a *ResponseFunctionCallArgumentsDeltaEvent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["delta"]; found {
+		err = json.Unmarshal(raw, &a.Delta)
+		if err != nil {
+			return fmt.Errorf("error reading 'delta': %w", err)
+		}
+		delete(object, "delta")
+	}
+
+	if raw, found := object["item_id"]; found {
+		err = json.Unmarshal(raw, &a.ItemId)
+		if err != nil {
+			return fmt.Errorf("error reading 'item_id': %w", err)
+		}
+		delete(object, "item_id")
+	}
+
+	if raw, found := object["output_index"]; found {
+		err = json.Unmarshal(raw, &a.OutputIndex)
+		if err != nil {
+			return fmt.Errorf("error reading 'output_index': %w", err)
+		}
+		delete(object, "output_index")
+	}
+
+	if raw, found := object["sequence_number"]; found {
+		err = json.Unmarshal(raw, &a.SequenceNumber)
+		if err != nil {
+			return fmt.Errorf("error reading 'sequence_number': %w", err)
+		}
+		delete(object, "sequence_number")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseFunctionCallArgumentsDeltaEvent to handle AdditionalProperties
+func (a ResponseFunctionCallArgumentsDeltaEvent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["delta"], err = json.Marshal(a.Delta)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'delta': %w", err)
+	}
+
+	object["item_id"], err = json.Marshal(a.ItemId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'item_id': %w", err)
+	}
+
+	if a.OutputIndex != nil {
+		object["output_index"], err = json.Marshal(a.OutputIndex)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'output_index': %w", err)
+		}
+	}
+
+	if a.SequenceNumber != nil {
+		object["sequence_number"], err = json.Marshal(a.SequenceNumber)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'sequence_number': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputFunctionCallItem. Returns the specified
+// element and whether it was found
+func (a ResponseOutputFunctionCallItem) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputFunctionCallItem
+func (a *ResponseOutputFunctionCallItem) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputFunctionCallItem to handle AdditionalProperties
+func (a *ResponseOutputFunctionCallItem) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["arguments"]; found {
+		err = json.Unmarshal(raw, &a.Arguments)
+		if err != nil {
+			return fmt.Errorf("error reading 'arguments': %w", err)
+		}
+		delete(object, "arguments")
+	}
+
+	if raw, found := object["call_id"]; found {
+		err = json.Unmarshal(raw, &a.CallId)
+		if err != nil {
+			return fmt.Errorf("error reading 'call_id': %w", err)
+		}
+		delete(object, "call_id")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["name"]; found {
+		err = json.Unmarshal(raw, &a.Name)
+		if err != nil {
+			return fmt.Errorf("error reading 'name': %w", err)
+		}
+		delete(object, "name")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputFunctionCallItem to handle AdditionalProperties
+func (a ResponseOutputFunctionCallItem) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["arguments"], err = json.Marshal(a.Arguments)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'arguments': %w", err)
+	}
+
+	object["call_id"], err = json.Marshal(a.CallId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'call_id': %w", err)
+	}
+
+	if a.Id != nil {
+		object["id"], err = json.Marshal(a.Id)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'id': %w", err)
+		}
+	}
+
+	object["name"], err = json.Marshal(a.Name)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'name': %w", err)
+	}
+
+	if a.Status != nil {
+		object["status"], err = json.Marshal(a.Status)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'status': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputItemDoneEvent. Returns the specified
+// element and whether it was found
+func (a ResponseOutputItemDoneEvent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputItemDoneEvent
+func (a *ResponseOutputItemDoneEvent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputItemDoneEvent to handle AdditionalProperties
+func (a *ResponseOutputItemDoneEvent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["item"]; found {
+		err = json.Unmarshal(raw, &a.Item)
+		if err != nil {
+			return fmt.Errorf("error reading 'item': %w", err)
+		}
+		delete(object, "item")
+	}
+
+	if raw, found := object["output_index"]; found {
+		err = json.Unmarshal(raw, &a.OutputIndex)
+		if err != nil {
+			return fmt.Errorf("error reading 'output_index': %w", err)
+		}
+		delete(object, "output_index")
+	}
+
+	if raw, found := object["sequence_number"]; found {
+		err = json.Unmarshal(raw, &a.SequenceNumber)
+		if err != nil {
+			return fmt.Errorf("error reading 'sequence_number': %w", err)
+		}
+		delete(object, "sequence_number")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputItemDoneEvent to handle AdditionalProperties
+func (a ResponseOutputItemDoneEvent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["item"], err = json.Marshal(a.Item)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'item': %w", err)
+	}
+
+	if a.OutputIndex != nil {
+		object["output_index"], err = json.Marshal(a.OutputIndex)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'output_index': %w", err)
+		}
+	}
+
+	if a.SequenceNumber != nil {
+		object["sequence_number"], err = json.Marshal(a.SequenceNumber)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'sequence_number': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputMessageContent. Returns the specified
+// element and whether it was found
+func (a ResponseOutputMessageContent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputMessageContent
+func (a *ResponseOutputMessageContent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputMessageContent to handle AdditionalProperties
+func (a *ResponseOutputMessageContent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["refusal"]; found {
+		err = json.Unmarshal(raw, &a.Refusal)
+		if err != nil {
+			return fmt.Errorf("error reading 'refusal': %w", err)
+		}
+		delete(object, "refusal")
+	}
+
+	if raw, found := object["text"]; found {
+		err = json.Unmarshal(raw, &a.Text)
+		if err != nil {
+			return fmt.Errorf("error reading 'text': %w", err)
+		}
+		delete(object, "text")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputMessageContent to handle AdditionalProperties
+func (a ResponseOutputMessageContent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Refusal != nil {
+		object["refusal"], err = json.Marshal(a.Refusal)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'refusal': %w", err)
+		}
+	}
+
+	if a.Text != nil {
+		object["text"], err = json.Marshal(a.Text)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'text': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputMessageItem. Returns the specified
+// element and whether it was found
+func (a ResponseOutputMessageItem) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputMessageItem
+func (a *ResponseOutputMessageItem) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputMessageItem to handle AdditionalProperties
+func (a *ResponseOutputMessageItem) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["content"]; found {
+		err = json.Unmarshal(raw, &a.Content)
+		if err != nil {
+			return fmt.Errorf("error reading 'content': %w", err)
+		}
+		delete(object, "content")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["role"]; found {
+		err = json.Unmarshal(raw, &a.Role)
+		if err != nil {
+			return fmt.Errorf("error reading 'role': %w", err)
+		}
+		delete(object, "role")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputMessageItem to handle AdditionalProperties
+func (a ResponseOutputMessageItem) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Content != nil {
+		object["content"], err = json.Marshal(a.Content)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'content': %w", err)
+		}
+	}
+
+	object["id"], err = json.Marshal(a.Id)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'id': %w", err)
+	}
+
+	object["role"], err = json.Marshal(a.Role)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'role': %w", err)
+	}
+
+	if a.Status != nil {
+		object["status"], err = json.Marshal(a.Status)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'status': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputReasoningContent. Returns the specified
+// element and whether it was found
+func (a ResponseOutputReasoningContent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputReasoningContent
+func (a *ResponseOutputReasoningContent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputReasoningContent to handle AdditionalProperties
+func (a *ResponseOutputReasoningContent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["text"]; found {
+		err = json.Unmarshal(raw, &a.Text)
+		if err != nil {
+			return fmt.Errorf("error reading 'text': %w", err)
+		}
+		delete(object, "text")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputReasoningContent to handle AdditionalProperties
+func (a ResponseOutputReasoningContent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["text"], err = json.Marshal(a.Text)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'text': %w", err)
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputReasoningItem. Returns the specified
+// element and whether it was found
+func (a ResponseOutputReasoningItem) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputReasoningItem
+func (a *ResponseOutputReasoningItem) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputReasoningItem to handle AdditionalProperties
+func (a *ResponseOutputReasoningItem) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["content"]; found {
+		err = json.Unmarshal(raw, &a.Content)
+		if err != nil {
+			return fmt.Errorf("error reading 'content': %w", err)
+		}
+		delete(object, "content")
+	}
+
+	if raw, found := object["encrypted_content"]; found {
+		err = json.Unmarshal(raw, &a.EncryptedContent)
+		if err != nil {
+			return fmt.Errorf("error reading 'encrypted_content': %w", err)
+		}
+		delete(object, "encrypted_content")
+	}
+
+	if raw, found := object["id"]; found {
+		err = json.Unmarshal(raw, &a.Id)
+		if err != nil {
+			return fmt.Errorf("error reading 'id': %w", err)
+		}
+		delete(object, "id")
+	}
+
+	if raw, found := object["status"]; found {
+		err = json.Unmarshal(raw, &a.Status)
+		if err != nil {
+			return fmt.Errorf("error reading 'status': %w", err)
+		}
+		delete(object, "status")
+	}
+
+	if raw, found := object["summary"]; found {
+		err = json.Unmarshal(raw, &a.Summary)
+		if err != nil {
+			return fmt.Errorf("error reading 'summary': %w", err)
+		}
+		delete(object, "summary")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputReasoningItem to handle AdditionalProperties
+func (a ResponseOutputReasoningItem) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Content != nil {
+		object["content"], err = json.Marshal(a.Content)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'content': %w", err)
+		}
+	}
+
+	if a.EncryptedContent != nil {
+		object["encrypted_content"], err = json.Marshal(a.EncryptedContent)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'encrypted_content': %w", err)
+		}
+	}
+
+	object["id"], err = json.Marshal(a.Id)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'id': %w", err)
+	}
+
+	if a.Status != nil {
+		object["status"], err = json.Marshal(a.Status)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'status': %w", err)
+		}
+	}
+
+	if a.Summary != nil {
+		object["summary"], err = json.Marshal(a.Summary)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'summary': %w", err)
+		}
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ResponseOutputSummaryTextContent. Returns the specified
+// element and whether it was found
+func (a ResponseOutputSummaryTextContent) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ResponseOutputSummaryTextContent
+func (a *ResponseOutputSummaryTextContent) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ResponseOutputSummaryTextContent to handle AdditionalProperties
+func (a *ResponseOutputSummaryTextContent) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["text"]; found {
+		err = json.Unmarshal(raw, &a.Text)
+		if err != nil {
+			return fmt.Errorf("error reading 'text': %w", err)
+		}
+		delete(object, "text")
+	}
+
+	if raw, found := object["type"]; found {
+		err = json.Unmarshal(raw, &a.Type)
+		if err != nil {
+			return fmt.Errorf("error reading 'type': %w", err)
+		}
+		delete(object, "type")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ResponseOutputSummaryTextContent to handle AdditionalProperties
+func (a ResponseOutputSummaryTextContent) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	object["text"], err = json.Marshal(a.Text)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'text': %w", err)
+	}
+
+	object["type"], err = json.Marshal(a.Type)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'type': %w", err)
 	}
 
 	for fieldName, field := range a.AdditionalProperties {
@@ -1322,4 +2618,92 @@ func (a Success) MarshalJSON() ([]byte, error) {
 		}
 	}
 	return json.Marshal(object)
+}
+
+// AsResponseOutputFunctionCallItem returns the union data inside the ResponseOutputItem as a ResponseOutputFunctionCallItem
+func (t ResponseOutputItem) AsResponseOutputFunctionCallItem() (ResponseOutputFunctionCallItem, error) {
+	var body ResponseOutputFunctionCallItem
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseOutputFunctionCallItem overwrites any union data inside the ResponseOutputItem as the provided ResponseOutputFunctionCallItem
+func (t *ResponseOutputItem) FromResponseOutputFunctionCallItem(v ResponseOutputFunctionCallItem) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseOutputFunctionCallItem performs a merge with any union data inside the ResponseOutputItem, using the provided ResponseOutputFunctionCallItem
+func (t *ResponseOutputItem) MergeResponseOutputFunctionCallItem(v ResponseOutputFunctionCallItem) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResponseOutputMessageItem returns the union data inside the ResponseOutputItem as a ResponseOutputMessageItem
+func (t ResponseOutputItem) AsResponseOutputMessageItem() (ResponseOutputMessageItem, error) {
+	var body ResponseOutputMessageItem
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseOutputMessageItem overwrites any union data inside the ResponseOutputItem as the provided ResponseOutputMessageItem
+func (t *ResponseOutputItem) FromResponseOutputMessageItem(v ResponseOutputMessageItem) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseOutputMessageItem performs a merge with any union data inside the ResponseOutputItem, using the provided ResponseOutputMessageItem
+func (t *ResponseOutputItem) MergeResponseOutputMessageItem(v ResponseOutputMessageItem) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResponseOutputReasoningItem returns the union data inside the ResponseOutputItem as a ResponseOutputReasoningItem
+func (t ResponseOutputItem) AsResponseOutputReasoningItem() (ResponseOutputReasoningItem, error) {
+	var body ResponseOutputReasoningItem
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResponseOutputReasoningItem overwrites any union data inside the ResponseOutputItem as the provided ResponseOutputReasoningItem
+func (t *ResponseOutputItem) FromResponseOutputReasoningItem(v ResponseOutputReasoningItem) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResponseOutputReasoningItem performs a merge with any union data inside the ResponseOutputItem, using the provided ResponseOutputReasoningItem
+func (t *ResponseOutputItem) MergeResponseOutputReasoningItem(v ResponseOutputReasoningItem) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ResponseOutputItem) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ResponseOutputItem) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
 }

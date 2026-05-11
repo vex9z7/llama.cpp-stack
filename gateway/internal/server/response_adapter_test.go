@@ -30,7 +30,7 @@ func TestCopyResponsesSSEInjectsFunctionCallArgumentsDone(t *testing.T) {
 		`data: {"type":"response.function_call_arguments.delta","item_id":"fc_1","output_index":0,"delta":"\"Berlin\"}","sequence_number":2}`,
 		``,
 		`event: response.output_item.done`,
-		`data: {"type":"response.output_item.done","output_index":0,"item":{"id":"fc_1","type":"function_call","name":"lookup_weather","arguments":"{\"city\":\"Berlin\"}"},"sequence_number":3}`,
+		`data: {"type":"response.output_item.done","output_index":0,"item":{"type":"function_call","call_id":"fc_1","name":"lookup_weather","arguments":"{\"city\":\"Berlin\"}"},"sequence_number":3}`,
 		``,
 		`event: response.completed`,
 		`data: {"type":"response.completed","response":{"usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"output_tokens_details":null,"total_tokens":3}}}`,

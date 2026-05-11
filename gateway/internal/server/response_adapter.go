@@ -266,33 +266,31 @@ func (a *responsesSSEAdapter) observeArgumentsDone(payload []byte) {
 }
 
 func (a *responsesSSEAdapter) injectArgumentsDoneIfNeeded(payload []byte) ([]byte, string) {
-	var event struct {
-		OutputIndex int  `json:"output_index"`
-		Sequence    *int `json:"sequence_number,omitempty"`
-		Item        struct {
-			ID        string `json:"id"`
-			Type      string `json:"type"`
-			Name      string `json:"name"`
-			Arguments string `json:"arguments"`
-		} `json:"item"`
-	}
+	var event openaiapi.ResponseOutputItemDoneEvent
 	if err := json.Unmarshal(payload, &event); err != nil {
 		return payload, ""
 	}
-	if event.Item.Type != "function_call" || event.Item.ID == "" {
+	item, itemOK := responseOutputFunctionCallItem(event.Item)
+	if !itemOK {
 		return payload, ""
 	}
-	state := a.toolCalls[event.Item.ID]
+	itemID := firstNonEmpty(stringValue(item.Id), item.CallId)
+	if itemID == "" {
+		return payload, ""
+	}
+	state := a.toolCalls[itemID]
 	if state.ArgumentsDone {
 		return payload, ""
 	}
-	state.ItemID = event.Item.ID
-	state.Name = firstNonEmpty(state.Name, event.Item.Name)
-	state.Arguments = firstNonEmpty(state.Arguments, event.Item.Arguments)
-	state.OutputIndex = event.OutputIndex
-	state.Sequence = event.Sequence
+	state.ItemID = itemID
+	state.Name = firstNonEmpty(state.Name, item.Name)
+	state.Arguments = firstNonEmpty(state.Arguments, item.Arguments)
+	if event.OutputIndex != nil {
+		state.OutputIndex = *event.OutputIndex
+	}
+	state.Sequence = event.SequenceNumber
 	state.ArgumentsDone = true
-	a.toolCalls[event.Item.ID] = state
+	a.toolCalls[itemID] = state
 
 	done, err := json.Marshal(openaiapi.ResponseFunctionCallArgumentsDoneEvent{
 		Type:           openaiapi.ResponseFunctionCallArgumentsDoneEventTypeDone,
@@ -310,6 +308,21 @@ func (a *responsesSSEAdapter) injectArgumentsDoneIfNeeded(payload []byte) ([]byt
 	out = append(out, "\n\nevent: response.output_item.done\ndata: "...)
 	out = append(out, payload...)
 	return out, "response.function_call_arguments.done"
+}
+
+func responseOutputFunctionCallItem(item openaiapi.ResponseOutputItem) (openaiapi.ResponseOutputFunctionCallItem, bool) {
+	functionCall, err := item.AsResponseOutputFunctionCallItem()
+	if err != nil || functionCall.Type != openaiapi.ResponseOutputFunctionCallItemTypeFunctionCall {
+		return openaiapi.ResponseOutputFunctionCallItem{}, false
+	}
+	return functionCall, true
+}
+
+func stringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return *value
 }
 
 func firstNonEmpty(values ...string) string {

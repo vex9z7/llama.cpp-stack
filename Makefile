@@ -19,7 +19,7 @@ endif
 COMPOSE_FILES := $(COMPOSE_FILES_$(BACKEND))
 COMPOSE := $(COMPOSE_CMD) $(COMPOSE_FILES)
 
-.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema check-gateway-typed-boundary check-api-types-generated update-openai-openapi generate-api-types probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
+.PHONY: check fmt fmt-check go-test go-vet lint check-go schemas check-openai-openapi check-openai-response-contract check-llamacpp-upstream compare-llamacpp-schema check-gateway-typed-boundary check-api-types-generated update-openai-openapi generate-openai-gateway-schema generate-api-types probe-api probe-gateway probe-cancel probe-capacity probe-errors models up down restart logs ps config build smoke stream-cancel
 
 fmt:
 	gofmt -w gateway
@@ -56,6 +56,9 @@ compare-llamacpp-schema:
 
 check-gateway-typed-boundary:
 	python3 scripts/check_gateway_typed_boundary.py
+
+generate-openai-gateway-schema:
+	python3 scripts/generate_openai_gateway_schema.py
 
 generate-api-types:
 	./scripts/generate_api_types.sh

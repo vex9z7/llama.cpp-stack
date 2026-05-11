@@ -48,7 +48,7 @@ copies that response, the public endpoint is not OpenAI-compatible even though
 - Do not expose llama.cpp internal endpoints.
 - Do not add Pipecat-specific behavior.
 - Do not add Qwen-specific request fields or thinking controls.
-- Do not fully type every OpenAI schema in one pass.
+- Do not type unrelated OpenAI API surfaces that the gateway does not expose, such as admin/project management APIs.
 
 ## Design
 
@@ -95,6 +95,12 @@ lifecycle events and synthesizes a typed
 `response.function_call_arguments.done` event before `response.output_item.done`
 when the pinned llama.cpp stream omits it. Other streaming events are passed
 through unchanged unless/until a concrete OpenAI contract mismatch is identified.
+
+The Responses streaming event payloads are typed down to the output item subset
+the gateway adapts. `response.output_item.done.item` is a `ResponseOutputItem`
+union, including a `ResponseOutputFunctionCallItem` that requires `call_id`,
+`name`, and `arguments`, matching both the OpenAI upstream contract and the
+pinned llama.cpp output shape.
 
 The Responses request side is also typed for the input item forms the gateway
 normalizes. OpenAI accepts compact conversation-history messages such as
@@ -184,16 +190,24 @@ typed adapters at the gateway boundary rather than changing router internals.
 
 ## Generated type enforcement
 
-Gateway API structs are generated from schema files:
+Gateway API structs are generated from schema files. The OpenAI gateway schema is not hand-edited: it is regenerated from the vendored official OpenAI OpenAPI snapshot first, then fed to `oapi-codegen`. The full official OpenAPI document is OpenAPI 3.1 and includes constructs that the pinned `oapi-codegen` version cannot consume directly, so `scripts/generate_openai_gateway_schema.py` is the production bridge for the gateway-exposed subset. It verifies the upstream components exist and emits a deterministic codegen-compatible schema with `x-oai-source` anchors.
 
 ```text
-openai-api-schema.yaml -> gateway/internal/openaiapi/generated/types.gen.go
-llamacpp-api-schema/openapi.yaml -> gateway/internal/llamacppapi/generated/types.gen.go
+openai-openapi/spec/openapi.documented.yml
+  -> scripts/generate_openai_gateway_schema.py
+  -> openai-api-schema.yaml
+  -> gateway/internal/openaiapi/generated/types.gen.go
+
+llamacpp-api-schema/openapi.yaml
+  -> gateway/internal/llamacppapi/generated/types.gen.go
 ```
+
+`openai-api-schema.yaml` should therefore be treated as a generated artifact. If the vendored OpenAI snapshot changes, run the generator and review the resulting contract diff rather than editing local OpenAI shapes by hand.
 
 Run:
 
 ```bash
+make generate-openai-gateway-schema
 make generate-api-types
 make check-api-types-generated
 make check-gateway-typed-boundary
@@ -203,5 +217,8 @@ make check-gateway-typed-boundary
 alias generated types, that response adapters consume `llamacppapi` types and
 produce `openaiapi` types, that the Responses request adapter consumes generated
 OpenAI request/input types, that the Responses SSE adapter emits generated typed
-function-call argument done events, and that gateway-owned model/error responses
-use typed OpenAI-compatible structs instead of handwritten maps.
+function-call argument done events, that `response.output_item.done.item` is a
+typed `ResponseOutputItem` union, that output message/reasoning/refusal content
+components are present, that generated schema/type output has no drift, and that
+gateway-owned model/error responses use typed OpenAI-compatible structs instead
+of handwritten maps.

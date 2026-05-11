@@ -69,3 +69,25 @@ func TestAdaptResponsesSSEPayloadOnlyChangesCompletedEvent(t *testing.T) {
 		t.Fatalf("reasoning_tokens=%v", details["reasoning_tokens"])
 	}
 }
+
+func TestAdaptResponsesBodyPreservesTypedOutputItems(t *testing.T) {
+	body := []byte(`{"id":"resp_1","object":"response","status":"completed","model":"m","output":[{"type":"function_call","call_id":"fc_1","name":"lookup_weather","arguments":"{\"city\":\"Berlin\"}","status":"completed"}],"usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"total_tokens":3}}`)
+	got, err := AdaptResponsesBody(body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out struct {
+		Output []struct {
+			Type      string `json:"type"`
+			CallID    string `json:"call_id"`
+			Name      string `json:"name"`
+			Arguments string `json:"arguments"`
+		} `json:"output"`
+	}
+	if err := json.Unmarshal(got, &out); err != nil {
+		t.Fatal(err)
+	}
+	if len(out.Output) != 1 || out.Output[0].CallID != "fc_1" || out.Output[0].Name != "lookup_weather" {
+		t.Fatalf("typed output item not preserved: %s", got)
+	}
+}

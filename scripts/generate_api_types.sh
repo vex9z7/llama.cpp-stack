@@ -10,6 +10,10 @@ if [[ ! -x "${OAPI_CODEGEN}" ]]; then
   go install "github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@${VERSION}"
 fi
 
+python3 "${ROOT}/scripts/generate_openai_gateway_schema.py" \
+  --source "${ROOT}/openai-openapi/spec/openapi.documented.yml" \
+  --output "${ROOT}/openai-api-schema.yaml"
+
 mkdir -p \
   "${ROOT}/gateway/internal/llamacppapi/generated" \
   "${ROOT}/gateway/internal/openaiapi/generated"

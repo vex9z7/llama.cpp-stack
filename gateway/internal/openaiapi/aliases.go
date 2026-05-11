@@ -22,6 +22,8 @@ type ModelMeta = gen.ModelMeta
 type ModelRequest = gen.ModelRequest
 type PromptTokensDetails = gen.PromptTokensDetails
 type Response = gen.Response
+type ResponseObject = gen.ResponseObject
+type ResponseStatus = gen.ResponseStatus
 type ResponseCreateRequest = gen.ResponseCreateRequest
 type ResponseFunctionCall = gen.ResponseFunctionCall
 type ResponseFunctionCallArgumentsDeltaEvent = gen.ResponseFunctionCallArgumentsDeltaEvent
@@ -32,19 +34,40 @@ type ResponseInput = gen.ResponseInput
 type ResponseInputItem = gen.ResponseInputItem
 type ResponseInputTokensDetails = gen.ResponseInputTokensDetails
 type ResponseOutputTokensDetails = gen.ResponseOutputTokensDetails
+type ResponseOutputFunctionCallItem = gen.ResponseOutputFunctionCallItem
+type ResponseOutputFunctionCallItemStatus = gen.ResponseOutputFunctionCallItemStatus
+type ResponseOutputFunctionCallItemType = gen.ResponseOutputFunctionCallItemType
+type ResponseOutputItem = gen.ResponseOutputItem
 type ResponseOutputItemDoneEvent = gen.ResponseOutputItemDoneEvent
+type ResponseOutputMessageContent = gen.ResponseOutputMessageContent
+type ResponseOutputMessageItem = gen.ResponseOutputMessageItem
+type ResponseOutputMessageItemRole = gen.ResponseOutputMessageItemRole
+type ResponseOutputMessageItemStatus = gen.ResponseOutputMessageItemStatus
+type ResponseOutputMessageItemType = gen.ResponseOutputMessageItemType
+type ResponseOutputReasoningContent = gen.ResponseOutputReasoningContent
+type ResponseOutputReasoningContentType = gen.ResponseOutputReasoningContentType
+type ResponseOutputReasoningItem = gen.ResponseOutputReasoningItem
+type ResponseOutputReasoningItemStatus = gen.ResponseOutputReasoningItemStatus
+type ResponseOutputReasoningItemType = gen.ResponseOutputReasoningItemType
+type ResponseOutputSummaryTextContent = gen.ResponseOutputSummaryTextContent
+type ResponseOutputSummaryTextContentType = gen.ResponseOutputSummaryTextContentType
+type ResponseOutputTextContent = gen.ResponseOutputTextContent
+type ResponseOutputTextContentType = gen.ResponseOutputTextContentType
+type ResponseRefusalContent = gen.ResponseRefusalContent
+type ResponseRefusalContentType = gen.ResponseRefusalContentType
 type ResponseUsage = gen.ResponseUsage
 
 const (
-	EasyInputMessageRoleAssistant EasyInputMessageRole = gen.Assistant
-	EasyInputMessageRoleDeveloper EasyInputMessageRole = gen.Developer
-	EasyInputMessageRoleSystem    EasyInputMessageRole = gen.System
-	EasyInputMessageRoleUser      EasyInputMessageRole = gen.User
+	EasyInputMessageRoleAssistant EasyInputMessageRole = gen.EasyInputMessageRoleAssistant
+	EasyInputMessageRoleDeveloper EasyInputMessageRole = gen.EasyInputMessageRoleDeveloper
+	EasyInputMessageRoleSystem    EasyInputMessageRole = gen.EasyInputMessageRoleSystem
+	EasyInputMessageRoleUser      EasyInputMessageRole = gen.EasyInputMessageRoleUser
 
-	EasyInputMessageTypeMessage EasyInputMessageType = gen.Message
+	EasyInputMessageTypeMessage EasyInputMessageType = gen.EasyInputMessageTypeMessage
 
-	InputMessageContentTypeInputText  InputMessageContentType = gen.InputText
-	InputMessageContentTypeOutputText InputMessageContentType = gen.OutputText
+	InputMessageContentTypeInputText  InputMessageContentType = gen.InputMessageContentTypeInputText
+	InputMessageContentTypeOutputText InputMessageContentType = gen.InputMessageContentTypeOutputText
 
 	ResponseFunctionCallArgumentsDoneEventTypeDone ResponseFunctionCallArgumentsDoneEventType = gen.ResponseFunctionCallArgumentsDone
+	ResponseOutputFunctionCallItemTypeFunctionCall ResponseOutputFunctionCallItemType         = gen.ResponseOutputFunctionCallItemTypeFunctionCall
 )

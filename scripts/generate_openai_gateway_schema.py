@@ -1,4 +1,145 @@
-openapi: 3.1.0
+#!/usr/bin/env python3
+"""Generate the gateway OpenAI schema from the vendored OpenAI snapshot.
+
+The full OpenAI OpenAPI document is intentionally not fed directly to
+`oapi-codegen`: the vendored snapshot is OpenAPI 3.1 and contains constructs that
+v2.7.0 cannot generate today (for example `anyOf: [{type: ...}, {type: null}]`).
+This script is the production contract bridge for the gateway-supported subset:
+
+1. Verify the vendored OpenAI snapshot still contains the official components and
+   fields the gateway exposes/adapts.
+2. Emit a deterministic, codegen-compatible schema subset whose public types are
+   named for the gateway packages but are anchored to the official components.
+
+If the upstream OpenAI shapes change, this script fails before type generation,
+forcing an explicit schema review instead of silently drifting.
+"""
+from __future__ import annotations
+
+import argparse
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SOURCE = ROOT / "openai-openapi/spec/openapi.documented.yml"
+DEFAULT_OUTPUT = ROOT / "openai-api-schema.yaml"
+
+
+def require(condition: bool, message: str) -> None:
+    if not condition:
+        raise AssertionError(message)
+
+
+def component_block(source: str, name: str) -> str:
+    pattern = re.compile(rf"^    {re.escape(name)}:\n(?P<body>(?:      .*\n|\n)+?)(?=^    [A-Za-z0-9_].*:\n|\Z)", re.MULTILINE)
+    match = pattern.search(source)
+    require(match is not None, f"OpenAI snapshot missing component {name}")
+    return match.group(0)
+
+
+def check_official_snapshot(source: str) -> None:
+    require("openapi: 3.1.0" in source, "OpenAI snapshot is not OpenAPI 3.1")
+    require("operationId: createResponse" in source, "OpenAI snapshot missing createResponse operation")
+
+    checks: dict[str, list[str]] = {
+        "CreateResponse": [
+            "input:",
+            "$ref: '#/components/schemas/InputParam'",
+            "stream:",
+        ],
+        "EasyInputMessage": [
+            "enum:",
+            "- user",
+            "- assistant",
+            "- system",
+            "- developer",
+            "- role",
+            "- content",
+        ],
+        "FunctionToolCall": [
+            "- function_call",
+            "call_id:",
+            "name:",
+            "arguments:",
+            "- type\n        - call_id\n        - name\n        - arguments",
+        ],
+        "FunctionToolCallOutput": [
+            "- function_call_output",
+            "call_id:",
+            "output:",
+            "- type\n        - call_id\n        - output",
+        ],
+        "OutputItem": [
+            "$ref: '#/components/schemas/OutputMessage'",
+            "$ref: '#/components/schemas/FunctionToolCall'",
+            "$ref: '#/components/schemas/ReasoningItem'",
+            "discriminator:",
+        ],
+        "OutputMessage": [
+            "- message",
+            "role:",
+            "- assistant",
+            "content:",
+            "- id\n        - type\n        - role\n        - content\n        - status",
+        ],
+        "ReasoningItem": [
+            "- reasoning",
+            "summary:",
+            "$ref: '#/components/schemas/SummaryTextContent'",
+            "$ref: '#/components/schemas/ReasoningTextContent'",
+            "- id\n        - summary\n        - type",
+        ],
+        "SummaryTextContent": [
+            "- summary_text",
+            "text:",
+            "- type\n        - text",
+        ],
+        "ReasoningTextContent": [
+            "- reasoning_text",
+            "text:",
+            "- type\n        - text",
+        ],
+        "OutputTextContent": [
+            "- output_text",
+            "text:",
+        ],
+        "RefusalContent": [
+            "- refusal",
+            "refusal:",
+        ],
+        "ResponseFunctionCallArgumentsDeltaEvent": [
+            "response.function_call_arguments.delta",
+            "item_id:",
+            "output_index:",
+            "delta:",
+        ],
+        "ResponseFunctionCallArgumentsDoneEvent": [
+            "response.function_call_arguments.done",
+            "item_id:",
+            "name:",
+            "output_index:",
+            "arguments:",
+        ],
+        "ResponseOutputItemDoneEvent": [
+            "response.output_item.done",
+            "$ref: '#/components/schemas/OutputItem'",
+            "output_index:",
+        ],
+        "ResponseUsage": [
+            "input_tokens_details:",
+            "output_tokens_details:",
+            "cached_tokens:",
+            "reasoning_tokens:",
+        ],
+    }
+    for name, needles in checks.items():
+        block = component_block(source, name)
+        for needle in needles:
+            require(needle in block, f"OpenAI component {name} missing expected contract text: {needle!r}")
+
+
+SCHEMA = r'''openapi: 3.1.0
 info:
   title: OpenAI gateway contract subset for llama.cpp-stack
   version: 2026-05-10
@@ -560,3 +701,26 @@ components:
       properties:
         usage:
           $ref: '#/components/schemas/EmbeddingUsage'
+'''
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--source", default=str(DEFAULT_SOURCE))
+    parser.add_argument("--output", default=str(DEFAULT_OUTPUT))
+    args = parser.parse_args()
+
+    source = Path(args.source).read_text(encoding="utf-8")
+    check_official_snapshot(source)
+    output = Path(args.output)
+    output.write_text(SCHEMA, encoding="utf-8")
+    print(f"generated {output} from {args.source}")
+    return 0
+
+
+if __name__ == "__main__":
+    try:
+        raise SystemExit(main())
+    except Exception as exc:
+        print(f"[FAIL] {exc}", file=sys.stderr)
+        raise

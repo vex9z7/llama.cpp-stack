@@ -13,6 +13,7 @@ type ModelRecord = gen.ModelRecord
 type ModelRecordStatus = gen.ModelRecord_Status
 type ModelRequest = gen.ModelRequest
 type Response = gen.Response
+type ResponseOutputItem = gen.ResponseOutputItem
 type ResponseUsage = gen.ResponseUsage
 type ResponseUsageInputTokensDetails = gen.ResponseUsage_InputTokensDetails
 type Success = gen.Success
