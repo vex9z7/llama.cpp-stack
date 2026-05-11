@@ -52,16 +52,26 @@ External client
 Rules:
 
 1. Prefer OpenAI-compatible request fields in public examples and docs.
-3. If the caller provides an explicit llama.cpp extension, do not overwrite it.
-4. Only translate fields whose mapping is deterministic and tested.
-5. Pass through unknown fields unless they are known to break compatibility.
-6. Keep endpoint-specific behavior explicit: Chat Completions and Responses may need different adapters.
+2. If the caller provides an explicit llama.cpp extension, do not overwrite it.
+3. Only translate fields whose mapping is deterministic and tested.
+4. Pass through unknown fields unless they are known to break compatibility.
+5. Keep endpoint-specific behavior explicit: Chat Completions and Responses may need different adapters.
 
 ## Current adapter policy
 
-The gateway currently does not implement model-specific request adapters. Requests are forwarded to llama.cpp router mode after gateway-level catalog/capability checks.
+The gateway does not implement model-specific request adapters. Requests are forwarded to llama.cpp router mode after gateway-level catalog/capability checks, except for generic OpenAI Responses request normalization that is required by the public OpenAI contract.
 
-If future OpenAI compatibility issues are found, fixes should be justified against one of:
+Implemented generic request normalization:
+
+- `/v1/responses` compact message history with string content is converted into explicit typed message content before proxying to the pinned llama.cpp backend. This is not framework-specific behavior; it follows the OpenAI Responses input forms accepted by the public contract.
+
+Implemented generic response normalization:
+
+- `/v1/responses` non-streaming and `response.completed` SSE payloads normalize usage details so `output_tokens_details.reasoning_tokens` is present.
+- Chat Completions and Completions usage objects normalize completion token details when needed.
+- Responses tool-call streams synthesize a typed `response.function_call_arguments.done` event before `response.output_item.done` when the pinned llama.cpp stream omits it.
+
+Future fixes must be justified against one of:
 
 1. vendored OpenAI OpenAPI snapshot;
 2. OpenAI SDK generated types;
@@ -71,7 +81,7 @@ Do not add compatibility behavior solely for a specific application framework or
 
 ## Response adapter policy
 
-The gateway should not eagerly rewrite Responses API output. It should proxy llama.cpp `/v1/responses` response shape as-is unless the vendored OpenAI schema or SDK types require a generic normalization.
+The gateway should not rewrite output just to make it prettier. It should adapt llama.cpp responses only where the vendored OpenAI schema or SDK types require a generic normalization, and otherwise preserve upstream-compatible fields.
 
 ## Proposed code boundary for future generic adapters
 

@@ -17,7 +17,7 @@ make check-openai-openapi
 make schemas
 ```
 
-`make schemas` is now an alias for validating the vendored OpenAI schema snapshot. The previous hand-written `schemas/json` and `schemas/openapi` files were removed to avoid maintaining a parallel, drifting schema copy.
+`make schemas` validates the full static contract pipeline: vendored snapshot integrity, the OpenAI upstream snapshot, OpenAI response fixtures, the pinned llama.cpp upstream snapshot, the local llama.cpp schema/source comparison, gateway typed-boundary rules, and generated API type drift. The previous hand-written `schemas/json` and `schemas/openapi` files were removed to avoid maintaining a parallel, drifting schema copy.
 
 ## Source-of-truth order
 
@@ -56,7 +56,7 @@ The gateway should not define a project-specific schema dialect. Public request 
 
 ## Probes
 
-Use behavior probes instead of local hand-written schema validation:
+Use static schema/type checks plus behavior probes instead of local hand-written request/response schema copies:
 
 ```bash
 make probe-gateway

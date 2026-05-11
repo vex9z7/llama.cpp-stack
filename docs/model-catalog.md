@@ -4,7 +4,7 @@
 
 It answers only one question:
 
-> Which Hugging Face GGUF models are allowed to be lazy-downloaded by the manager?
+> Which Hugging Face GGUF models are allowed to be lazy-downloaded by the gateway?
 
 It does not describe runtime parameters, aliases, ports, routes, context size, parallel slots, or request overrides.
 
@@ -54,25 +54,19 @@ file = "exact-file-name.gguf"
 
 ## Stable local filename
 
-The manager should download into:
+The gateway downloads the selected remote GGUF directly into a deterministic stable path:
 
 ```text
-models/hf/<owner>/<repo>/
-```
-
-and create a stable symlink:
-
-```text
-models/hf/<owner>/<repo>/<quant>.gguf -> <actual-hugging-face-filename>.gguf
+models/hf/<owner>/<repo>/<quant>.gguf
 ```
 
 Example:
 
 ```text
-models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf -> Qwen3-4B-Q4_K_M.gguf
+models/hf/Qwen/Qwen3-4B-GGUF/Q4_K_M.gguf
 ```
 
-This lets runtime code use a deterministic path while preserving the original downloaded filename.
+The original Hugging Face filename is used only while selecting which remote file to download; runtime code always uses the stable path derived from `repo` and `quant`.
 
 ## Lazy download
 
@@ -98,4 +92,4 @@ Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
 n24q02m/Qwen3-Embedding-0.6B-GGUF/Q4_K_M
 ```
 
-Some models may have license or runtime requirements beyond this stack. For example, embedding models should run in a separate instance with `--embeddings`, and Gemma models have their own license terms.
+Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Gemma models and other gated/community models may have their own license terms.

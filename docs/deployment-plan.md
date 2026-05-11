@@ -137,7 +137,7 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 - 用 `Makefile` 统一 `check/up/down/logs/config` 工作流
 - 用 base compose + backend override 文件切换 CPU/Vulkan/CUDA
 - 模型目录只保存本地大文件，不把模型提交到 git
-- healthcheck 使用轻量 TCP reachability check，避免调用重型推理接口
+- healthcheck 使用轻量 `/health` 或 TCP reachability check，避免调用重型推理接口
 
 关键配置：
 

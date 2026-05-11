@@ -154,77 +154,42 @@ Logging policy:
 - Docker, journald, Loki, Vector, Fluent Bit, or another collector should own
   ingestion and storage.
 
-Use stable event keywords in the `msg` field and add structured attributes for
-filtering. Suggested attributes across roles:
+Current runtime logs use concise message strings and structured attributes. The stable filtering surface is the attribute set rather than a large message taxonomy:
 
 ```text
-request_id
 method
 path
 status
 duration_ms
 model
-endpoint
-stream
 error
 ```
 
-Runtime log keywords are grouped into three roles:
+Currently emitted gateway messages include:
+
+```text
+request
+gateway listening
+gateway shutting down
+rendered router preset
+download failed
+router reload failed
+ensure available failed
+proxy failed
+responses SSE copy failed
+stream proxy copy failed
+typed adaptation failed
+```
+
+If the logging vocabulary is expanded later, keep it grouped by responsibility:
 
 ```text
 gateway.*  client-facing HTTP/API boundary
-model.*    model policy, catalog, lazy download, preset, scheduling
+model.*    model policy, catalog, lazy download, preset readiness
 backend.*  calls and proxy traffic to the internal inference backend
 ```
 
-Gateway keywords:
-
-```text
-gateway.start
-gateway.shutdown
-gateway.request
-gateway.response
-gateway.error
-gateway.health
-gateway.openapi
-```
-
-Model keywords:
-
-```text
-model.catalog_load
-model.catalog_reload
-model.ensure
-model.download
-model.preset
-model.hit
-model.miss
-model.load
-model.unload
-model.capacity_full
-model.reject
-model.lru_select
-model.idle_select
-```
-
-Backend keywords:
-
-```text
-backend.health
-backend.models
-backend.reload
-backend.load
-backend.unload
-backend.forward
-backend.response
-backend.stream
-backend.cancel
-backend.error
-```
-
-`backend.*` means the gateway is talking to the internal inference backend. The
-current backend is llama.cpp router mode, but the keyword intentionally leaves
-room for future backends.
+`backend.*` means the gateway is talking to the internal inference backend. The current backend is llama.cpp router mode, but the keyword intentionally leaves room for future backends.
 
 Probe scripts may print their own `probe.*` messages in CI or operator output,
 but `probe.*` is not a runtime service role.
@@ -288,12 +253,11 @@ embeddings = true
 pooling = mean
 ```
 
-Open questions to verify per upstream behavior:
+Current implementation notes:
 
-- exact preset key for embedding enablement;
-- whether model aliases may contain `/` in every target client;
-- whether `kind = "embedding"` needs a separate router process if runtime flags conflict;
-- how `load-on-startup`, `stop-timeout`, and `sleep-idle-seconds` should be exposed in our config.
+- `kind = "embedding"` emits `embeddings = true` and `pooling = mean` in the generated preset.
+- model aliases intentionally use the same slash-containing model ref returned by `/v1/models`.
+- `sleep-idle-seconds` is exposed as `LLAMA_SLEEP_IDLE_SECONDS`; `load-on-startup` and explicit per-model stop timeout are not exposed yet.
 
 ## 6. Download and reload flow
 
@@ -320,17 +284,9 @@ proxy original request to llama router
 llama router autoloads X and proxies to child instance
 ```
 
-Optional deploy-time prefetch flow:
+There is no deploy-time prefetch command in the current implementation. Request-time lazy download is the supported path.
 
-```text
-operator runs prefetch command for selected models
-gateway/tool generates models-preset.ini
-llama-server --models-preset /models/models-preset.ini --models-max N ...
-```
-
-Deploy-time prefetch is only an optimization. Request-time lazy download should use the same catalog/downloader/preset code path.
-
-Important note: if a new model file appears after router startup, the gateway should call `GET /models?reload=1` before forwarding the first request for that model.
+Important note: if a new model file appears after router startup, the gateway calls `GET /models?reload=1` before forwarding the first request for that model.
 
 ## 7. Public API surface
 
@@ -556,20 +512,25 @@ Do not introduce Huma or chi dependencies into non-HTTP packages. Catalog parsin
 
 ### Phase 1: Router-mode compose behind gateway
 
-- add a `llama-router` service using `llama-server` without `--model`;
-- add a `gateway` service as the only public HTTP service;
-- mount `/models` read-write into gateway and read-only or read-write as needed into router;
-- pass `--models-preset /models/models-preset.generated.ini` to router;
-- preserve Vulkan/CUDA profiles on router;
-- gateway proxies allowed `/v1/*` requests to router;
-- add smoke probes for `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/responses`, streaming cancellation.
+Status: implemented.
+
+- `model-permissions` prepares `/models` ownership for the non-root gateway;
+- `llama-router` runs `llama-server` router mode without a fixed `--model`;
+- `gateway` is the only public HTTP service;
+- `/models` is shared read-write because gateway downloads/renders and router reads runtime files;
+- router uses `--models-preset /models/models-preset.generated.ini`;
+- Vulkan/CUDA profiles are Compose overrides on the router service;
+- gateway proxies allowed OpenAI-compatible inference endpoints;
+- smoke/cancellation/schema probes exist.
 
 ### Phase 2: Catalog to preset generator
+
+Status: implemented in gateway request/startup path.
 
 - read `models/catalog.toml`;
 - derive `model_ref` and stable local paths;
 - emit `models/models-preset.generated.ini`;
-- fail clearly if required files are missing when running in deploy-time mode.
+- include only downloaded models in the generated preset.
 
 ### Phase 3: Downloader integration
 
@@ -592,7 +553,7 @@ Status: implemented as the default gateway boundary.
 - gateway proxies to llama router with cancellation propagation;
 - gateway hides router management endpoints from public clients;
 - gateway exposes generated OpenAPI at `/openapi.json`;
-- CI should compare the generated OpenAPI surface against fixed contracts.
+- CI validates generated schema/type drift and builds the gateway Docker image.
 
 ### Phase 5: Optional platform layer
 

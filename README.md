@@ -63,11 +63,16 @@ make stream-cancel
 Client / Apps / Agents
         |
         v
+model-permissions init container
+  - prepares /models ownership for the non-root gateway
+        |
+        v
 Go Gateway container
   - OpenAI-compatible public API
   - catalog parsing / allowlist
   - lazy Hugging Face downloader
   - router preset generation + reload
+  - typed OpenAI compatibility adapters where needed
   - streaming/cancellation-aware proxy
         |
         v
@@ -111,7 +116,6 @@ llama.cpp router mode
 Tooling
   owns: catalog files, Docker Compose profiles, probes, schema checks, docs
 ```
-
 
 ## Docker deployment notes
 
@@ -213,7 +217,10 @@ Runtime model residency is delegated to llama.cpp router mode:
 │       ├── routerclient/
 │       └── routermanager/
 ├── openai-openapi/                   # vendored OpenAI OpenAPI snapshot
-├── docker-compose.dynamic.yml        # Go gateway + llama-server router mode
+├── llamacpp-upstream/                # vendored llama.cpp upstream snapshot
+├── openai-api-schema.yaml            # generated gateway OpenAI subset schema
+├── llamacpp-api-schema/              # pinned llama.cpp upstream schema subset
+├── docker-compose.dynamic.yml        # init + Go gateway + llama-server router mode
 ├── docker-compose.dynamic.vulkan.yml # Vulkan override for router
 ├── docker-compose.dynamic.cuda.yml   # CUDA override for router
 ├── Makefile                          # validated compose workflow
