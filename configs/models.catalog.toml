@@ -57,6 +57,20 @@ file = "LFM2-700M-Q4_K_M.gguf"
 repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
 
+# --- Tool-calling / routing experiments ---
+# Experimental specialist models for tool selection and structured function-call output.
+# They may require model-specific prompt adapters before use with generic OpenAI tools.
+
+[[models]]
+repo = "nexus-syntegra/Nexus-TinyFunction-1.2B-v2.0-GGUF"
+quant = "Q4_K_M"
+file = "Nexus-TinyFunction-1.2B-v2.0-Q4_K_M.gguf"
+
+[[models]]
+repo = "tiiuae/Falcon-H1-Tiny-Tool-Calling-90M-GGUF"
+quant = "Q8_0"
+file = "Falcon-H1-Tiny-90M-Tool-Calling-Q8_0.gguf"
+
 # --- Experimental low-refusal / abliterated models ---
 # Community-derived models for behavior and compatibility testing.
 # Do not treat these as trusted/recommended baseline models.
