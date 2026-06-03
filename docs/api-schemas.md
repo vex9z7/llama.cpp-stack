@@ -50,6 +50,20 @@ The public gateway intentionally hides llama.cpp-native or router-management end
 /models/unload
 ```
 
+
+## Multimodal chat contract
+
+The public multimodal contract is the OpenAI Chat Completions image-input shape from the vendored OpenAI OpenAPI snapshot. For `/v1/chat/completions`, user messages may use content-part arrays containing:
+
+```json
+{ "type": "text", "text": "Describe this image" }
+{ "type": "image_url", "image_url": { "url": "data:image/png;base64,...", "detail": "auto" } }
+```
+
+`image_url.detail` follows the OpenAI enum: `auto`, `low`, or `high`. The gateway-supported multimodal subset intentionally does not claim audio or file inputs yet; static fixtures assert that unsupported content parts remain outside the contract until runtime support is added deliberately.
+
+Models that can accept image input are advertised by `/v1/models` with `meta.multimodal: true` and optional `meta.mmproj`. This reflects catalog entries that pin a llama.cpp `mmproj` projector file. Text-only models still appear in `/v1/models`, but callers should not send image content to them.
+
 ## Adapter obligations
 
 The gateway should not define a project-specific schema dialect. Public request and response shapes should follow the vendored OpenAI OpenAPI snapshot. Backend-specific behavior should pass through unless a generic OpenAI compatibility issue is identified from the official schema or SDK types.

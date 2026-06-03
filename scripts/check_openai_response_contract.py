@@ -32,6 +32,11 @@ def assert_openai_snapshot_contract(spec_path: Path) -> None:
         "reasoning_tokens:",
         "- output_tokens_details",
         "- reasoning_tokens",
+        "ChatCompletionRequestMessageContentPartImage:",
+        "ChatCompletionRequestUserMessageContentPart:",
+        "image_url:",
+        "- image_url",
+        "detail:",
     ]
     missing = [needle for needle in required_needles if needle not in text]
     if missing:
@@ -106,6 +111,56 @@ def assert_response_usage_contract(payload: dict[str, Any]) -> None:
         raise ContractError("usage.output_tokens_details.reasoning_tokens must be an integer")
 
 
+
+def assert_chat_request_contract(payload: dict[str, Any]) -> None:
+    if not isinstance(payload.get("model"), str) or payload.get("model") == "":
+        raise ContractError("chat request model must be a non-empty string")
+    messages = payload.get("messages")
+    if not isinstance(messages, list) or not messages:
+        raise ContractError("chat request messages must be a non-empty array")
+    for index, message in enumerate(messages):
+        if not isinstance(message, dict):
+            raise ContractError(f"chat request messages[{index}] must be an object")
+        role = message.get("role")
+        if role not in {"developer", "system", "user", "assistant", "tool"}:
+            raise ContractError(f"chat request messages[{index}].role is unsupported: {role!r}")
+        if "content" not in message:
+            if role == "assistant" and "tool_calls" in message:
+                continue
+            raise ContractError(f"chat request messages[{index}] missing content")
+        assert_chat_content_contract(role, message["content"], f"messages[{index}].content")
+
+
+def assert_chat_content_contract(role: str, content: Any, path: str) -> None:
+    if isinstance(content, str):
+        return
+    if not isinstance(content, list) or not content:
+        raise ContractError(f"{path} must be a string or non-empty content part array")
+    for part_index, part in enumerate(content):
+        part_path = f"{path}[{part_index}]"
+        if not isinstance(part, dict):
+            raise ContractError(f"{part_path} must be an object")
+        typ = part.get("type")
+        if typ == "text":
+            if not isinstance(part.get("text"), str):
+                raise ContractError(f"{part_path}.text must be a string")
+            continue
+        if typ == "image_url" and role == "user":
+            image_url = part.get("image_url")
+            if not isinstance(image_url, dict):
+                raise ContractError(f"{part_path}.image_url must be an object")
+            if not isinstance(image_url.get("url"), str) or image_url.get("url") == "":
+                raise ContractError(f"{part_path}.image_url.url must be a non-empty string")
+            detail = image_url.get("detail")
+            if detail is not None and detail not in {"auto", "low", "high"}:
+                raise ContractError(f"{part_path}.image_url.detail is unsupported: {detail!r}")
+            continue
+        if typ == "refusal" and role == "assistant":
+            if not isinstance(part.get("refusal"), str):
+                raise ContractError(f"{part_path}.refusal must be a string")
+            continue
+        raise ContractError(f"{part_path}.type is outside the gateway-supported OpenAI chat subset: {typ!r}")
+
 def check_fixture(path: Path, expect_valid: bool, contract: str) -> None:
     payload = json.loads(path.read_text(encoding="utf-8"))
     try:
@@ -113,6 +168,8 @@ def check_fixture(path: Path, expect_valid: bool, contract: str) -> None:
             assert_response_usage_contract(payload)
         elif contract == "generation":
             assert_generation_usage_contract(payload)
+        elif contract == "chat_request":
+            assert_chat_request_contract(payload)
         else:
             raise ContractError(f"unknown contract: {contract}")
     except ContractError:
@@ -130,10 +187,11 @@ def main() -> int:
     parser.add_argument("--spec", default="openai-openapi/spec/openapi.documented.yml")
     parser.add_argument("--response-fixtures", default="scripts/fixtures/openai/responses")
     parser.add_argument("--chat-fixtures", default="scripts/fixtures/openai/chat")
+    parser.add_argument("--chat-request-fixtures", default="scripts/fixtures/openai/chat_requests")
     args = parser.parse_args()
 
     assert_openai_snapshot_contract(Path(args.spec))
-    for fixture_dir, contract in [(Path(args.response_fixtures), "responses"), (Path(args.chat_fixtures), "generation")]:
+    for fixture_dir, contract in [(Path(args.response_fixtures), "responses"), (Path(args.chat_fixtures), "generation"), (Path(args.chat_request_fixtures), "chat_request")]:
         valid = sorted(fixture_dir.glob("*.valid.json"))
         invalid = sorted(fixture_dir.glob("*.invalid.json"))
         if not valid or not invalid:

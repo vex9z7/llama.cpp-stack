@@ -35,7 +35,16 @@ def check_openai_aliases() -> None:
     require('import gen "github.com/vex9z7/llama.cpp-stack/gateway/internal/openaiapi/generated"' in text,
             "openaiapi aliases must import generated package")
     for name in [
-        "ChatCompletion", "Completion", "CompletionUsage", "EasyInputMessage", "EasyInputMessageContent",
+        "ChatCompletion", "ChatCompletionAssistantContent", "ChatCompletionCreateRequest",
+        "ChatCompletionRequestAssistantMessage", "ChatCompletionRequestAssistantMessageContentPart",
+        "ChatCompletionRequestDeveloperMessage", "ChatCompletionRequestMessage",
+        "ChatCompletionRequestMessageContentPartImage", "ChatCompletionRequestMessageContentPartImageURL",
+        "ChatCompletionRequestMessageContentPartImageURLDetail", "ChatCompletionRequestMessageContentPartImageType",
+        "ChatCompletionRequestMessageContentPartRefusal", "ChatCompletionRequestMessageContentPartText",
+        "ChatCompletionRequestSystemMessage", "ChatCompletionRequestToolMessage",
+        "ChatCompletionRequestUserMessage", "ChatCompletionRequestUserMessageContentPart",
+        "ChatCompletionTextContent", "ChatCompletionUserContent", "Completion", "CompletionUsage",
+        "EasyInputMessage", "EasyInputMessageContent",
         "EasyInputMessageRole", "EasyInputMessageType", "EmbeddingResponse", "EmbeddingUsage",
         "ErrorBody", "ErrorObject", "InputMessageContent", "InputMessageContentType", "Model",
         "ModelList", "ModelMeta", "ModelRequest", "PromptTokensDetails", "Response",
@@ -109,7 +118,7 @@ def check_adapter_imports_and_normalization() -> None:
 
 def check_server_boundary() -> None:
     text = read("gateway/internal/server/handlers.go")
-    require("openaiapi.ModelRequest" in text, "server must parse requests through openaiapi.ModelRequest")
+    require("openaiapi.ModelRequest" in text, "server must parse requests through openaiapi.ModelRequest for common model routing")
     require("openaiapi.ModelList" in text, "server /v1/models must use openaiapi.ModelList")
     require("openaiapi.ErrorBody" in text, "server errors must use openaiapi.ErrorBody")
     require("map[string]any{\"error\"" not in text, "server must not hand-roll OpenAI error maps")
@@ -180,11 +189,15 @@ def check_strict_schema_components() -> None:
 def check_openai_schema_request_contract() -> None:
     schema = read("openai-api-schema.yaml")
     require("generated_by: scripts/generate_openai_gateway_schema.py" in schema, "OpenAI gateway schema must be generated from the vendored OpenAI snapshot")
+    require("$ref: '#/components/schemas/ChatCompletionCreateRequest'" in schema, "/v1/chat/completions request must use ChatCompletionCreateRequest, not bare ModelRequest")
     require("$ref: '#/components/schemas/ResponseCreateRequest'" in schema, "/v1/responses request must use ResponseCreateRequest, not bare ModelRequest")
-    for name in ["EasyInputMessage", "ResponseInputItem", "ResponseFunctionCall", "ResponseFunctionCallOutput", "ResponseCompletedEvent", "ResponseFunctionCallArgumentsDeltaEvent", "ResponseFunctionCallArgumentsDoneEvent", "ResponseOutputItem", "ResponseOutputFunctionCallItem", "ResponseOutputMessageItem", "ResponseOutputMessageContent", "ResponseOutputTextContent", "ResponseRefusalContent", "ResponseOutputReasoningItem", "ResponseOutputReasoningContent", "ResponseOutputSummaryTextContent", "ResponseOutputItemDoneEvent"]:
+    for name in ["ChatCompletionCreateRequest", "ChatCompletionRequestMessage", "ChatCompletionRequestUserMessage", "ChatCompletionRequestUserMessageContentPart", "ChatCompletionRequestMessageContentPartImage", "ChatCompletionRequestMessageContentPartImageURL", "ChatCompletionRequestMessageContentPartText", "EasyInputMessage", "ResponseInputItem", "ResponseFunctionCall", "ResponseFunctionCallOutput", "ResponseCompletedEvent", "ResponseFunctionCallArgumentsDeltaEvent", "ResponseFunctionCallArgumentsDoneEvent", "ResponseOutputItem", "ResponseOutputFunctionCallItem", "ResponseOutputMessageItem", "ResponseOutputMessageContent", "ResponseOutputTextContent", "ResponseRefusalContent", "ResponseOutputReasoningItem", "ResponseOutputReasoningContent", "ResponseOutputSummaryTextContent", "ResponseOutputItemDoneEvent"]:
         require(f"    {name}:" in schema, f"OpenAI gateway schema must include {name}")
-    for source in ["CreateResponse", "FunctionToolCall", "FunctionToolCallOutput", "OutputItem", "OutputMessage", "OutputMessageContent", "OutputTextContent", "RefusalContent", "ReasoningItem", "ResponseCompletedEvent", "ResponseUsage"]:
+    for source in ["CreateChatCompletionRequest", "ChatCompletionRequestMessage", "ChatCompletionRequestUserMessageContentPart", "ChatCompletionRequestMessageContentPartImage", "CreateResponse", "FunctionToolCall", "FunctionToolCallOutput", "OutputItem", "OutputMessage", "OutputMessageContent", "OutputTextContent", "RefusalContent", "ReasoningItem", "ResponseCompletedEvent", "ResponseUsage"]:
         require(f"x-oai-source: {source}" in schema, f"OpenAI gateway schema must anchor generated subset to official {source}")
+    require("image_url:\n          $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartImageURL'" in schema, "Chat multimodal image_url content part must be typed")
+    require("enum: [auto, low, high]" in schema, "Chat image_url.detail must follow the OpenAI detail enum")
+    require("multimodal:" in schema and "mmproj:" in schema, "Model meta must expose multimodal/mmproj capability markers")
     require("item:\n          $ref: '#/components/schemas/ResponseOutputItem'" in schema, "ResponseOutputItemDoneEvent.item must not be an untyped object")
     require("required: [type, call_id, name, arguments]" in schema, "ResponseOutputFunctionCallItem must require call_id/name/arguments")
     require("output:\n          type: array\n          items:\n            $ref: '#/components/schemas/ResponseOutputItem'" in schema, "OpenAI Response.output must be typed as ResponseOutputItem array")
