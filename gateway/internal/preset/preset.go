@@ -63,6 +63,11 @@ func Render(cat *catalog.Catalog, cfg Config) (Rendered, error) {
 		b.WriteString("alias = ")
 		b.WriteString(ref)
 		b.WriteString("\n")
+		if m.MMProj != "" {
+			b.WriteString("mmproj = ")
+			b.WriteString(m.MMProjStablePath(cfg.ModelsDir))
+			b.WriteString("\n")
+		}
 		if kindOf(m) == "embedding" {
 			b.WriteString("embeddings = true\n")
 			b.WriteString("pooling = mean\n")

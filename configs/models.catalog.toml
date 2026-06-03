@@ -19,10 +19,12 @@ quant = "Q4_K_M"
 [[models]]
 repo = "unsloth/Qwen3.5-2B-GGUF"
 quant = "Q4_K_M"
+mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-4B-GGUF"
 quant = "Q4_K_M"
+mmproj = "mmproj-F16.gguf"
 
 # --- Main general chat models ---
 
@@ -56,6 +58,7 @@ file = "LFM2-700M-Q4_K_M.gguf"
 [[models]]
 repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
+mmproj = "mmproj-F16.gguf"
 
 # --- Tool-calling / routing experiments ---
 # Experimental specialist models for tool selection and structured function-call output.

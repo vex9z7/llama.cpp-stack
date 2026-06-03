@@ -174,6 +174,10 @@ detailed keyword list.
 [[models]]
 repo = "Qwen/Qwen3-4B-GGUF"
 quant = "Q4_K_M"
+
+# Optional for vision-language models in llama.cpp/GGUF repos.
+# The gateway downloads this alongside the main GGUF and writes it to the router preset.
+mmproj = "mmproj-F16.gguf"
 ```
 
 Model refs are derived as `<repo>/<quant>`, for example:
@@ -182,7 +186,7 @@ Model refs are derived as `<repo>/<quant>`, for example:
 Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
-Requesting a catalog model lazily downloads the selected GGUF into:
+Requesting a catalog model lazily downloads the selected GGUF, plus optional `mmproj` projector files for multimodal-capable models, into:
 
 ```text
 models/hf/<repo>/<quant>.gguf

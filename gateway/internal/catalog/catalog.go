@@ -18,6 +18,7 @@ type Model struct {
 	Quant   string `toml:"quant" json:"quant"`
 	Pattern string `toml:"pattern,omitempty" json:"pattern,omitempty"`
 	File    string `toml:"file,omitempty" json:"file,omitempty"`
+	MMProj  string `toml:"mmproj,omitempty" json:"mmproj,omitempty"`
 	Name    string `toml:"name,omitempty" json:"name,omitempty"`
 	Kind    string `toml:"kind,omitempty" json:"kind,omitempty"`
 }
@@ -49,6 +50,9 @@ func (m Model) Validate() error {
 	if strings.Contains(m.Quant, "/") {
 		return fmt.Errorf("quant must not contain slash: %q", m.Quant)
 	}
+	if m.MMProj != "" && !strings.HasSuffix(strings.ToLower(m.MMProj), ".gguf") {
+		return fmt.Errorf("mmproj must be a GGUF file: %q", m.MMProj)
+	}
 	return nil
 }
 
@@ -77,6 +81,20 @@ func (m Model) StableRelPath() string {
 
 func (m Model) StablePath(modelsDir string) string {
 	return filepath.Join(modelsDir, filepath.FromSlash(m.StableRelPath()))
+}
+
+func (m Model) MMProjStableRelPath() string {
+	if m.MMProj == "" {
+		return ""
+	}
+	return filepath.ToSlash(filepath.Join("hf", filepath.FromSlash(m.Repo), filepath.Base(filepath.FromSlash(m.MMProj))))
+}
+
+func (m Model) MMProjStablePath(modelsDir string) string {
+	if m.MMProj == "" {
+		return ""
+	}
+	return filepath.Join(modelsDir, filepath.FromSlash(m.MMProjStableRelPath()))
 }
 
 func (c *Catalog) ByRef(ref string) (Model, bool) {

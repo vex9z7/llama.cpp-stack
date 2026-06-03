@@ -3,7 +3,7 @@ package catalog
 import "testing"
 
 func TestDerivedModelIdentityAndPath(t *testing.T) {
-	m := Model{Repo: "Qwen/Qwen3-4B-GGUF", Quant: "Q4_K_M"}
+	m := Model{Repo: "Qwen/Qwen3-4B-GGUF", Quant: "Q4_K_M", MMProj: "mmproj-F16.gguf"}
 	if got := m.Ref(); got != "Qwen/Qwen3-4B-GGUF/Q4_K_M" {
 		t.Fatalf("Ref() = %q", got)
 	}
@@ -12,6 +12,9 @@ func TestDerivedModelIdentityAndPath(t *testing.T) {
 	}
 	if got := m.GlobPattern(); got != "*Q4_K_M*.gguf" {
 		t.Fatalf("GlobPattern() = %q", got)
+	}
+	if got := m.MMProjStableRelPath(); got != "hf/Qwen/Qwen3-4B-GGUF/mmproj-F16.gguf" {
+		t.Fatalf("MMProjStableRelPath() = %q", got)
 	}
 }
 

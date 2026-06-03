@@ -144,7 +144,7 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 - `LLAMA_BACKEND`：`cpu` / `vulkan` / `cuda`，默认 `vulkan`
 - `LLAMA_HOST` / `LLAMA_PORT`：gateway 在宿主机上的监听地址和端口
 - `GATEWAY_HOST` / `GATEWAY_PORT`：可选 gateway host bind override
-- `configs/models.catalog.toml`：允许按需下载/加载的 GGUF 模型列表
+- `configs/models.catalog.toml`：允许按需下载/加载的 GGUF 模型列表；多模态模型可选配置 mmproj projector 文件
 - `LLAMA_MODELS_MAX`：router mode 最多同时 loaded model instances；默认 `4`，跟随 llama.cpp
 - `LLAMA_MODELS_AUTOLOAD`：是否允许 router mode 根据请求自动加载模型；默认开启
 - `LLAMA_ROUTER_CTX_SIZE`：child model instance 默认上下文窗口

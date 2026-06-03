@@ -101,3 +101,17 @@ Qwen/Qwen3-Embedding-0.6B-GGUF/Q8_0
 ```
 
 Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Official GGUF sources are preferred. Community-only experimental entries must be clearly grouped and should be added only when there is no suitable official source and the model is needed for a specific test. Low-refusal/abliterated models are for behavior testing, not trusted default baselines.
+
+
+## Multimodal projector files
+
+Some GGUF repos include a separate llama.cpp multimodal projector (`mmproj`) used to enable image inputs for vision-language models. Catalog entries can pin this optional file:
+
+```toml
+[[models]]
+repo = "unsloth/Qwen3.5-4B-GGUF"
+quant = "Q4_K_M"
+mmproj = "mmproj-F16.gguf"
+```
+
+The model ref stays `<repo>/<quant>`. The gateway downloads the main GGUF and the projector into `models/hf/<repo>/`, and the generated router preset includes both `model = ...` and `mmproj = ...`. Text-only requests still use the same model ref.

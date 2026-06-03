@@ -73,7 +73,10 @@ type treeEntry struct {
 
 func (d *Downloader) Ensure(ctx context.Context, m catalog.Model) (string, error) {
 	stable := m.StablePath(d.ModelsDir)
-	if fileExists(stable) {
+	mainMissing := !fileExists(stable)
+	mmprojStable := m.MMProjStablePath(d.ModelsDir)
+	mmprojMissing := m.MMProj != "" && !fileExists(mmprojStable)
+	if !mainMissing && !mmprojMissing {
 		return stable, nil
 	}
 	if err := os.MkdirAll(filepath.Dir(stable), 0o755); err != nil {
@@ -83,12 +86,26 @@ func (d *Downloader) Ensure(ctx context.Context, m catalog.Model) (string, error
 	if err != nil {
 		return "", err
 	}
-	chosen, err := chooseFile(files, m)
-	if err != nil {
-		return "", err
+	if mainMissing {
+		chosen, err := chooseFile(files, m)
+		if err != nil {
+			return "", err
+		}
+		if err := d.download(ctx, m.Repo, chosen, stable); err != nil {
+			return "", err
+		}
 	}
-	if err := d.download(ctx, m.Repo, chosen, stable); err != nil {
-		return "", err
+	if mmprojMissing {
+		chosen, err := chooseExactFile(files, m.Repo, m.MMProj)
+		if err != nil {
+			return "", err
+		}
+		if err := os.MkdirAll(filepath.Dir(mmprojStable), 0o755); err != nil {
+			return "", err
+		}
+		if err := d.download(ctx, m.Repo, chosen, mmprojStable); err != nil {
+			return "", err
+		}
 	}
 	return stable, nil
 }
@@ -131,6 +148,18 @@ func (d *Downloader) listFiles(ctx context.Context, repo string) ([]string, erro
 	}
 	sort.Strings(files)
 	return files, nil
+}
+
+func chooseExactFile(files []string, repo, configured string) (string, error) {
+	for _, f := range files {
+		if f == configured || path.Base(f) == configured {
+			if strings.Contains(strings.ToLower(path.Base(f)), "-of-") {
+				return "", hferr(CodeSplitGGUF, fmt.Sprintf("configured file %q appears to be a split GGUF; pin a single-file GGUF repo or exact first shard support later", f), nil)
+			}
+			return f, nil
+		}
+	}
+	return "", hferr(CodeFileNotFound, fmt.Sprintf("file %q not found in %s", configured, repo), nil)
 }
 
 func chooseFile(files []string, m catalog.Model) (string, error) {

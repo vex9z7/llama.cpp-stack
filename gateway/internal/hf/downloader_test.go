@@ -51,3 +51,13 @@ func TestChooseFileRejectsSplitGGUF(t *testing.T) {
 		t.Fatalf("Code(err)=%q", Code(err))
 	}
 }
+
+func TestChooseExactFileMatchesPathOrBase(t *testing.T) {
+	got, err := chooseExactFile([]string{"nested/mmproj-F16.gguf"}, "o/r", "mmproj-F16.gguf")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "nested/mmproj-F16.gguf" {
+		t.Fatalf("chooseExactFile() = %q", got)
+	}
+}

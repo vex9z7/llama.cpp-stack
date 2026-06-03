@@ -17,7 +17,7 @@ func TestRenderIncludesAllCatalogModels(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(dir, "hf", "owner", "chat", "Q4.gguf"), []byte("x"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	cat := &catalog.Catalog{Models: []catalog.Model{{Repo: "owner/chat", Quant: "Q4"}, {Repo: "owner/missing", Quant: "Q4"}, {Repo: "owner/embed", Quant: "Q4", Kind: "embedding"}}}
+	cat := &catalog.Catalog{Models: []catalog.Model{{Repo: "owner/chat", Quant: "Q4", MMProj: "mmproj-F16.gguf"}, {Repo: "owner/missing", Quant: "Q4"}, {Repo: "owner/embed", Quant: "Q4", Kind: "embedding"}}}
 	out, err := Render(cat, Config{ModelsDir: dir, Path: filepath.Join(dir, "preset.ini"), CtxSize: 512, Parallel: 1, NGPULayers: 0})
 	if err != nil {
 		t.Fatal(err)
