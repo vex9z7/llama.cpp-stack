@@ -43,8 +43,6 @@ func (a *App) humaModels(ctx huma.Context) {
 				Repo:         m.Repo,
 				Quant:        m.Quant,
 				Kind:         stringPtr(m.Kind),
-				Multimodal:   boolPtr(m.Multimodal),
-				Mmproj:       stringPtr(m.MMProj),
 			},
 		})
 	}
@@ -150,9 +148,5 @@ func stringPtr(value string) *string {
 	if value == "" {
 		return nil
 	}
-	return &value
-}
-
-func boolPtr(value bool) *bool {
 	return &value
 }

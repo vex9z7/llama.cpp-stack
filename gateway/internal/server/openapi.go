@@ -27,11 +27,7 @@ func withResponse(op *huma.Operation, schema *huma.Schema) *huma.Operation {
 }
 
 func withProxyDocs(op *huma.Operation) *huma.Operation {
-	schema := modelRequestSchema()
-	if op.Path == "/v1/chat/completions" {
-		schema = chatCompletionRequestSchema()
-	}
-	op.RequestBody = &huma.RequestBody{Required: true, Content: map[string]*huma.MediaType{"application/json": {Schema: schema}}}
+	op.RequestBody = &huma.RequestBody{Required: true, Content: map[string]*huma.MediaType{"application/json": {Schema: modelRequestSchema()}}}
 	op.Responses = map[string]*huma.Response{
 		"200": jsonResponse("Successful upstream response. Shape depends on the proxied llama.cpp/OpenAI-compatible endpoint.", openObjectSchema()),
 		"400": jsonResponse("Gateway validation error", errorSchema()),
@@ -43,31 +39,6 @@ func withProxyDocs(op *huma.Operation) *huma.Operation {
 
 func jsonResponse(desc string, schema *huma.Schema) *huma.Response {
 	return &huma.Response{Description: desc, Content: map[string]*huma.MediaType{"application/json": {Schema: schema}}}
-}
-
-func chatCompletionRequestSchema() *huma.Schema {
-	return &huma.Schema{Type: "object", Required: []string{"model", "messages"}, AdditionalProperties: true, Properties: map[string]*huma.Schema{
-		"model":  {Type: "string"},
-		"stream": {Type: "boolean"},
-		"messages": {Type: "array", Items: &huma.Schema{Type: "object", Required: []string{"role", "content"}, AdditionalProperties: true, Properties: map[string]*huma.Schema{
-			"role": {Type: "string"},
-			"content": {OneOf: []*huma.Schema{
-				{Type: "string"},
-				{Type: "array", Items: chatCompletionContentPartSchema()},
-			}},
-		}}},
-	}}
-}
-
-func chatCompletionContentPartSchema() *huma.Schema {
-	return &huma.Schema{Type: "object", Required: []string{"type"}, Properties: map[string]*huma.Schema{
-		"type": {Type: "string", Enum: []any{"text", "image_url"}},
-		"text": {Type: "string"},
-		"image_url": {Type: "object", Required: []string{"url"}, Properties: map[string]*huma.Schema{
-			"url":    {Type: "string"},
-			"detail": {Type: "string", Enum: []any{"auto", "low", "high"}},
-		}},
-	}}
 }
 
 func modelRequestSchema() *huma.Schema {
@@ -103,8 +74,6 @@ func modelMetaSchema() *huma.Schema {
 		"repo":          {Type: "string"},
 		"quant":         {Type: "string"},
 		"kind":          {Type: "string"},
-		"multimodal":    {Type: "boolean"},
-		"mmproj":        {Type: "string"},
 	}}
 }
 

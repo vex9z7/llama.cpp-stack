@@ -138,31 +138,6 @@ def check_official_snapshot(source: str) -> None:
             "cached_tokens:",
             "reasoning_tokens:",
         ],
-        "CreateChatCompletionRequest": [
-            "messages:",
-            "$ref: '#/components/schemas/ChatCompletionRequestMessage'",
-            "model:",
-            "stream:",
-        ],
-        "ChatCompletionRequestMessage": [
-            "$ref: '#/components/schemas/ChatCompletionRequestUserMessage'",
-            "$ref: '#/components/schemas/ChatCompletionRequestAssistantMessage'",
-            "discriminator:",
-            "propertyName: role",
-        ],
-        "ChatCompletionRequestUserMessageContentPart": [
-            "$ref: '#/components/schemas/ChatCompletionRequestMessageContentPartText'",
-            "$ref: '#/components/schemas/ChatCompletionRequestMessageContentPartImage'",
-        ],
-        "ChatCompletionRequestMessageContentPartImage": [
-            "- image_url",
-            "image_url:",
-            "url:",
-            "detail:",
-            "- auto",
-            "- low",
-            "- high",
-        ],
     }
     for name, needles in checks.items():
         block = component_block(source, name)
@@ -208,7 +183,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChatCompletionCreateRequest'
+              $ref: '#/components/schemas/ModelRequest'
       responses:
         '200':
           description: Chat completion response
@@ -305,190 +280,6 @@ components:
       additionalProperties: true
       properties:
         model:
-          type: string
-    ChatCompletionCreateRequest:
-      x-oai-source: CreateChatCompletionRequest
-      type: object
-      required: [model, messages]
-      additionalProperties: true
-      properties:
-        model:
-          type: string
-        messages:
-          type: array
-          items:
-            $ref: '#/components/schemas/ChatCompletionRequestMessage'
-        stream:
-          type: boolean
-    ChatCompletionRequestMessage:
-      x-oai-source: ChatCompletionRequestMessage
-      oneOf:
-        - $ref: '#/components/schemas/ChatCompletionRequestDeveloperMessage'
-        - $ref: '#/components/schemas/ChatCompletionRequestSystemMessage'
-        - $ref: '#/components/schemas/ChatCompletionRequestUserMessage'
-        - $ref: '#/components/schemas/ChatCompletionRequestAssistantMessage'
-        - $ref: '#/components/schemas/ChatCompletionRequestToolMessage'
-      discriminator:
-        propertyName: role
-        mapping:
-          developer: '#/components/schemas/ChatCompletionRequestDeveloperMessage'
-          system: '#/components/schemas/ChatCompletionRequestSystemMessage'
-          user: '#/components/schemas/ChatCompletionRequestUserMessage'
-          assistant: '#/components/schemas/ChatCompletionRequestAssistantMessage'
-          tool: '#/components/schemas/ChatCompletionRequestToolMessage'
-    ChatCompletionRequestDeveloperMessage:
-      x-oai-source: ChatCompletionRequestDeveloperMessage
-      type: object
-      required: [role, content]
-      additionalProperties: true
-      properties:
-        role:
-          type: string
-          enum: [developer]
-        content:
-          $ref: '#/components/schemas/ChatCompletionTextContent'
-        name:
-          type: string
-    ChatCompletionRequestSystemMessage:
-      x-oai-source: ChatCompletionRequestSystemMessage
-      type: object
-      required: [role, content]
-      additionalProperties: true
-      properties:
-        role:
-          type: string
-          enum: [system]
-        content:
-          $ref: '#/components/schemas/ChatCompletionTextContent'
-        name:
-          type: string
-    ChatCompletionRequestUserMessage:
-      x-oai-source: ChatCompletionRequestUserMessage
-      type: object
-      required: [role, content]
-      additionalProperties: true
-      properties:
-        role:
-          type: string
-          enum: [user]
-        content:
-          $ref: '#/components/schemas/ChatCompletionUserContent'
-        name:
-          type: string
-    ChatCompletionRequestAssistantMessage:
-      x-oai-source: ChatCompletionRequestAssistantMessage
-      type: object
-      required: [role]
-      additionalProperties: true
-      properties:
-        role:
-          type: string
-          enum: [assistant]
-        content:
-          $ref: '#/components/schemas/ChatCompletionAssistantContent'
-        name:
-          type: string
-        tool_calls:
-          type: array
-          items:
-            type: object
-            additionalProperties: true
-    ChatCompletionRequestToolMessage:
-      x-oai-source: ChatCompletionRequestToolMessage
-      type: object
-      required: [role, content, tool_call_id]
-      additionalProperties: true
-      properties:
-        role:
-          type: string
-          enum: [tool]
-        content:
-          $ref: '#/components/schemas/ChatCompletionTextContent'
-        tool_call_id:
-          type: string
-    ChatCompletionTextContent:
-      x-oai-source: ChatCompletionRequestMessageContentPartText
-      oneOf:
-        - type: string
-        - type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartText'
-    ChatCompletionUserContent:
-      x-oai-source: ChatCompletionRequestUserMessageContentPart
-      oneOf:
-        - type: string
-        - type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/ChatCompletionRequestUserMessageContentPart'
-    ChatCompletionAssistantContent:
-      x-oai-source: ChatCompletionRequestAssistantMessageContentPart
-      oneOf:
-        - type: string
-        - type: array
-          minItems: 1
-          items:
-            $ref: '#/components/schemas/ChatCompletionRequestAssistantMessageContentPart'
-    ChatCompletionRequestUserMessageContentPart:
-      x-oai-source: ChatCompletionRequestUserMessageContentPart
-      oneOf:
-        - $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartText'
-        - $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartImage'
-      discriminator:
-        propertyName: type
-        mapping:
-          text: '#/components/schemas/ChatCompletionRequestMessageContentPartText'
-          image_url: '#/components/schemas/ChatCompletionRequestMessageContentPartImage'
-    ChatCompletionRequestAssistantMessageContentPart:
-      x-oai-source: ChatCompletionRequestAssistantMessageContentPart
-      oneOf:
-        - $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartText'
-        - $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartRefusal'
-      discriminator:
-        propertyName: type
-        mapping:
-          text: '#/components/schemas/ChatCompletionRequestMessageContentPartText'
-          refusal: '#/components/schemas/ChatCompletionRequestMessageContentPartRefusal'
-    ChatCompletionRequestMessageContentPartText:
-      x-oai-source: ChatCompletionRequestMessageContentPartText
-      type: object
-      required: [type, text]
-      properties:
-        type:
-          type: string
-          enum: [text]
-        text:
-          type: string
-    ChatCompletionRequestMessageContentPartImage:
-      x-oai-source: ChatCompletionRequestMessageContentPartImage
-      type: object
-      required: [type, image_url]
-      properties:
-        type:
-          type: string
-          enum: [image_url]
-        image_url:
-          $ref: '#/components/schemas/ChatCompletionRequestMessageContentPartImageURL'
-    ChatCompletionRequestMessageContentPartImageURL:
-      x-oai-source: ChatCompletionRequestMessageContentPartImage.image_url
-      type: object
-      required: [url]
-      properties:
-        url:
-          type: string
-        detail:
-          type: string
-          enum: [auto, low, high]
-    ChatCompletionRequestMessageContentPartRefusal:
-      x-oai-source: ChatCompletionRequestMessageContentPartRefusal
-      type: object
-      required: [type, refusal]
-      properties:
-        type:
-          type: string
-          enum: [refusal]
-        refusal:
           type: string
     ResponseCreateRequest:
       x-oai-source: CreateResponse
@@ -632,12 +423,6 @@ components:
           type: string
         kind:
           type: string
-        multimodal:
-          type: boolean
-          description: True when the catalog entry pins a llama.cpp mmproj projector and can accept image inputs.
-        mmproj:
-          type: string
-          description: Optional catalog projector filename used by llama.cpp for image inputs.
     PromptTokensDetails:
       x-oai-source: PromptTokensDetails
       type: object

@@ -114,4 +114,4 @@ quant = "Q4_K_M"
 mmproj = "mmproj-F16.gguf"
 ```
 
-The model ref stays `<repo>/<quant>`. The gateway downloads the main GGUF and the projector into `models/hf/<repo>/`, and the generated router preset includes both `model = ...` and `mmproj = ...`. Text-only requests still use the same model ref. `/v1/models` exposes this capability with `meta.multimodal: true` and `meta.mmproj`, so clients can distinguish image-capable catalog entries from text-only models without inspecting the catalog file directly.
+The model ref stays `<repo>/<quant>`. The gateway downloads the main GGUF and the projector into `models/hf/<repo>/`, and the generated router preset includes both `model = ...` and `mmproj = ...`. Text-only requests still use the same model ref.
