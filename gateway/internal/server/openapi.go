@@ -74,6 +74,10 @@ func modelMetaSchema() *huma.Schema {
 		"repo":          {Type: "string"},
 		"quant":         {Type: "string"},
 		"kind":          {Type: "string"},
+		"ctx_size":      {Type: "integer"},
+		"parallel":      {Type: "integer"},
+		"threads_http":  {Type: "integer"},
+		"n_gpu_layers":  {Type: "integer"},
 	}}
 }
 

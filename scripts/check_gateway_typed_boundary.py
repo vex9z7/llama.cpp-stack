@@ -189,6 +189,9 @@ def check_openai_schema_request_contract() -> None:
     require("required: [type, call_id, name, arguments]" in schema, "ResponseOutputFunctionCallItem must require call_id/name/arguments")
     require("output:\n          type: array\n          items:\n            $ref: '#/components/schemas/ResponseOutputItem'" in schema, "OpenAI Response.output must be typed as ResponseOutputItem array")
     require("summary:\n          type: array\n          items:\n            $ref: '#/components/schemas/ResponseOutputSummaryTextContent'" in schema, "Reasoning summary items must be typed")
+    for field in ["ctx_size:", "parallel:", "threads_http:", "n_gpu_layers:"]:
+        require(field in schema, f"Model meta must expose runtime setting {field}")
+
 
 
 def check_tool_pin() -> None:

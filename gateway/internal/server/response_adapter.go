@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"strings"
@@ -11,6 +12,27 @@ import (
 )
 
 func (a *App) writeUpstreamResponse(ctx huma.Context, resp *http.Response, model string) {
+	if resp.StatusCode >= 400 && shouldInspectError(ctx.URL().Path) {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			a.log.Warn("upstream error body read failed", "model", model, "path", ctx.URL().Path, "error", err)
+			return
+		}
+		if isContextLengthExceeded(body) {
+			a.writeOpenAIError(ctx, http.StatusBadRequest, "invalid_request_error", "context_length_exceeded", "prompt plus requested completion exceeds the model context window")
+			return
+		}
+		appendResponseHeaders(ctx, resp.Header)
+		if resp.Header.Get("Content-Type") == "" {
+			ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
+		}
+		ctx.SetStatus(resp.StatusCode)
+		if _, err := ctx.BodyWriter().Write(body); err != nil {
+			a.log.Debug("upstream error body write failed", "model", model, "path", ctx.URL().Path, "error", err)
+		}
+		return
+	}
+
 	appendResponseHeaders(ctx, resp.Header)
 	if resp.Header.Get("Content-Type") == "" {
 		ctx.SetHeader("Content-Type", "application/json; charset=utf-8")
@@ -48,6 +70,30 @@ func (a *App) writeUpstreamResponse(ctx huma.Context, resp *http.Response, model
 	if err := proxy.CopyFlush(ctx.BodyWriter(), resp.Body); err != nil {
 		a.log.Warn("proxy copy failed", "model", model, "error", err)
 	}
+}
+
+func shouldInspectError(path string) bool {
+	switch path {
+	case "/v1/chat/completions", "/v1/completions", "/v1/responses", "/v1/embeddings":
+		return true
+	default:
+		return false
+	}
+}
+
+func isContextLengthExceeded(body []byte) bool {
+	if strings.Contains(strings.ToLower(string(body)), "context size has been exceeded") {
+		return true
+	}
+	var payload struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(body, &payload); err != nil {
+		return false
+	}
+	return strings.Contains(strings.ToLower(payload.Error.Message), "context size has been exceeded")
 }
 
 func shouldAdapt(path string, resp *http.Response) bool {

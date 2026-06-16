@@ -498,13 +498,25 @@ type ModelList struct {
 
 // ModelMeta defines model for ModelMeta.
 type ModelMeta struct {
-	ColdStart    bool    `json:"cold_start"`
-	Downloaded   bool    `json:"downloaded"`
-	Kind         *string `json:"kind,omitempty"`
+	ColdStart bool `json:"cold_start"`
+
+	// CtxSize Configured llama.cpp context window for this catalog model.
+	CtxSize    *int    `json:"ctx_size,omitempty"`
+	Downloaded bool    `json:"downloaded"`
+	Kind       *string `json:"kind,omitempty"`
+
+	// NGpuLayers Configured llama.cpp GPU layer offload setting.
+	NGpuLayers *int `json:"n_gpu_layers,omitempty"`
+
+	// Parallel Configured llama.cpp parallel slots for this catalog model.
+	Parallel     *int    `json:"parallel,omitempty"`
 	Quant        string  `json:"quant"`
 	Repo         string  `json:"repo"`
 	RouterStatus *string `json:"router_status,omitempty"`
 	Running      bool    `json:"running"`
+
+	// ThreadsHttp Configured llama.cpp HTTP worker thread setting.
+	ThreadsHttp *int `json:"threads_http,omitempty"`
 }
 
 // ModelRequest defines model for ModelRequest.

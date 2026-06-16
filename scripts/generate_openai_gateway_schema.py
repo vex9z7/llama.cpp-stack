@@ -423,6 +423,18 @@ components:
           type: string
         kind:
           type: string
+        ctx_size:
+          type: integer
+          description: Configured llama.cpp context window for this catalog model.
+        parallel:
+          type: integer
+          description: Configured llama.cpp parallel slots for this catalog model.
+        threads_http:
+          type: integer
+          description: Configured llama.cpp HTTP worker thread setting.
+        n_gpu_layers:
+          type: integer
+          description: Configured llama.cpp GPU layer offload setting.
     PromptTokensDetails:
       x-oai-source: PromptTokensDetails
       type: object

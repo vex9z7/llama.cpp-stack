@@ -38,21 +38,37 @@ func (p Proxy) Do(ctx context.Context, method, reqPath, rawQuery string, headers
 	return p.http().Do(up)
 }
 
-var defaultHTTPClient = &http.Client{
-	Transport: &http.Transport{
-		Proxy:                 http.ProxyFromEnvironment,
-		ResponseHeaderTimeout: 30 * time.Second,
-		IdleConnTimeout:       90 * time.Second,
-		MaxIdleConns:          100,
-		MaxIdleConnsPerHost:   10,
-	},
+const DefaultResponseHeaderTimeout = 300 * time.Second
+
+func NewHTTPClient(responseHeaderTimeout time.Duration) *http.Client {
+	if responseHeaderTimeout <= 0 {
+		responseHeaderTimeout = DefaultResponseHeaderTimeout
+	}
+	return &http.Client{
+		Transport: &http.Transport{
+			Proxy:                 http.ProxyFromEnvironment,
+			ResponseHeaderTimeout: responseHeaderTimeout,
+			IdleConnTimeout:       90 * time.Second,
+			MaxIdleConns:          100,
+			MaxIdleConnsPerHost:   10,
+		},
+	}
 }
+
+var defaultHTTPClient = NewHTTPClient(DefaultResponseHeaderTimeout)
 
 func (p Proxy) http() *http.Client {
 	if p.Client != nil {
 		return p.Client
 	}
 	return defaultHTTPClient
+}
+
+func IsResponseHeaderTimeout(err error) bool {
+	if err == nil {
+		return false
+	}
+	return strings.Contains(err.Error(), "timeout awaiting response headers")
 }
 
 func copyHeaders(dst, src http.Header) {

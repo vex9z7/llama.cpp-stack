@@ -148,6 +148,7 @@ AMD Vulkan 主要依赖 render node，例如 `/dev/dri/renderD128`。
 - `LLAMA_MODELS_MAX`：router mode 最多同时 loaded model instances；默认 `4`，跟随 llama.cpp
 - `LLAMA_MODELS_AUTOLOAD`：是否允许 router mode 根据请求自动加载模型；默认开启
 - `LLAMA_ROUTER_CTX_SIZE`：child model instance 默认上下文窗口
+- `GATEWAY_PROXY_RESPONSE_HEADER_TIMEOUT_SECONDS`：gateway 转发到 llama-router 时等待响应头的超时秒数，长 tool-call/长 prefill 请求可调高
 - `LLAMA_ROUTER_PARALLEL`：child model instance slot/parallel 默认值；`-1` 表示 llama.cpp 自动选择
 - `LLAMA_ROUTER_THREADS_HTTP`：child llama-server HTTP 线程数
 - `LLAMA_ROUTER_N_GPU_LAYERS`：GPU offload 层数

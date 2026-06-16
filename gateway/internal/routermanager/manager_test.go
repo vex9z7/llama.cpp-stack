@@ -72,6 +72,32 @@ func TestEnsureAvailableRejectsCapabilityMismatch(t *testing.T) {
 	}
 }
 
+func TestListModelsExposesRuntimeConfig(t *testing.T) {
+	t.Parallel()
+
+	modelsDir := t.TempDir()
+	model := catalog.Model{Repo: "owner/repo", Quant: "Q4_K_M", File: "model-Q4_K_M.gguf"}
+	cat := &catalog.Catalog{Models: []catalog.Model{model}}
+	if err := os.MkdirAll(filepath.Dir(model.StablePath(modelsDir)), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(model.StablePath(modelsDir), []byte("already downloaded"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	routerServer := newTestRouterServer(t, model.Ref(), true)
+	cfg := Config{ModelsDir: modelsDir, PresetPath: filepath.Join(modelsDir, "models.ini"), CtxSize: 8192, Parallel: 1, ThreadsHTTP: -1, NGPULayers: 999}
+	mgr := New(slog.Default(), cat, &hf.Downloader{ModelsDir: modelsDir}, routerclient.New(routerServer.URL), cfg)
+	models := mgr.ListModels(context.Background())
+	if len(models) != 1 {
+		t.Fatalf("len(models) = %d, want 1", len(models))
+	}
+	got := models[0]
+	if got.CtxSize != cfg.CtxSize || got.Parallel != cfg.Parallel || got.ThreadsHTTP != cfg.ThreadsHTTP || got.NGPULayers != cfg.NGPULayers {
+		t.Fatalf("runtime config mismatch: %+v", got)
+	}
+}
+
 func newTestHFServer(t *testing.T, file string) *httptest.Server {
 	t.Helper()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -63,14 +63,15 @@ func run(log *slog.Logger) error {
 		ExtraArgs:   config.String("LLAMA_ROUTER_EXTRA_ARGS", ""),
 	}
 	mgr := routermanager.New(log, cat, dl, routerclient.New(routerURL), routerCfg)
+	proxyHeaderTimeout := config.DurationSeconds("GATEWAY_PROXY_RESPONSE_HEADER_TIMEOUT_SECONDS", proxy.DefaultResponseHeaderTimeout)
 	if err := mgr.RenderPreset(); err != nil {
 		return fmt.Errorf("render initial preset: %w", err)
 	}
 	addr := config.String("GATEWAY_ADDR", ":8090")
-	srv := server.NewHTTPServer(addr, server.New(log, mgr, proxy.Proxy{}).Handler())
+	srv := server.NewHTTPServer(addr, server.New(log, mgr, proxy.Proxy{Client: proxy.NewHTTPClient(proxyHeaderTimeout)}).Handler())
 	serverErr := make(chan error, 1)
 	go func() {
-		log.Info("gateway listening", "addr", addr, "router_url", routerURL)
+		log.Info("gateway listening", "addr", addr, "router_url", routerURL, "proxy_response_header_timeout", proxyHeaderTimeout.String())
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serverErr <- err
 			return

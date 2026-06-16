@@ -245,6 +245,7 @@ Runtime model residency is delegated to llama.cpp router mode:
 - `LLAMA_MODELS_AUTOLOAD`：是否允许 router mode 按请求自动加载模型。
 - `LLAMA_SLEEP_IDLE_SECONDS`：空闲模型自动释放时间；`0` 表示关闭。
 - `LLAMA_ROUTER_CTX_SIZE` / `LLAMA_ROUTER_PARALLEL`：生成 router preset 时的上下文和 slot 默认值；`LLAMA_ROUTER_PARALLEL=-1` 表示使用 llama.cpp 自动选择。
+- `GATEWAY_PROXY_RESPONSE_HEADER_TIMEOUT_SECONDS`：gateway 等待 llama-router 返回响应头的时间；长 prefill 或长 tool-call 非 streaming 请求建议调高，默认 300 秒。
 - `LLAMA_ROUTER_N_GPU_LAYERS`：GPU offload 层数；`999` 表示尽量全部 offload。
 - `HF_ENDPOINT` / `HF_TOKEN` / `HF_TOKEN_FILE`：Hugging Face 下载配置；`HF_TOKEN_FILE` 指向挂载的 secret 文件时优先于 `HF_TOKEN`。
 - `GATEWAY_SMOKE_MODEL`：`make smoke` / `make probe-api` 使用的模型。

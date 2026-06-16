@@ -44,6 +44,10 @@ type ModelStatus struct {
 	Repo         string          `json:"repo"`
 	Quant        string          `json:"quant"`
 	Kind         string          `json:"kind,omitempty"`
+	CtxSize      int             `json:"ctx_size"`
+	Parallel     int             `json:"parallel"`
+	ThreadsHTTP  int             `json:"threads_http"`
+	NGPULayers   int             `json:"n_gpu_layers"`
 	RouterMeta   json.RawMessage `json:"router_meta,omitempty"`
 }
 
@@ -112,7 +116,7 @@ func (m *Manager) ListModels(ctx context.Context) []ModelStatus {
 		if !hasRouter && down {
 			status = "downloaded"
 		}
-		out = append(out, ModelStatus{ID: cm.Ref(), Object: "model", OwnedBy: "llama.cpp-stack", Downloaded: down, RouterStatus: status, Running: running, ColdStart: !running, Repo: cm.Repo, Quant: cm.Quant, Kind: KindOf(cm), RouterMeta: rec.Meta})
+		out = append(out, ModelStatus{ID: cm.Ref(), Object: "model", OwnedBy: "llama.cpp-stack", Downloaded: down, RouterStatus: status, Running: running, ColdStart: !running, Repo: cm.Repo, Quant: cm.Quant, Kind: KindOf(cm), CtxSize: m.cfg.CtxSize, Parallel: m.cfg.Parallel, ThreadsHTTP: m.cfg.ThreadsHTTP, NGPULayers: m.cfg.NGPULayers, RouterMeta: rec.Meta})
 	}
 	return out
 }

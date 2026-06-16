@@ -6,6 +6,16 @@ import (
 	"testing"
 )
 
+func TestContextLengthExceededDetection(t *testing.T) {
+	body := []byte(`{"error":{"code":500,"message":"Context size has been exceeded.","type":"server_error"}}`)
+	if !isContextLengthExceeded(body) {
+		t.Fatal("expected context length exceeded")
+	}
+	if isContextLengthExceeded([]byte(`{"error":{"message":"other"}}`)) {
+		t.Fatal("unexpected context length exceeded")
+	}
+}
+
 func TestAdaptSSEDataLineFillsCompletedResponseUsage(t *testing.T) {
 	line := []byte(`data: {"type":"response.completed","response":{"usage":{"input_tokens":1,"input_tokens_details":{"cached_tokens":0},"output_tokens":2,"output_tokens_details":null,"total_tokens":3}}}` + "\n")
 	got := string(adaptSSEDataLine(line))

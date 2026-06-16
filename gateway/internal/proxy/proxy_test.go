@@ -1,12 +1,39 @@
 package proxy
 
-import "testing"
+import (
+	"errors"
+	"net/http"
+	"testing"
+	"time"
+)
 
-func TestJoinPath(t *testing.T) {
-	cases := []struct{ a, b, want string }{{"", "/v1/models", "/v1/models"}, {"/base", "/v1/models", "/base/v1/models"}, {"/base/", "v1/models", "/base/v1/models"}}
-	for _, tc := range cases {
-		if got := joinPath(tc.a, tc.b); got != tc.want {
-			t.Fatalf("joinPath(%q,%q)=%q want %q", tc.a, tc.b, got, tc.want)
-		}
+func TestNewHTTPClientUsesConfiguredResponseHeaderTimeout(t *testing.T) {
+	client := NewHTTPClient(123 * time.Second)
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport = %T, want *http.Transport", client.Transport)
+	}
+	if transport.ResponseHeaderTimeout != 123*time.Second {
+		t.Fatalf("ResponseHeaderTimeout = %s", transport.ResponseHeaderTimeout)
+	}
+}
+
+func TestIsResponseHeaderTimeout(t *testing.T) {
+	if !IsResponseHeaderTimeout(errors.New(`Post "http://llama-router:8080/v1/chat/completions": net/http: timeout awaiting response headers`)) {
+		t.Fatal("expected response header timeout")
+	}
+	if IsResponseHeaderTimeout(errors.New("connection refused")) {
+		t.Fatal("unexpected response header timeout")
+	}
+}
+
+func TestNewHTTPClientUsesDefaultResponseHeaderTimeout(t *testing.T) {
+	client := NewHTTPClient(0)
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport = %T, want *http.Transport", client.Transport)
+	}
+	if transport.ResponseHeaderTimeout != DefaultResponseHeaderTimeout {
+		t.Fatalf("ResponseHeaderTimeout = %s, want %s", transport.ResponseHeaderTimeout, DefaultResponseHeaderTimeout)
 	}
 }

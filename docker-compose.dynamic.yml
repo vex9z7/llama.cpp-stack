@@ -72,6 +72,7 @@ services:
       MODELS_DIR: /models
       CATALOG_PATH: /configs/models.catalog.toml
       LLAMA_ROUTER_URL: http://llama-router:8080
+      GATEWAY_PROXY_RESPONSE_HEADER_TIMEOUT_SECONDS: ${GATEWAY_PROXY_RESPONSE_HEADER_TIMEOUT_SECONDS:-300}
       LLAMA_MODELS_PRESET: /models/models-preset.generated.ini
       LLAMA_ROUTER_CTX_SIZE: ${LLAMA_ROUTER_CTX_SIZE:-8192}
       LLAMA_ROUTER_PARALLEL: ${LLAMA_ROUTER_PARALLEL:--1}

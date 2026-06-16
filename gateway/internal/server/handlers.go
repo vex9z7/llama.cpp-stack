@@ -43,6 +43,10 @@ func (a *App) humaModels(ctx huma.Context) {
 				Repo:         m.Repo,
 				Quant:        m.Quant,
 				Kind:         stringPtr(m.Kind),
+				CtxSize:      intPtr(m.CtxSize),
+				Parallel:     intPtr(m.Parallel),
+				ThreadsHttp:  intPtr(m.ThreadsHTTP),
+				NGpuLayers:   intPtr(m.NGPULayers),
 			},
 		})
 	}
@@ -78,6 +82,10 @@ func (a *App) humaInference(ctx huma.Context) {
 	resp, err := a.proxy.Do(ctx.Context(), ctx.Method(), ctx.URL().Path, ctx.URL().RawQuery, headers, a.manager.RouterBaseURL(), upstreamBody)
 	if err != nil {
 		a.log.Warn("proxy failed", "model", req.Model, "error", err)
+		if proxy.IsResponseHeaderTimeout(err) {
+			a.writeOpenAIError(ctx, http.StatusGatewayTimeout, "upstream_error", "response_header_timeout", err.Error())
+			return
+		}
 		a.writeOpenAIError(ctx, http.StatusServiceUnavailable, "upstream_error", "router_unavailable", err.Error())
 		return
 	}
@@ -148,5 +156,9 @@ func stringPtr(value string) *string {
 	if value == "" {
 		return nil
 	}
+	return &value
+}
+
+func intPtr(value int) *int {
 	return &value
 }
