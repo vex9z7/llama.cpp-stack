@@ -142,6 +142,21 @@ quant = "Q8_0"
 file = "Qwen3.6-35B-A3B-Q8_0.gguf"
 mmproj = "mmproj-F16.gguf"
 
+# MTP variant of Qwen3.6-35B-A3B. Keep a small set for future comparison after
+# the non-MTP model is validated on the pinned llama.cpp image.
+
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
+quant = "UD-IQ2_M"
+file = "Qwen3.6-35B-A3B-UD-IQ2_M.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
+quant = "MXFP4_MOE"
+file = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
+mmproj = "mmproj-F16.gguf"
+
 # First 100B+ MoE candidates that still fit the single-file downloader. Higher
 # 122B quants are sharded or too close to the current memory envelope.
 
