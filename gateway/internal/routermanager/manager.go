@@ -135,8 +135,16 @@ func (m *Manager) EnsureAvailable(ctx context.Context, ref, requiredKind string)
 	defer lock.Unlock()
 
 	stablePath := cm.StablePath(m.cfg.ModelsDir)
-	if _, err := m.downloader.Ensure(ctx, cm); err != nil {
+	// Model materialization is intentionally decoupled from the client request
+	// lifecycle. Large GGUF downloads can take many minutes; a browser/client
+	// timeout must not cancel the underlying download and waste the completed
+	// bytes. Upstream inference below still uses the request context via the
+	// proxy path, so generation cancellation remains responsive.
+	if _, err := m.downloader.Ensure(context.WithoutCancel(ctx), cm); err != nil {
 		return fmt.Errorf("%w: code=%s: %w", ErrDownloadFailed, hf.Code(err), err)
+	}
+	if err := ctx.Err(); err != nil {
+		return err
 	}
 
 	if ok, err := m.routerHasModel(ctx, cm.Ref()); err != nil {

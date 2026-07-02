@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/catalog"
 	"github.com/vex9z7/llama.cpp-stack/gateway/internal/hf"
@@ -34,6 +35,63 @@ func TestEnsureAvailableDownloadsAndRequiresRouterRegistration(t *testing.T) {
 	}
 	if _, err := os.Stat(model.StablePath(modelsDir)); err != nil {
 		t.Fatalf("downloaded model missing: %v", err)
+	}
+}
+
+func TestEnsureAvailableDownloadSurvivesCallerCancellation(t *testing.T) {
+	t.Parallel()
+
+	modelsDir := t.TempDir()
+	model := catalog.Model{Repo: "owner/repo", Quant: "Q4_K_M", File: "model-Q4_K_M.gguf"}
+	cat := &catalog.Catalog{Models: []catalog.Model{model}}
+
+	downloadStarted := make(chan struct{})
+	releaseDownload := make(chan struct{})
+	hfServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/models/owner/repo/tree/main":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"type":"file","path":"` + model.File + `","size":123}]`))
+		case "/owner/repo/resolve/main/" + model.File:
+			close(downloadStarted)
+			<-releaseDownload
+			_, _ = w.Write([]byte("gguf bytes"))
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	t.Cleanup(hfServer.Close)
+	routerServer := newTestRouterServer(t, model.Ref(), true)
+
+	mgr := New(slog.New(slog.NewTextHandler(os.Stderr, nil)), cat, &hf.Downloader{Endpoint: hfServer.URL, ModelsDir: modelsDir}, routerclient.New(routerServer.URL), Config{ModelsDir: modelsDir, PresetPath: filepath.Join(modelsDir, "models.ini")})
+	if err := mgr.RenderPreset(); err != nil {
+		t.Fatal(err)
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- mgr.EnsureAvailable(ctx, model.Ref(), "chat")
+	}()
+
+	select {
+	case <-downloadStarted:
+	case <-time.After(5 * time.Second):
+		t.Fatal("download did not start")
+	}
+	cancel()
+	close(releaseDownload)
+
+	select {
+	case err := <-errCh:
+		if !errors.Is(err, context.Canceled) {
+			t.Fatalf("err=%v, want context canceled after download completes", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("EnsureAvailable did not return")
+	}
+	if _, err := os.Stat(model.StablePath(modelsDir)); err != nil {
+		t.Fatalf("downloaded model missing after caller cancellation: %v", err)
 	}
 }
 
