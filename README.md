@@ -186,6 +186,8 @@ Model refs are derived as `<repo>/<quant>`, for example:
 Qwen/Qwen3-4B-GGUF/Q4_K_M
 ```
 
+The catalog also includes MoE test targets. `allenai/OLMoE-1B-7B-0125-GGUF/Q3_K_M` is the recommended first MoE model for the current 8GB UMA host. Larger Qwen A3B MoE entries are included for a future 64GB UMA host and are lazy-loaded only when requested.
+
 Requesting a catalog model lazily downloads the selected GGUF, plus optional `mmproj` projector files for multimodal-capable models, into:
 
 ```text

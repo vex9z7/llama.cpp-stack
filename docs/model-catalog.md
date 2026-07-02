@@ -103,6 +103,16 @@ Qwen/Qwen3-Embedding-0.6B-GGUF/Q8_0
 Some models may have license or runtime requirements beyond this stack. For embedding models, set `kind = "embedding"`; the gateway will mark the generated router preset with `embeddings = true` and only allow that model on `/v1/embeddings`. Newly released model families may require a newer llama.cpp than the pinned image, so validate them with the smoke/probe commands before production use. Official GGUF sources are preferred. Community-only experimental entries must be clearly grouped and should be added only when there is no suitable official source and the model is needed for a specific test. Low-refusal/abliterated models are for behavior testing, not trusted default baselines.
 
 
+
+## MoE model policy
+
+The catalog includes two MoE tiers:
+
+- **Current 8GB UMA candidates**: `allenai/OLMoE-1B-7B-0125-GGUF` in `Q3_K_M` and `Q4_K_M`. OLMoE is a 1B-active / 7B-total MoE, so it is the realistic first MoE target for the current NucBox-class machine.
+- **Future 64GB UMA candidates**: Qwen 30B/35B A3B MoE models from Unsloth. These entries are intentionally source-only and lazy-loaded; do not request them on the current 8GB machine unless testing memory failure behavior.
+
+For Qwen3.5 35B A3B, the catalog does not pin `mmproj` initially. This avoids downloading the extra projector for text-only MoE benchmarking; add it later if vision testing is explicitly needed.
+
 ## Multimodal projector files
 
 Some GGUF repos include a separate llama.cpp multimodal projector (`mmproj`) used to enable image inputs for vision-language models. Catalog entries can pin this optional file:

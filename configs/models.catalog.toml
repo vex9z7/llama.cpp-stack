@@ -60,6 +60,54 @@ repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
 mmproj = "mmproj-F16.gguf"
 
+
+# --- MoE models ---
+# 8GB UMA candidates: OLMoE is 1B active / 7B total. Start with Q3_K_M;
+# Q4_K_M is a quality step-up if memory pressure is acceptable.
+
+[[models]]
+repo = "allenai/OLMoE-1B-7B-0125-GGUF"
+quant = "Q3_K_M"
+file = "OLMoE-1B-7B-0125-Q3_K_M.gguf"
+
+[[models]]
+repo = "allenai/OLMoE-1B-7B-0125-GGUF"
+quant = "Q4_K_M"
+file = "OLMoE-1B-7B-0125-Q4_K_M.gguf"
+
+# 64GB UMA candidates: larger Qwen MoE models. These are cataloged for
+# future hardware and should not be used on the current 8GB UMA machine.
+
+[[models]]
+repo = "unsloth/Qwen3-30B-A3B-GGUF"
+quant = "UD-IQ2_M"
+file = "Qwen3-30B-A3B-UD-IQ2_M.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3-30B-A3B-GGUF"
+quant = "Q4_K_M"
+file = "Qwen3-30B-A3B-Q4_K_M.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
+quant = "UD-IQ2_M"
+file = "Qwen3.5-35B-A3B-UD-IQ2_M.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
+quant = "MXFP4_MOE"
+file = "Qwen3.5-35B-A3B-MXFP4_MOE.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+quant = "UD-IQ2_M"
+file = "Qwen3-Coder-30B-A3B-Instruct-UD-IQ2_M.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
+quant = "Q4_K_M"
+file = "Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf"
+
 # --- Tool-calling / routing experiments ---
 # Experimental specialist models for tool selection and structured function-call output.
 # They may require model-specific prompt adapters before use with generic OpenAI tools.
