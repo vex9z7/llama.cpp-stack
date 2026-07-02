@@ -1,20 +1,20 @@
 openapi: 3.1.0
 info:
   title: llama.cpp server upstream contract for llama.cpp-stack
-  version: b8840
+  version: b9859
   description: >
     Reviewed upstream contract for the pinned llama.cpp server snapshot used by
     llama.cpp-stack. This is not an official llama.cpp OpenAPI document. It is
-    derived from the vendored llama.cpp b8840 server docs/source and covers the
+    derived from the vendored llama.cpp b9859 server docs/source and covers the
     upstream endpoints consumed by the gateway.
 x-llamacpp-stack:
   source_repo: https://github.com/ggml-org/llama.cpp
-  git_tag: b8840
-  git_commit: 9e5647affa54ea724196db15ec9b76c4abd16d4a
+  git_tag: b9859
+  git_commit: 4fc4ec5541b243957ae5099edb67372f8f3b550e
   images:
-    cpu: ghcr.io/ggml-org/llama.cpp:server-b8840
-    vulkan: ghcr.io/ggml-org/llama.cpp:server-vulkan-b8840
-    cuda: ghcr.io/ggml-org/llama.cpp:server-cuda-b8840
+    cpu: ghcr.io/ggml-org/llama.cpp:server-b9859
+    vulkan: ghcr.io/ggml-org/llama.cpp:server-vulkan-b9859
+    cuda: ghcr.io/ggml-org/llama.cpp:server-cuda-b9859
 paths:
   /health:
     get:

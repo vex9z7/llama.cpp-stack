@@ -13,11 +13,11 @@ schema for the pinned llama.cpp server snapshot recorded in:
 Current pin:
 
 ```text
-llama.cpp git tag: b8840
-llama.cpp commit: 9e5647affa54ea724196db15ec9b76c4abd16d4a
-CPU image:    ghcr.io/ggml-org/llama.cpp:server-b8840
-Vulkan image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b8840
-CUDA image:   ghcr.io/ggml-org/llama.cpp:server-cuda-b8840
+llama.cpp git tag: b9859
+llama.cpp commit: 4fc4ec5541b243957ae5099edb67372f8f3b550e
+CPU image:    ghcr.io/ggml-org/llama.cpp:server-b9859
+Vulkan image: ghcr.io/ggml-org/llama.cpp:server-vulkan-b9859
+CUDA image:   ghcr.io/ggml-org/llama.cpp:server-cuda-b9859
 ```
 
 ## Files

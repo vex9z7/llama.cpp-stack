@@ -57,11 +57,11 @@ def check_snapshot(root: Path) -> dict[str, str]:
     require(snapshot_path.exists(), "missing llamacpp-upstream/SNAPSHOT")
     snapshot = parse_snapshot(snapshot_path)
     expected = {
-        "git_tag": "b8840",
-        "git_commit": "9e5647affa54ea724196db15ec9b76c4abd16d4a",
-        "image_tag_cpu": "ghcr.io/ggml-org/llama.cpp:server-b8840",
-        "image_tag_vulkan": "ghcr.io/ggml-org/llama.cpp:server-vulkan-b8840",
-        "image_tag_cuda": "ghcr.io/ggml-org/llama.cpp:server-cuda-b8840",
+        "git_tag": "b9859",
+        "git_commit": "4fc4ec5541b243957ae5099edb67372f8f3b550e",
+        "image_tag_cpu": "ghcr.io/ggml-org/llama.cpp:server-b9859",
+        "image_tag_vulkan": "ghcr.io/ggml-org/llama.cpp:server-vulkan-b9859",
+        "image_tag_cuda": "ghcr.io/ggml-org/llama.cpp:server-cuda-b9859",
     }
     for key, value in expected.items():
         require(snapshot.get(key) == value, f"SNAPSHOT {key}={snapshot.get(key)!r}, want {value!r}")

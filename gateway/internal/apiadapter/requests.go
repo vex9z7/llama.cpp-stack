@@ -9,7 +9,7 @@ import (
 // AdaptResponsesRequestBody normalizes OpenAI Responses request shorthand into
 // the explicit message-item shape expected by the pinned llama.cpp Responses
 // implementation. In particular, OpenAI accepts previous assistant history as
-// {"role":"assistant","content":"..."}; llama.cpp b8840 requires an item type
+// {"role":"assistant","content":"..."}; llama.cpp b9859 requires an item type
 // and assistant output content as output_text.
 func AdaptResponsesRequestBody(body []byte) ([]byte, error) {
 	var req openaiapi.ResponseCreateRequest

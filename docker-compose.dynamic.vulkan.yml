@@ -1,5 +1,5 @@
 services:
   llama-router:
-    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-vulkan-b8840}
+    image: ${LLAMA_ROUTER_IMAGE:-ghcr.io/ggml-org/llama.cpp:server-vulkan-b9859}
     devices:
       - /dev/dri:/dev/dri
