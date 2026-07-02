@@ -157,6 +157,12 @@ quant = "MXFP4_MOE"
 file = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
 mmproj = "mmproj-F16.gguf"
 
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
+quant = "UD-Q4_K_M"
+file = "Qwen3.6-35B-A3B-UD-Q4_K_M.gguf"
+mmproj = "mmproj-F16.gguf"
+
 # First 100B+ MoE candidates that still fit the single-file downloader. Higher
 # 122B quants are sharded or too close to the current memory envelope.
 
