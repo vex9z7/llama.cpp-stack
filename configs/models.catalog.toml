@@ -75,8 +75,10 @@ repo = "allenai/OLMoE-1B-7B-0125-GGUF"
 quant = "Q4_K_M"
 file = "OLMoE-1B-7B-0125-Q4_K_M.gguf"
 
-# 64GB UMA candidates: larger Qwen MoE models. These are cataloged for
-# future hardware and should not be used on the current 8GB UMA machine.
+# Large UMA candidates: larger Qwen MoE models. These are useful for testing
+# systems with a large AMD GTT aperture / shared-memory GPU setup. Start with
+# lower quants, then move upward only after validating load, KV cache pressure,
+# and sustained generation speed.
 
 [[models]]
 repo = "unsloth/Qwen3-30B-A3B-GGUF"
@@ -92,11 +94,108 @@ file = "Qwen3-30B-A3B-Q4_K_M.gguf"
 repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
 quant = "UD-IQ2_M"
 file = "Qwen3.5-35B-A3B-UD-IQ2_M.gguf"
+mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
 quant = "MXFP4_MOE"
 file = "Qwen3.5-35B-A3B-MXFP4_MOE.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
+quant = "Q6_K"
+file = "Qwen3.5-35B-A3B-Q6_K.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
+quant = "Q8_0"
+file = "Qwen3.5-35B-A3B-Q8_0.gguf"
+mmproj = "mmproj-F16.gguf"
+
+# Qwen3.6 is the newer 35B-A3B MoE line. Prefer this for agentic coding,
+# tool-calling, and developer-role compatibility once backend support is
+# validated on the target llama.cpp image.
+
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
+quant = "UD-IQ2_M"
+file = "Qwen3.6-35B-A3B-UD-IQ2_M.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
+quant = "MXFP4_MOE"
+file = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
+quant = "UD-Q6_K"
+file = "Qwen3.6-35B-A3B-UD-Q6_K.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
+quant = "Q8_0"
+file = "Qwen3.6-35B-A3B-Q8_0.gguf"
+mmproj = "mmproj-F16.gguf"
+
+# First 100B+ MoE candidates that still fit the single-file downloader. Higher
+# 122B quants are sharded or too close to the current memory envelope.
+
+[[models]]
+repo = "unsloth/Qwen3.5-122B-A10B-GGUF"
+quant = "UD-IQ2_XXS"
+file = "Qwen3.5-122B-A10B-UD-IQ2_XXS.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.5-122B-A10B-GGUF"
+quant = "UD-IQ2_M"
+file = "Qwen3.5-122B-A10B-UD-IQ2_M.gguf"
+mmproj = "mmproj-F16.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3.5-122B-A10B-GGUF"
+quant = "UD-IQ3_XXS"
+file = "Qwen3.5-122B-A10B-UD-IQ3_XXS.gguf"
+mmproj = "mmproj-F16.gguf"
+
+# Newer 30B-A3B instruct variants. These are smaller than the 35B-A3B models
+# but useful for comparing Qwen3-2507 instruction tuning and coder tuning.
+
+[[models]]
+repo = "unsloth/Qwen3-30B-A3B-Instruct-2507-GGUF"
+quant = "Q4_K_M"
+file = "Qwen3-30B-A3B-Instruct-2507-Q4_K_M.gguf"
+
+[[models]]
+repo = "unsloth/Qwen3-Coder-30B-A3B-Instruct-1M-GGUF"
+quant = "Q4_K_M"
+file = "Qwen3-Coder-30B-A3B-Instruct-1M-Q4_K_M.gguf"
+
+# DeepSeek V2 Lite is a compact MoE-style chat baseline. It is smaller than the
+# Qwen 35B/122B candidates, but useful as a non-Qwen MoE compatibility check.
+
+[[models]]
+repo = "second-state/DeepSeek-V2-Lite-Chat-GGUF"
+quant = "Q4_K_M"
+file = "DeepSeek-V2-Lite-Chat-Q4_K_M.gguf"
+
+[[models]]
+repo = "second-state/DeepSeek-V2-Lite-Chat-GGUF"
+quant = "Q8_0"
+file = "DeepSeek-V2-Lite-Chat-Q8_0.gguf"
+
+# GLM Air is a larger non-Qwen MoE candidate. Keep it experimental until the
+# pinned llama.cpp image has been validated with the GLM 4.5 architecture.
+
+[[models]]
+repo = "unsloth/GLM-4.5-Air-GGUF"
+quant = "UD-IQ2_M"
+file = "GLM-4.5-Air-UD-IQ2_M.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3-Coder-30B-A3B-Instruct-GGUF"
