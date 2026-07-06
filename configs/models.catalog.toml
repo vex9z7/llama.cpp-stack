@@ -19,12 +19,10 @@ quant = "Q4_K_M"
 [[models]]
 repo = "unsloth/Qwen3.5-2B-GGUF"
 quant = "Q4_K_M"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-4B-GGUF"
 quant = "Q4_K_M"
-mmproj = "mmproj-F16.gguf"
 
 # --- Main general chat models ---
 
@@ -46,6 +44,39 @@ quant = "Q4_K_M"
 repo = "Qwen/Qwen2.5-Coder-7B-Instruct-GGUF"
 quant = "Q4_K_M"
 
+# --- Multimodal / vision-language models ---
+# Keep multimodal entries separate from text-only entries. These repos are
+# verified to include the configured mmproj GGUF files; do not add mmproj to
+# ordinary text-only models.
+
+[[models]]
+repo = "unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
+quant = "Q4_K_M"
+file = "Qwen2.5-VL-7B-Instruct-Q4_K_M.gguf"
+mmproj = "mmproj-F16.gguf"
+name = "Qwen2.5-VL 7B Q4"
+
+[[models]]
+repo = "unsloth/Qwen2.5-VL-7B-Instruct-GGUF"
+quant = "Q6_K"
+file = "Qwen2.5-VL-7B-Instruct-Q6_K.gguf"
+mmproj = "mmproj-F16.gguf"
+name = "Qwen2.5-VL 7B Q6"
+
+[[models]]
+repo = "ggml-org/Qwen2.5-Omni-7B-GGUF"
+quant = "Q4_K_M"
+file = "Qwen2.5-Omni-7B-Q4_K_M.gguf"
+mmproj = "mmproj-Qwen2.5-Omni-7B-Q8_0.gguf"
+name = "Qwen2.5-Omni 7B Q4"
+
+[[models]]
+repo = "bartowski/Qwen_Qwen2.5-VL-32B-Instruct-GGUF"
+quant = "Q4_K_M"
+file = "Qwen_Qwen2.5-VL-32B-Instruct-Q4_K_M.gguf"
+mmproj = "mmproj-Qwen_Qwen2.5-VL-32B-Instruct-f16.gguf"
+name = "Qwen2.5-VL 32B Q4"
+
 # --- New-architecture compatibility candidates ---
 # Keep a small representative set for backend compatibility testing.
 
@@ -58,7 +89,6 @@ file = "LFM2-700M-Q4_K_M.gguf"
 [[models]]
 repo = "unsloth/Qwen3.5-9B-GGUF"
 quant = "Q4_K_M"
-mmproj = "mmproj-F16.gguf"
 
 
 # --- MoE models ---
@@ -94,25 +124,21 @@ file = "Qwen3-30B-A3B-Q4_K_M.gguf"
 repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
 quant = "UD-IQ2_M"
 file = "Qwen3.5-35B-A3B-UD-IQ2_M.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
 quant = "MXFP4_MOE"
 file = "Qwen3.5-35B-A3B-MXFP4_MOE.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
 quant = "Q6_K"
 file = "Qwen3.5-35B-A3B-Q6_K.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-35B-A3B-GGUF"
 quant = "Q8_0"
 file = "Qwen3.5-35B-A3B-Q8_0.gguf"
-mmproj = "mmproj-F16.gguf"
 
 # Qwen3.6 is the newer 35B-A3B MoE line. Prefer this for agentic coding,
 # tool-calling, and developer-role compatibility once backend support is
@@ -122,25 +148,21 @@ mmproj = "mmproj-F16.gguf"
 repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
 quant = "UD-IQ2_M"
 file = "Qwen3.6-35B-A3B-UD-IQ2_M.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
 quant = "MXFP4_MOE"
 file = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
 quant = "UD-Q6_K"
 file = "Qwen3.6-35B-A3B-UD-Q6_K.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.6-35B-A3B-GGUF"
 quant = "Q8_0"
 file = "Qwen3.6-35B-A3B-Q8_0.gguf"
-mmproj = "mmproj-F16.gguf"
 
 # MTP variant of Qwen3.6-35B-A3B. Keep a small set for future comparison after
 # the non-MTP model is validated on the pinned llama.cpp image.
@@ -149,13 +171,11 @@ mmproj = "mmproj-F16.gguf"
 repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
 quant = "UD-IQ2_M"
 file = "Qwen3.6-35B-A3B-UD-IQ2_M.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
 quant = "MXFP4_MOE"
 file = "Qwen3.6-35B-A3B-MXFP4_MOE.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
@@ -167,7 +187,6 @@ mmproj = "mmproj-F16.gguf"
 repo = "unsloth/Qwen3.6-35B-A3B-MTP-GGUF"
 quant = "UD-Q6_K"
 file = "Qwen3.6-35B-A3B-UD-Q6_K.gguf"
-mmproj = "mmproj-F16.gguf"
 
 # First 100B+ MoE candidates that still fit the single-file downloader. Higher
 # 122B quants are sharded or too close to the current memory envelope.
@@ -176,19 +195,16 @@ mmproj = "mmproj-F16.gguf"
 repo = "unsloth/Qwen3.5-122B-A10B-GGUF"
 quant = "UD-IQ2_XXS"
 file = "Qwen3.5-122B-A10B-UD-IQ2_XXS.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-122B-A10B-GGUF"
 quant = "UD-IQ2_M"
 file = "Qwen3.5-122B-A10B-UD-IQ2_M.gguf"
-mmproj = "mmproj-F16.gguf"
 
 [[models]]
 repo = "unsloth/Qwen3.5-122B-A10B-GGUF"
 quant = "UD-IQ3_XXS"
 file = "Qwen3.5-122B-A10B-UD-IQ3_XXS.gguf"
-mmproj = "mmproj-F16.gguf"
 
 # Newer 30B-A3B instruct variants. These are smaller than the 35B-A3B models
 # but useful for comparing Qwen3-2507 instruction tuning and coder tuning.
