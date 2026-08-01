@@ -79,6 +79,15 @@ func (a *App) humaInference(ctx huma.Context) {
 		a.writeOpenAIError(ctx, http.StatusBadRequest, "invalid_request_error", "invalid_request", err.Error())
 		return
 	}
+	nChoiceReq, err := buildNChoiceRequest(ctx.URL().Path, upstreamBody)
+	if err != nil {
+		a.writeOpenAIError(ctx, http.StatusBadRequest, "invalid_request_error", "invalid_request", err.Error())
+		return
+	}
+	if nChoiceReq.N > 1 {
+		a.writeNChoiceResponse(ctx, req.Model, headers, nChoiceReq)
+		return
+	}
 	resp, err := a.proxy.Do(ctx.Context(), ctx.Method(), ctx.URL().Path, ctx.URL().RawQuery, headers, a.manager.RouterBaseURL(), upstreamBody)
 	if err != nil {
 		a.log.Warn("proxy failed", "model", req.Model, "error", err)
