@@ -13,20 +13,20 @@ that the Docker deployment runs.
 
 ## Pinned version
 
-The current upstream snapshot is pinned to llama.cpp build tag `b9859`:
+The current upstream snapshot is pinned to llama.cpp build tag `b10920`:
 
 ```text
 repo: https://github.com/ggml-org/llama.cpp
-git_tag: b9859
-git_commit: 4fc4ec5541b243957ae5099edb67372f8f3b550e
+git_tag: b10920
+git_commit: eafe15a5e3d87dd68ae33acf6a7cbd9415a0ac5e
 ```
 
 Default router images are pinned to the matching image tags:
 
 ```text
-CPU:    ghcr.io/ggml-org/llama.cpp:server-b9859
-Vulkan: ghcr.io/ggml-org/llama.cpp:server-vulkan-b9859
-CUDA:   ghcr.io/ggml-org/llama.cpp:server-cuda-b9859
+CPU:    ghcr.io/ggml-org/llama.cpp:server-b10920
+Vulkan: ghcr.io/ggml-org/llama.cpp:server-vulkan-b10920
+CUDA:   ghcr.io/ggml-org/llama.cpp:server-cuda-b10920
 ```
 
 The exact image digests are recorded in `llamacpp-upstream/SNAPSHOT`.

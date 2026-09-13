@@ -56,7 +56,7 @@ def check_source_facts(schema_text: str, source_root: Path) -> None:
     common_cpp = (source_root / "server-common.cpp").read_text(encoding="utf-8")
     models_cpp = (source_root / "server-models.cpp").read_text(encoding="utf-8")
 
-    # Completion/chat usage in b9859 source has prompt_tokens_details.cached_tokens
+    # Completion/chat usage in b10920 source has prompt_tokens_details.cached_tokens
     # but does not include completion_tokens_details.
     require('"prompt_tokens_details", json { {"cached_tokens", n_prompt_tokens_cache} }' in task_cpp,
             "source no longer shows completion prompt_tokens_details.cached_tokens")
@@ -65,9 +65,9 @@ def check_source_facts(schema_text: str, source_root: Path) -> None:
     require("required: [completion_tokens, prompt_tokens, total_tokens, prompt_tokens_details]" in schema_text,
             "schema does not require source-backed completion usage fields")
     require("completion_tokens_details:" not in schema_text,
-            "schema should not claim llama.cpp b9859 emits completion_tokens_details")
+            "schema should not claim llama.cpp b10920 emits completion_tokens_details")
 
-    # Responses usage in b9859 source has input_tokens_details.cached_tokens but
+    # Responses usage in b10920 source has input_tokens_details.cached_tokens but
     # does not include output_tokens_details.
     require('"input_tokens_details", json { {"cached_tokens", n_prompt_tokens_cache} }' in task_cpp,
             "source no longer shows responses input_tokens_details.cached_tokens")
@@ -76,9 +76,9 @@ def check_source_facts(schema_text: str, source_root: Path) -> None:
     require("required: [input_tokens, output_tokens, total_tokens, input_tokens_details]" in schema_text,
             "schema does not require source-backed response usage fields")
     require("output_tokens_details:" not in schema_text,
-            "schema should not claim llama.cpp b9859 emits output_tokens_details")
+            "schema should not claim llama.cpp b10920 emits output_tokens_details")
 
-    # Responses output items in b9859 include message, reasoning, and function_call
+    # Responses output items in b10920 include message, reasoning, and function_call
     # items. Function calls use call_id/name/arguments; they do not provide an id
     # in the output item done payload.
     for needle in ['{"type",      "function_call"}', '{"arguments", tool_call.arguments}',
