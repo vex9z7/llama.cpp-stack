@@ -92,6 +92,7 @@ Qwen/Qwen3-4B-GGUF/Q4_K_M
 Qwen/Qwen3-8B-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-3B-Instruct-GGUF/Q4_K_M
 Qwen/Qwen2.5-Coder-7B-Instruct-GGUF/Q4_K_M
+SandLogicTechnologies/DeepSeek-OCR-2-GGUF/IQ4_NL
 LiquidAI/LFM2-700M-GGUF/Q4_K_M
 unsloth/Qwen3.5-9B-GGUF/Q4_K_M
 lukey03/Qwen3.5-9B-abliterated-GGUF/Q4_K_M
@@ -125,3 +126,5 @@ mmproj = "mmproj-F16.gguf"
 ```
 
 The model ref stays `<repo>/<quant>`. The gateway downloads the main GGUF and the projector into `models/hf/<repo>/`, and the generated router preset includes both `model = ...` and `mmproj = ...`. Text-only requests still use the same model ref.
+
+DeepSeek-OCR-2 is included through a community GGUF conversion because DeepSeek's official repositories currently publish the original Transformers/vLLM/SGLang weights rather than a first-party GGUF. Keep its `mmproj` pinned with the main GGUF and validate the current llama.cpp image before relying on it for production OCR.
